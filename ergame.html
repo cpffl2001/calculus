@@ -336,7 +336,7 @@ const STATIONS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[], teamColor='#cc0000';
+let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[], teamColor='#cc0000', shuffledChoices=[];
 let timerSecs=50*60, timerRunning=false, timerInt;
 let teamName="Your Team", winFired=false, flatlineFired=false;
 let audioCtx=null, beepInt=null, flatline=false;
@@ -358,11 +358,10 @@ function startGame(){
   teamName=document.getElementById('teamName').value.trim()||"Your Team";
   teamColor=document.getElementById('teamColor').value;
   document.getElementById('hdr-team').textContent="🏥 "+teamName;
-  // apply team color to header and progress bar
-  document.querySelector('.er-header').style.background=teamColor;
+  showScreen('screen-game');
+  // apply team color AFTER screen is shown
   document.querySelector('.er-header').style.background=teamColor;
   document.documentElement.style.setProperty('--team-color', teamColor);
-  showScreen('screen-game');
   renderStation();
   timerRunning=true;
   timerInt=setInterval(tickTimer,1000);
@@ -434,8 +433,11 @@ function renderStation(){
 
   const plugHTML = '';
 
-  const shuffled = shuffleArray(s.choices.map((ch,i)=>({...ch, origIdx:i})));
-  window._shuffledChoices = shuffled;
+  // shuffle once per station and store by station index
+  if(!shuffledChoices[cur]){
+    shuffledChoices[cur] = shuffleArray(s.choices.map((ch,i)=>({...ch, origIdx:i})));
+  }
+  const shuffled = shuffledChoices[cur];
   const choicesHTML = shuffled.map((ch,i)=>
     `<button class="choice" id="ch-${i}" onclick="selectChoice(${i})">${ch.text}</button>`
   ).join('');
@@ -482,13 +484,13 @@ function submitAnswer(){
   submitted=true;
 
   const s=STATIONS[cur];
-  const shuffled=window._shuffledChoices||s.choices;
+  const shuffled=shuffledChoices[cur]||s.choices;
   const correct=shuffled[selectedChoice].correct;
   const fb=document.getElementById('feedback');
   const nv=document.getElementById('next-val');
 
   // lock all choices
-  const sh=window._shuffledChoices||s.choices;
+  const sh=shuffledChoices[cur]||s.choices;
   document.querySelectorAll('.choice').forEach((el,i)=>{
     el.classList.add('locked');
     if(sh[i].correct) el.classList.add('reveal-correct');
@@ -574,6 +576,8 @@ function renderStationReview(){
     </div>`;
 
   if(window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(()=>{});
+  // keep team color on header during review
+  if(teamColor) document.querySelector('.er-header').style.background=teamColor;
 }
 
 function goBackMore(){
