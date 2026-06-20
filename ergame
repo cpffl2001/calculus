@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculus ER — Race to Save Alex Rivera</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--red:#cc0000;--red-dark:#880000;--red-light:#fff0f0;--green:#1a7a3a;--green-light:#e8fff0;--purple:#3a2a99;--purple-light:#eeedfe;--coral:#993300;--coral-light:#fff0e8;--pink:#883366;--pink-light:#fbeaf0;--teal:#0f6e56;--teal-light:#e1f5ee;--amber:#854f0b;--amber-light:#faeeda;--gray:#111;--text:#1a1a1a;--text2:#555;--border:#ddd;--bg:#f8f7f4;--card:#fff;--shadow:0 2px 12px rgba(0,0,0,0.08)}
+body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex;flex-direction:column}
+
+/* HEADER */
+.er-header{background:var(--red);color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.er-header h1{font-size:20px;font-weight:bold;letter-spacing:.5px}
+.er-header .sub{font-size:12px;opacity:.8;margin-top:2px}
+.timer-display{text-align:right}
+.timer-display .time{font-size:32px;font-weight:bold;font-variant-numeric:tabular-nums;line-height:1}
+.timer-display .time.warn{color:#ffdd44}
+.timer-display .time.crit{color:#ffaaaa;animation:tblink 1s infinite}
+@keyframes tblink{0%,100%{opacity:1}50%{opacity:.4}}
+.timer-display .tl{font-size:11px;opacity:.7}
+
+/* EKG */
+#ekg-bar{background:#000d00;width:100%;height:48px;display:block}
+
+/* PATIENT BAR */
+.patient-bar{background:#1a0000;border-bottom:1px solid #440000;padding:8px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.patient-name{color:#ff6666;font-size:14px;font-weight:bold}
+.vitals{display:flex;gap:16px;flex-wrap:wrap}
+.vital{font-size:12px;color:#cc8888}
+.vital b{font-weight:bold}
+.vital b.ok{color:#44dd77}
+.vital b.mid{color:#ffdd44}
+.vital b.bad{color:#ff5555}
+
+/* PROGRESS BAR */
+.progress-wrap{padding:10px 20px;background:#fff;border-bottom:1px solid var(--border)}
+.progress-label{font-size:12px;color:var(--text2);margin-bottom:6px;display:flex;justify-content:space-between}
+.progress-track{background:#eee;border-radius:999px;height:10px;overflow:hidden}
+.progress-fill{background:linear-gradient(90deg,var(--red),#ff6644);height:100%;border-radius:999px;transition:width .5s}
+
+/* MAIN CONTENT */
+.game-main{flex:1;padding:16px 20px;max-width:700px;margin:0 auto;width:100%}
+
+/* STATION CARD */
+.station-card{background:var(--card);border-radius:12px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.station-hdr{padding:14px 18px;display:flex;align-items:center;gap:12px}
+.station-num{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;flex-shrink:0}
+.station-hdr-text h2{font-size:16px;font-weight:bold;margin-bottom:2px}
+.station-hdr-text p{font-size:12px;opacity:.75}
+.station-body{padding:0 18px 18px}
+.scenario-box{background:var(--bg);border-radius:8px;padding:12px 14px;font-size:13px;line-height:1.6;color:var(--text2);margin-bottom:14px;border-left:3px solid #ccc}
+.needs-box{background:#fff8e8;border-left:3px solid #cc8800;border-radius:0;padding:10px 14px;font-size:13px;color:#7a4400;font-weight:bold;margin-bottom:12px}
+.math-box{background:#f4f3fe;border-left:3px solid #534ab7;padding:12px 16px;font-family:'Courier New',monospace;font-size:14px;color:#1a1a6e;margin-bottom:14px;line-height:1.8}
+.task-label{font-size:13px;font-weight:bold;margin-bottom:10px;color:var(--text)}
+
+/* MULTIPLE CHOICE */
+.choices{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.choice{background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:12px 16px;font-family:'Courier New',monospace;font-size:13px;cursor:pointer;transition:border-color .15s,background .15s;text-align:left;color:var(--text);line-height:1.5}
+.choice:hover{border-color:#888;background:#fafafa}
+.choice.selected{border-color:#534ab7;background:#eeedfe;color:#26215c}
+.choice.correct{border-color:#1a7a3a;background:#e8fff0;color:#0a3a1a}
+.choice.wrong{border-color:#cc0000;background:#fff0f0;color:#7a0000}
+.choice.reveal-correct{border-color:#1a7a3a;background:#e8fff0;color:#0a3a1a}
+
+.feedback-box{border-radius:8px;padding:12px 16px;font-size:13px;margin-bottom:12px;display:none;line-height:1.6}
+.feedback-box.show{display:block}
+.feedback-box.correct{background:#e8fff0;border:1px solid #1a7a3a;color:#0a3a1a}
+.feedback-box.wrong{background:#fff0f0;border:1px solid #cc0000;color:#7a0000}
+
+.feeds-box{background:#e8fff0;border-left:3px solid #1a7a3a;padding:10px 14px;font-size:13px;color:#0a3a1a;font-weight:bold;display:none;margin-bottom:12px}
+.feeds-box.show{display:block}
+
+.btn{padding:10px 24px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:bold;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-submit{background:var(--red);color:#fff}
+.btn-next{background:var(--green);color:#fff;display:none}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+
+/* INTRO SCREEN */
+.intro-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;text-align:center;max-width:600px;margin:0 auto;width:100%}
+.intro-icon{font-size:64px;margin-bottom:16px}
+.intro-wrap h1{font-size:26px;font-weight:bold;color:var(--red);margin-bottom:8px}
+.intro-wrap .tagline{font-size:15px;color:var(--text2);line-height:1.7;margin-bottom:24px}
+.team-setup{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;width:100%;margin-bottom:20px;text-align:left}
+.team-setup h3{font-size:15px;font-weight:bold;margin-bottom:12px}
+.team-setup label{font-size:13px;color:var(--text2);display:block;margin-bottom:4px}
+.team-setup input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px}
+.team-setup select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;margin-bottom:4px}
+.station-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;width:100%}
+.sl-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:left}
+.sl-num{font-size:10px;font-weight:bold;margin-bottom:2px}
+.sl-name{font-size:13px;font-weight:bold;margin-bottom:1px}
+.sl-topic{font-size:11px;color:var(--text2)}
+.btn-start{background:var(--red);color:#fff;padding:14px 40px;border-radius:10px;border:none;font-size:16px;font-weight:bold;cursor:pointer;width:100%;max-width:320px}
+.btn-start:hover{opacity:.88}
+
+/* WIN SCREEN */
+.win-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 20px;text-align:center;background:linear-gradient(180deg,#001a08,#002d10);min-height:100vh}
+.win-icon{font-size:72px;margin-bottom:16px;animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(0)}80%{transform:scale(1.15)}100%{transform:scale(1)}}
+.win-screen h1{font-size:32px;font-weight:bold;color:#44ff88;margin-bottom:8px}
+.win-team{font-size:22px;color:#fff;font-weight:bold;margin-bottom:6px}
+.win-sub{font-size:15px;color:#aaffcc;line-height:1.7;margin-bottom:20px}
+.win-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;width:100%;max-width:420px}
+.win-stat{background:rgba(255,255,255,.08);border-radius:10px;padding:14px;border:1px solid rgba(68,255,136,.2)}
+.win-stat .n{font-size:24px;font-weight:bold;color:#44ff88}
+.win-stat .l{font-size:11px;color:#aaffcc;margin-top:2px}
+.confetti-wrap{position:fixed;inset:0;pointer-events:none;z-index:999}
+.btn-play-again{background:#44ff88;color:#001a08;padding:12px 32px;border-radius:10px;border:none;font-size:15px;font-weight:bold;cursor:pointer;margin-top:8px}
+.btn-play-again:hover{opacity:.88}
+
+/* FLATLINE overlay */
+.flatline-overlay{display:none;position:fixed;inset:0;background:rgba(60,0,0,.92);z-index:50;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.flatline-overlay.show{display:flex}
+.flatline-overlay h2{color:#ff4444;font-size:32px;font-weight:bold}
+.flatline-overlay p{color:#ffaaaa;font-size:16px;text-align:center;max-width:360px;line-height:1.6}
+.flatline-overlay button{background:#cc0000;color:#fff;padding:12px 28px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer}
+</style>
+</head>
+<body>
+
+<!-- INTRO SCREEN -->
+<div id="screen-intro" class="screen active" style="background:#fff0f0 url('') no-repeat">
+  <div style="background:var(--red);padding:14px 20px;color:#fff;text-align:center">
+    <div style="font-size:22px;font-weight:bold">🏥 Calculus ER</div>
+    <div style="font-size:12px;opacity:.8">Race to Save Alex Rivera</div>
+  </div>
+  <div class="intro-wrap">
+    <div class="intro-icon">🚨</div>
+    <h1>Code Red</h1>
+    <p class="tagline">Patient Alex Rivera has been rushed in unconscious. Your medical team must work through 6 diagnostic stations — each one unlocking the next — to determine the correct treatment. <strong>The first team to complete all 6 stations wins.</strong></p>
+
+    <div class="station-list">
+      <div class="sl-item"><div class="sl-num" style="color:#cc0000">Station 1</div><div class="sl-name">Triage</div><div class="sl-topic">Power rule</div></div>
+      <div class="sl-item"><div class="sl-num" style="color:#3a2a99">Station 2</div><div class="sl-name">Toxicology</div><div class="sl-topic">Exponential rule</div></div>
+      <div class="sl-item"><div class="sl-num" style="color:#993300">Station 3</div><div class="sl-name">Pharmacy</div><div class="sl-topic">Log rule</div></div>
+      <div class="sl-item"><div class="sl-num" style="color:#883366">Station 4</div><div class="sl-name">Neurology</div><div class="sl-topic">Trig derivatives</div></div>
+      <div class="sl-item"><div class="sl-num" style="color:#0f6e56">Station 5</div><div class="sl-name">Radiology</div><div class="sl-topic">Chain rule</div></div>
+      <div class="sl-item" style="border:2px solid #1a7a3a"><div class="sl-num" style="color:#1a7a3a">Station 6 ★</div><div class="sl-name">Final Diagnosis</div><div class="sl-topic">Product rule — WIN</div></div>
+    </div>
+
+    <div class="team-setup">
+      <h3>Team setup</h3>
+      <label>Team name (e.g. "Red Team")</label>
+      <input type="text" id="teamName" placeholder="Enter your team name" maxlength="30">
+      <label>Team color</label>
+      <select id="teamColor">
+        <option value="#cc0000">Red Team</option>
+        <option value="#2244cc">Blue Team</option>
+        <option value="#228844">Green Team</option>
+        <option value="#cc8800">Gold Team</option>
+        <option value="#7733bb">Purple Team</option>
+      </select>
+    </div>
+    <button class="btn-start" onclick="startGame()">Begin — Save Alex Rivera</button>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="screen-game" class="screen">
+  <div class="er-header">
+    <div>
+      <h1 id="hdr-team">🏥 Calculus ER</h1>
+      <div class="sub">Station <span id="hdr-station">1</span> of 6 — work together as a team</div>
+    </div>
+    <div class="timer-display">
+      <div class="time" id="timer">50:00</div>
+      <div class="tl">remaining</div>
+    </div>
+  </div>
+
+  <canvas id="ekg-bar" height="48"></canvas>
+
+  <div class="patient-bar">
+    <div class="patient-name">♥ Alex Rivera</div>
+    <div class="vitals">
+      <div class="vital">BP: <b id="v-bp" class="bad">158/94</b></div>
+      <div class="vital">HR: <b id="v-hr" class="bad">112 bpm</b></div>
+      <div class="vital">SpO2: <b id="v-spo" class="bad">91%</b></div>
+      <div class="vital">Status: <b id="v-st" class="bad">CRITICAL</b></div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span>Diagnostic progress</span>
+      <span id="prog-text">0 / 6 stations complete</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="game-main" id="station-area"></div>
+</div>
+
+<!-- WIN SCREEN -->
+<div id="screen-win" class="screen" style="display:none">
+  <div class="win-screen">
+    <canvas class="confetti-wrap" id="confetti-canvas"></canvas>
+    <div class="win-icon">🏆</div>
+    <h1>Patient Saved!</h1>
+    <div class="win-team" id="win-team-name"></div>
+    <p class="win-sub">correctly completed all 6 diagnostic stations.<br>Alex Rivera is stable. Outstanding calculus work!</p>
+    <div class="win-stats">
+      <div class="win-stat"><div class="n" id="ws-time">--:--</div><div class="l">time remaining</div></div>
+      <div class="win-stat"><div class="n">6/6</div><div class="l">stations solved</div></div>
+      <div class="win-stat"><div class="n" id="ws-attempts">--</div><div class="l">total attempts</div></div>
+    </div>
+    <p style="color:#88ccaa;font-size:13px;margin-bottom:16px">P'(0) = 75 &gt; 70 mg/hr² threshold → antidote protocol confirmed</p>
+    <button class="btn-play-again" onclick="location.reload()">Play again</button>
+  </div>
+</div>
+
+<!-- FLATLINE OVERLAY -->
+<div class="flatline-overlay" id="flatline">
+  <div style="font-size:56px">💔</div>
+  <h2>Time's Up</h2>
+  <p>The 50 minutes are up. Alex Rivera needed more time.<br>Review your derivative work with your professor, then try again.</p>
+  <button onclick="location.reload()">Try again</button>
+</div>
+
+<script>
+const STATIONS = [
+  {
+    num:1, dept:"Triage", topic:"Power rule",
+    color:"#cc0000", bg:"#fff0f0", numBg:"#FCEBEB", numColor:"#791F1F",
+    scenario:"Patient Alex Rivera has just arrived unconscious. The cardiac monitor is recording blood pressure B(t) in mmHg, where t is minutes since admission. The attending physician needs the rate of change of blood pressure at the 1-minute mark to decide whether to administer vasodilators.",
+    needs: null,
+    math:"B(t) = 2t⁴ − 6t³ + 9t² − 4t + 50\n\nFind B'(t), then evaluate B'(1).",
+    task:"Select the correct derivative B'(t) and the value of B'(1):",
+    choices:[
+      {text:"B'(t) = 8t³ − 18t² + 18t − 4,  so  B'(1) = 4", correct:true},
+      {text:"B'(t) = 8t³ − 18t² + 18t − 4,  so  B'(1) = 6", correct:false},
+      {text:"B'(t) = 2t³ − 6t² + 9t − 4,    so  B'(1) = 1", correct:false},
+      {text:"B'(t) = 8t⁴ − 18t³ + 18t² − 4t, so  B'(1) = 4", correct:false},
+    ],
+    correct_explain:"B'(t) = 8t³−18t²+18t−4 by the power rule. At t=1: 8−18+18−4 = 4. Blood pressure is rising — prepare vasodilators!",
+    wrong_explain:"Check each term: d/dt[2t⁴]=8t³, d/dt[6t³]=18t², d/dt[9t²]=18t, d/dt[4t]=4. Constants vanish. Then substitute t=1.",
+    feeds:"Your answer B'(1) = 4 is the toxin coefficient for Station 2.",
+    feedsVal:4,
+  },
+  {
+    num:2, dept:"Toxicology", topic:"Exponential rule",
+    color:"#3a2a99", bg:"#eeedfe", numBg:"#EEEDFE", numColor:"#3C3489",
+    scenario:"Lab results confirm a toxin in Alex's bloodstream. The toxin concentration T(t) uses the blood pressure rate you just found as a coefficient. Plug in your Station 1 answer and differentiate to find how fast the toxin is entering the system.",
+    needs:"Plug in your Station 1 answer: T(t) = 3eᵗ + [4]·t²",
+    math:"T(t) = 3eᵗ + 4t²\n\nFind T'(t), then evaluate T'(0).\nRecall: d/dt[eᵗ] = eᵗ  and  e⁰ = 1",
+    task:"Select the correct derivative T'(t) and the value of T'(0):",
+    choices:[
+      {text:"T'(t) = 3eᵗ + 8t,  so  T'(0) = 3", correct:true},
+      {text:"T'(t) = 3eᵗ + 4t², so  T'(0) = 3", correct:false},
+      {text:"T'(t) = 3eᵗ + 8t,  so  T'(0) = 11", correct:false},
+      {text:"T'(t) = eᵗ + 8t,   so  T'(0) = 1", correct:false},
+    ],
+    correct_explain:"T'(t) = 3eᵗ + 8t. At t=0: 3e⁰ + 8(0) = 3(1) + 0 = 3. Toxin entry rate confirmed.",
+    wrong_explain:"d/dt[3eᵗ] = 3eᵗ (the exponential rule) and d/dt[4t²] = 8t (power rule). At t=0, e⁰=1 and 8(0)=0.",
+    feeds:"Your answer T'(0) = 3 is the drug absorption constant for Station 3.",
+    feedsVal:3,
+  },
+  {
+    num:3, dept:"Pharmacy", topic:"Log rule",
+    color:"#993300", bg:"#fff0e8", numBg:"#FAECE7", numColor:"#712B13",
+    scenario:"The pharmacist models antidote absorption D(x), where x is hours since administration. The log coefficient comes from your toxicology reading. Plug in your Station 2 answer and differentiate to find how fast the drug is reaching therapeutic levels.",
+    needs:"Plug in your Station 2 answer: D(x) = [3]·ln(x) + 2x³",
+    math:"D(x) = 3·ln(x) + 2x³\n\nFind D'(x), then evaluate D'(1).\nRecall: d/dx[ln(x)] = 1/x",
+    task:"Select the correct derivative D'(x) and the value of D'(1):",
+    choices:[
+      {text:"D'(x) = 3/x + 6x²,  so  D'(1) = 9", correct:true},
+      {text:"D'(x) = 3/x + 6x²,  so  D'(1) = 3", correct:false},
+      {text:"D'(x) = 3/x + 2x³,  so  D'(1) = 5", correct:false},
+      {text:"D'(x) = 3x + 6x²,   so  D'(1) = 9", correct:false},
+    ],
+    correct_explain:"D'(x) = 3/x + 6x². At x=1: 3/1 + 6(1)² = 3 + 6 = 9. Antidote absorbing well at hour 1!",
+    wrong_explain:"d/dx[3·ln(x)] = 3·(1/x) = 3/x. Then d/dx[2x³] = 6x² by power rule. At x=1: 3/1=3 and 6(1)=6, total=9.",
+    feeds:"Your answer D'(1) = 9 is the neurology signal coefficient for Station 4.",
+    feedsVal:9,
+  },
+  {
+    num:4, dept:"Neurology", topic:"Trig derivatives",
+    color:"#883366", bg:"#fbeaf0", numBg:"#FBEAF0", numColor:"#72243E",
+    scenario:"The neurology scan measures nerve signal amplitude N(t) in seconds. The cosine coefficient comes from your pharmacy result. Evaluate at t=0 using unit circle values: sin(0)=0, cos(0)=1.",
+    needs:"Plug in your Station 3 answer: N(t) = [9]·cos(t) + 5·sin(t)",
+    math:"N(t) = 9·cos(t) + 5·sin(t)\n\nFind N'(t), then evaluate N'(0).\nRecall: d/dt[cos t] = −sin t\n        d/dt[sin t] = cos t\n        sin(0) = 0,  cos(0) = 1",
+    task:"Select the correct derivative N'(t) and the value of N'(0):",
+    choices:[
+      {text:"N'(t) = −9·sin(t) + 5·cos(t),  so  N'(0) = 5", correct:true},
+      {text:"N'(t) = −9·sin(t) + 5·cos(t),  so  N'(0) = 9", correct:false},
+      {text:"N'(t) = 9·cos(t) + 5·sin(t),   so  N'(0) = 9", correct:false},
+      {text:"N'(t) = 9·sin(t) − 5·cos(t),   so  N'(0) = −5", correct:false},
+    ],
+    correct_explain:"N'(t) = −9·sin(t) + 5·cos(t). At t=0: −9(0) + 5(1) = 5. Nerve signals are active — good sign!",
+    wrong_explain:"d/dt[cos t] = −sin t (note the negative!) and d/dt[sin t] = cos t. At t=0: sin(0)=0 and cos(0)=1.",
+    feeds:"Your answer N'(0) = 5 goes inside the chain rule composition at Station 5.",
+    feedsVal:5,
+  },
+  {
+    num:5, dept:"Radiology", topic:"Chain rule",
+    color:"#0f6e56", bg:"#e1f5ee", numBg:"#E1F5EE", numColor:"#085041",
+    scenario:"Radiation dosing uses a composite function. The constant inside comes from your neurology result. Apply the chain rule: identify the outer function (u²) and inner function (u = t²+5), differentiate each, then multiply.",
+    needs:"Plug in your Station 4 answer: R(t) = (t² + [5])²",
+    math:"R(t) = (t² + 5)²\n\nFind R'(t) using the chain rule, then evaluate R'(1).\nOuter: u²  →  2u\nInner: t² + 5  →  2t\nChain rule: multiply them together.",
+    task:"Select the correct derivative R'(t) and the value of R'(1):",
+    choices:[
+      {text:"R'(t) = 4t(t² + 5),  so  R'(1) = 24", correct:true},
+      {text:"R'(t) = 2(t² + 5),   so  R'(1) = 12", correct:false},
+      {text:"R'(t) = 2t(t² + 5),  so  R'(1) = 12", correct:false},
+      {text:"R'(t) = 4t(t² + 5),  so  R'(1) = 20", correct:false},
+    ],
+    correct_explain:"R'(t) = 2(t²+5)·(2t) = 4t(t²+5). At t=1: 4(1)(1+5) = 4×6 = 24. Radiation dose calibrated!",
+    wrong_explain:"Chain rule: d/dt[(t²+5)²] = 2(t²+5)·d/dt[t²+5] = 2(t²+5)·2t = 4t(t²+5). At t=1: 4(1)(6)=24.",
+    feeds:"Your answer R'(1) = 24 is the antidote delivery coefficient for the final Station 6!",
+    feedsVal:24,
+  },
+  {
+    num:6, dept:"Final Diagnosis", topic:"Product rule",
+    color:"#1a7a3a", bg:"#e8fff0", numBg:"#EAF3DE", numColor:"#27500A",
+    scenario:"This is it. The antidote delivery rate P(t) is the product of two functions — a linear time factor and an exponential scaling term. The constant comes from your radiology result. If P'(0) exceeds 70 mg/hr², Alex Rivera is saved. Differentiate using the product rule: f=t+24, g=3eᵗ.",
+    needs:"Plug in your Station 5 answer: P(t) = (t + [24])·(3eᵗ)",
+    math:"P(t) = (t + 24)(3eᵗ)\n\nFind P'(t) using the product rule, then evaluate P'(0).\nf = t + 24    f' = 1\ng = 3eᵗ       g' = 3eᵗ\nProduct rule: P'(t) = f'g + fg'",
+    task:"Select the correct derivative P'(t) and the value of P'(0):",
+    choices:[
+      {text:"P'(t) = 3eᵗ(t + 25),  so  P'(0) = 75 → patient SAVED", correct:true},
+      {text:"P'(t) = 3eᵗ(t + 24),  so  P'(0) = 72 → patient SAVED", correct:false},
+      {text:"P'(t) = 3eᵗ + (t+24), so  P'(0) = 28 → escalate!", correct:false},
+      {text:"P'(t) = 3eᵗ(t + 25),  so  P'(0) = 78 → patient SAVED", correct:false},
+    ],
+    correct_explain:"P'(t) = (1)(3eᵗ) + (t+24)(3eᵗ) = 3eᵗ(1+t+24) = 3eᵗ(t+25). At t=0: 3(1)(25) = 75. P'(0) = 75 > 70 threshold — antidote is working! ALEX IS SAVED! 🎉",
+    wrong_explain:"Product rule: P'(t) = f'g + fg' = (1)(3eᵗ) + (t+24)(3eᵗ). Factor out 3eᵗ: 3eᵗ(1 + t + 24) = 3eᵗ(t+25). At t=0: e⁰=1, so 3(1)(25)=75.",
+    feeds:"P'(0) = 75 > 70 mg/hr² threshold — submit your Treatment Order!",
+    feedsVal:75,
+    isWin:true,
+  },
+];
+
+let currentStation = 0;
+let selectedChoice = null;
+let submitted = false;
+let totalAttempts = 0;
+let timerSecs = 50*60;
+let timerRunning = false;
+let timerInterval;
+let teamName = "Your Team";
+let teamColor = "#cc0000";
+let flatlineFired = false;
+let winFired = false;
+
+// EKG
+let audioCtx = null;
+let beepInt = null;
+let flatline = false;
+let ekgBuf = []; let ekgPos = 0;
+
+function startGame(){
+  teamName = document.getElementById('teamName').value.trim() || "Your Team";
+  teamColor = document.getElementById('teamColor').value;
+  document.getElementById('hdr-team').textContent = "🏥 " + teamName;
+  showScreen('screen-game');
+  renderStation();
+  timerRunning = true;
+  timerInterval = setInterval(tickTimer,1000);
+  initEkg();
+}
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>{ s.classList.remove('active'); s.style.display=''; });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.style.display='flex';
+}
+
+function tickTimer(){
+  if(!timerRunning) return;
+  timerSecs--;
+  updateTimerDisplay();
+  if(timerSecs<=0 && !flatlineFired && !winFired){
+    flatlineFired=true; timerRunning=false;
+    flatline=true;
+    if(beepInt){clearInterval(beepInt);beepInt=null;}
+    playFlatline();
+    setTimeout(()=>document.getElementById('flatline').classList.add('show'),800);
+  }
+}
+
+function updateTimerDisplay(){
+  const m=Math.floor(timerSecs/60),s=timerSecs%60;
+  const el=document.getElementById('timer');
+  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  el.className='time'+(timerSecs<=300?' crit':timerSecs<=600?' warn':'');
+}
+
+function updateVitals(stationIdx){
+  const stages=[
+    {bp:"158/94",hr:"112 bpm",spo:"91%",st:"CRITICAL",bc:"bad",hc:"bad",sc:"bad",stc:"bad"},
+    {bp:"150/90",hr:"104 bpm",spo:"93%",st:"CRITICAL",bc:"bad",hc:"bad",sc:"mid",stc:"bad"},
+    {bp:"142/86",hr:"97 bpm", spo:"95%",st:"GUARDED", bc:"mid",hc:"mid",sc:"mid",stc:"mid"},
+    {bp:"135/82",hr:"91 bpm", spo:"96%",st:"IMPROVING",bc:"mid",hc:"mid",sc:"mid",stc:"mid"},
+    {bp:"128/80",hr:"84 bpm", spo:"97%",st:"IMPROVING",bc:"mid",hc:"mid",sc:"ok",stc:"mid"},
+    {bp:"120/78",hr:"78 bpm", spo:"98%",st:"STABLE",  bc:"ok",hc:"ok",sc:"ok",stc:"ok"},
+    {bp:"118/76",hr:"72 bpm", spo:"99%",st:"STABLE",  bc:"ok",hc:"ok",sc:"ok",stc:"ok"},
+  ];
+  const d=stages[Math.min(stationIdx,6)];
+  const s=(id,v,c)=>{const e=document.getElementById(id);if(e){e.textContent=v;e.className=c;}};
+  s('v-bp',d.bp,d.bc); s('v-hr',d.hr,d.hc); s('v-spo',d.spo,d.sc); s('v-st',d.st,d.stc);
+}
+
+function updateProgress(n){
+  const pct=Math.round(n/6*100);
+  const pf=document.getElementById('prog-fill');
+  const pt=document.getElementById('prog-text');
+  if(pf) pf.style.width=pct+'%';
+  if(pt) pt.textContent=n+' / 6 stations complete';
+  document.getElementById('hdr-station').textContent=Math.min(n+1,6);
+}
+
+function renderStation(){
+  const s = STATIONS[currentStation];
+  updateVitals(currentStation);
+  updateProgress(currentStation);
+  selectedChoice = null; submitted = false;
+
+  const area = document.getElementById('station-area');
+  const choicesHTML = s.choices.map((c,i)=>
+    `<button class="choice" id="ch-${i}" onclick="selectChoice(${i})">${c.text}</button>`
+  ).join('');
+
+  area.innerHTML = `
+    <div class="station-card">
+      <div class="station-hdr" style="background:${s.bg}">
+        <div class="station-num" style="background:${s.numBg};color:${s.numColor}">${s.num}</div>
+        <div class="station-hdr-text">
+          <h2 style="color:${s.color}">${s.dept}</h2>
+          <p style="color:${s.color}">Diagnostic skill: ${s.topic}</p>
+        </div>
+      </div>
+      <div class="station-body">
+        ${s.needs ? `<div class="needs-box">⚠ Previous answer plugged in: ${s.needs}</div>` : ''}
+        <div class="scenario-box">${s.scenario}</div>
+        <div class="math-box">${s.math.replace(/\n/g,'<br>')}</div>
+        <div class="task-label">${s.task}</div>
+        <div class="choices">${choicesHTML}</div>
+        <div class="feedback-box" id="feedback"></div>
+        <div class="feeds-box" id="feeds-box"></div>
+        <div class="btn-row">
+          <button class="btn btn-submit" id="btn-submit" onclick="submitAnswer()">Submit answer</button>
+          <button class="btn btn-next" id="btn-next" onclick="nextStation()">${s.isWin ? '🎉 Save Alex Rivera!' : 'Next station →'}</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function selectChoice(idx){
+  if(submitted) return;
+  selectedChoice = idx;
+  document.querySelectorAll('.choice').forEach((el,i)=>{
+    el.className='choice'+(i===idx?' selected':'');
+  });
+}
+
+function submitAnswer(){
+  if(selectedChoice===null){ alert('Please select an answer first!'); return; }
+  if(submitted) return;
+  submitted = true;
+  totalAttempts++;
+
+  const s = STATIONS[currentStation];
+  const correct = s.choices[selectedChoice].correct;
+  const fb = document.getElementById('feedback');
+  const feedsBox = document.getElementById('feeds-box');
+
+  document.querySelectorAll('.choice').forEach((el,i)=>{
+    if(s.choices[i].correct) el.classList.add('reveal-correct');
+    else if(i===selectedChoice && !correct) el.classList.add('wrong');
+    el.classList.remove('selected');
+  });
+
+  if(correct){
+    el2 = document.querySelectorAll('.choice')[selectedChoice];
+    el2.classList.add('correct');
+    fb.className='feedback-box show correct';
+    fb.innerHTML='✓ Correct! '+s.correct_explain;
+    feedsBox.className='feeds-box show';
+    feedsBox.innerHTML='→ '+s.feeds;
+    document.getElementById('btn-next').style.display='block';
+    document.getElementById('btn-submit').style.display='none';
+    beep(880,0.12,0.2);
+  } else {
+    fb.className='feedback-box show wrong';
+    fb.innerHTML='✗ Not quite. '+s.wrong_explain+'<br><br>Select another answer and try again.';
+    submitted = false;
+    selectedChoice = null;
+    document.querySelectorAll('.choice').forEach(el=>{ el.classList.remove('reveal-correct'); });
+    document.querySelectorAll('.choice').forEach((el,i)=>{
+      if(!s.choices[i].correct) el.classList.remove('wrong');
+    });
+  }
+}
+
+function nextStation(){
+  if(STATIONS[currentStation].isWin){
+    triggerWin(); return;
+  }
+  currentStation++;
+  renderStation();
+  window.scrollTo(0,0);
+}
+
+function triggerWin(){
+  winFired=true; timerRunning=false;
+  flatline=false;
+  if(beepInt){clearInterval(beepInt);beepInt=null;}
+  // stable heartbeat
+  setTimeout(()=>beep(660,0.15,0.2),0);
+  setTimeout(()=>beep(660,0.15,0.2),400);
+  document.getElementById('win-team-name').textContent=teamName;
+  const m=Math.floor(timerSecs/60),s2=timerSecs%60;
+  document.getElementById('ws-time').textContent=String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0');
+  document.getElementById('ws-attempts').textContent=totalAttempts;
+  showScreen('screen-win');
+  startConfetti();
+}
+
+// ── EKG ────────────────────────────────────────────────────────
+function initEkg(){
+  const canvas=document.getElementById('ekg-bar');
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ekgBuf=makeEkgSegment(110); ekgPos=0;
+  scheduleBeeps(110);
+  requestAnimationFrame(()=>drawEkg(canvas,ctx));
+}
+
+function makeEkgSegment(bpm){
+  const seg=[]; const mid=24;
+  if(flatline){ for(let i=0;i<120;i++) seg.push(mid); return seg; }
+  for(let i=0;i<8;i++) seg.push(mid);
+  seg.push(mid-2);seg.push(mid-4);seg.push(mid-4);seg.push(mid-2);
+  for(let i=0;i<6;i++) seg.push(mid);
+  seg.push(mid+3);seg.push(mid+5);
+  const sh=Math.max(8,Math.round(18*(bpm/110)));
+  seg.push(mid-sh); seg.push(mid+4); seg.push(mid+2);
+  for(let i=0;i<5;i++) seg.push(mid);
+  seg.push(mid-3);seg.push(mid-6);seg.push(mid-8);seg.push(mid-6);seg.push(mid-3);
+  const done=seg.length;
+  const total=Math.round(110*(60/Math.max(bpm,30)));
+  for(let i=done;i<Math.max(total,done+6);i++) seg.push(mid);
+  return seg;
+}
+
+function currentBpm(){
+  if(flatline) return 0;
+  if(winFired) return 72;
+  const pct=timerSecs/(50*60);
+  const base=38+pct*72;
+  const bonus=Math.min(currentStation*6,30);
+  return Math.round(base+bonus);
+}
+
+function scheduleBeeps(bpm){
+  if(beepInt){clearInterval(beepInt);beepInt=null;}
+  if(bpm<=0||flatline) return;
+  const ms=Math.round(60000/bpm);
+  beepInt=setInterval(()=>{
+    if(flatline){clearInterval(beepInt);beepInt=null;return;}
+    beep(900,0.07,0.12);
+  },ms);
+}
+
+let lastBpm=0;
+function drawEkg(canvas,ctx){
+  const W=canvas.width=canvas.offsetWidth||window.innerWidth;
+  const H=canvas.height;
+  const bpm=currentBpm();
+  if(Math.abs(bpm-lastBpm)>5){ lastBpm=bpm; ekgBuf=makeEkgSegment(bpm); ekgPos=0; scheduleBeeps(bpm); }
+  if(ekgPos>=ekgBuf.length-20){ ekgBuf=ekgBuf.slice(ekgPos).concat(makeEkgSegment(bpm)); ekgPos=0; }
+  const shift=flatline?2:Math.max(2,Math.round(bpm/30));
+  ctx.drawImage(canvas,-shift,0);
+  ctx.fillStyle='#000d00'; ctx.fillRect(W-shift-2,0,shift+4,H);
+  for(let i=0;i<shift&&ekgPos<ekgBuf.length;i++,ekgPos++){
+    const y=ekgBuf[ekgPos]; const x=W-shift+i;
+    ctx.fillStyle=flatline?'#ff4444':'#00ff44';
+    ctx.fillRect(x,y-1,1,3);
+  }
+  ctx.fillStyle='#000d00'; ctx.fillRect(4,2,80,18);
+  ctx.fillStyle=flatline?'#ff4444':'#00cc33';
+  ctx.font='bold 12px monospace';
+  ctx.fillText(flatline?'FLATLINE':`${bpm} BPM`,6,15);
+  requestAnimationFrame(()=>drawEkg(canvas,ctx));
+}
+
+// ── AUDIO ───────────────────────────────────────────────────────
+function getAC(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function beep(freq=880,dur=0.08,vol=0.15){
+  try{
+    const ac=getAC(),osc=ac.createOscillator(),g=ac.createGain();
+    osc.connect(g);g.connect(ac.destination);
+    osc.frequency.value=freq;osc.type='sine';
+    g.gain.setValueAtTime(vol,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dur);
+    osc.start(ac.currentTime);osc.stop(ac.currentTime+dur);
+  }catch(e){}
+}
+function playFlatline(){
+  try{
+    const ac=getAC(),osc=ac.createOscillator(),g=ac.createGain();
+    osc.connect(g);g.connect(ac.destination);
+    osc.frequency.value=440;osc.type='sine';
+    g.gain.setValueAtTime(0.2,ac.currentTime);
+    g.gain.setValueAtTime(0.2,ac.currentTime+3.5);
+    g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+5);
+    osc.start(ac.currentTime);osc.stop(ac.currentTime+5.1);
+  }catch(e){}
+}
+
+// ── CONFETTI ────────────────────────────────────────────────────
+function startConfetti(){
+  const canvas=document.getElementById('confetti-canvas');
+  if(!canvas) return;
+  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+  const ctx=canvas.getContext('2d');
+  const pieces=Array.from({length:160},()=>({
+    x:Math.random()*canvas.width, y:Math.random()*canvas.height-canvas.height,
+    r:Math.random()*6+3, c:['#44ff88','#ffdd44','#ff6644','#aabbff','#ffffff'][Math.floor(Math.random()*5)],
+    sp:Math.random()*3+1.5, sw:Math.random()*3-1.5, rot:Math.random()*360, rs:Math.random()*5-2.5
+  }));
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r); ctx.restore();
+      p.y+=p.sp; p.x+=p.sw; p.rot+=p.rs;
+      if(p.y>canvas.height+10){ p.y=-10; p.x=Math.random()*canvas.width; }
+    });
+    if(frame++<300) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+</script>
+</body>
+</html>
