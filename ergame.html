@@ -86,6 +86,8 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 .btn-submit{background:var(--red);color:#fff}
 .btn-next{background:var(--green);color:#fff;display:none}
 .btn-row{display:flex;gap:12px;flex-wrap:wrap}
+.btn-back{background:transparent;color:var(--text2);border:1.5px solid var(--border);font-size:14px;padding:8px 18px;border-radius:8px;cursor:pointer;display:none}
+.btn-back:hover{background:var(--bg);color:var(--text)}
 
 /* intro */
 .intro-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;text-align:center;max-width:640px;margin:0 auto;width:100%}
@@ -330,7 +332,7 @@ const STATIONS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let cur=0, submitted=false, correctCount=0;
+let cur=0, furthestStation=0, submitted=false, correctCount=0;
 let timerSecs=50*60, timerRunning=false, timerInt;
 let teamName="Your Team", winFired=false, flatlineFired=false;
 let audioCtx=null, beepInt=null, flatline=false;
@@ -425,6 +427,7 @@ function renderStation(){
         <div class="feedback-box" id="feedback"></div>
         <div class="next-val-box" id="next-val"></div>
         <div class="btn-row">
+          <button class="btn-back" id="btn-back" onclick="goBack()">← Back</button>
           <button class="btn btn-submit" id="btn-submit" onclick="submitAnswer()">Submit answer</button>
           <button class="btn btn-next" id="btn-next" onclick="nextStation()">${s.isWin?'🎉 Save Alex Rivera!':'Next station →'}</button>
         </div>
@@ -432,6 +435,8 @@ function renderStation(){
     </div>`;
 
   if(window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(()=>{});
+  const bb=document.getElementById('btn-back');
+  if(bb) bb.style.display=cur>0?'block':'none';
 }
 
 // ── ANSWER ───────────────────────────────────────────────────────────────────
@@ -483,9 +488,84 @@ function submitAnswer(){
   if(window.MathJax) MathJax.typesetPromise([fb,nv]).catch(()=>{});
 }
 
+function goBack(){
+  if(cur<=0) return;
+  cur--;
+  selectedChoice=null;
+  renderStationReview();
+  window.scrollTo(0,0);
+}
+
+function renderStationReview(){
+  // render previous station fully locked with no submit button
+  const s=STATIONS[cur];
+  updateVitals(cur);
+  document.getElementById('hdr-station').textContent=cur+1;
+
+  const carryHTML = s.carry ? `
+    <div class="carry-box">
+      <div class="carry-box-title">📋 Carry forward</div>
+      <div class="carry-val">${s.carry}</div>
+    </div>` : '';
+
+  const choicesHTML = s.choices.map((c,i)=>{
+    const wasCorrect = c.correct;
+    const cls = wasCorrect ? 'choice correct locked' : 'choice locked';
+    return `<button class="${cls}">${c.text}</button>`;
+  }).join('');
+
+  document.getElementById('station-area').innerHTML = `
+    <div style="background:#fff8e8;border:1.5px solid #cc8800;border-radius:8px;padding:10px 16px;font-size:13px;color:#7a4400;margin-bottom:12px;text-align:center;">
+      👁 Review only — this station is locked. Your answer has already been submitted.
+    </div>
+    <div class="station-card">
+      <div class="station-hdr" style="background:${s.bg}">
+        <div class="station-num" style="background:${s.numBg};color:${s.numColor}">${s.num}</div>
+        <div class="station-hdr-text">
+          <h2 style="color:${s.color}">${s.dept}</h2>
+          <p style="color:${s.color}">Diagnostic skill: ${s.topic}</p>
+        </div>
+      </div>
+      <div class="station-body">
+        ${carryHTML}
+        <div class="scenario-box">${s.scenario}</div>
+        <div class="math-box">${s.math}</div>
+        <div class="task-label">Your answer choices (correct shown in green):</div>
+        <div class="choices">${choicesHTML}</div>
+        <div class="btn-row">
+          <button class="btn-back" style="display:block" onclick="goBackMore()">← Back</button>
+          <button class="btn btn-next" style="display:block" onclick="goForward()">Forward →</button>
+        </div>
+      </div>
+    </div>`;
+
+  if(window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(()=>{});
+}
+
+function goBackMore(){
+  if(cur<=0) return;
+  cur--;
+  renderStationReview();
+  window.scrollTo(0,0);
+}
+
+function goForward(){
+  cur++;
+  // if we're back at the current working station, render normally
+  // track the actual furthest station reached
+  if(cur >= furthestStation){
+    cur = furthestStation;
+    renderStation();
+  } else {
+    renderStationReview();
+  }
+  window.scrollTo(0,0);
+}
+
 function nextStation(){
   if(STATIONS[cur].isWin){triggerWin();return;}
   cur++;
+  furthestStation=Math.max(furthestStation,cur);
   selectedChoice=null;
   renderStation();
   window.scrollTo(0,0);
