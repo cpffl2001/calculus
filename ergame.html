@@ -47,7 +47,8 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 .station-body{padding:0 20px 20px}
 
 .scenario-box{background:var(--bg);border-radius:8px;padding:14px 16px;font-size:15px;line-height:1.7;color:var(--text2);margin-bottom:16px;border-left:3px solid #ccc}
-.needs-box{background:#fff8e8;border-left:3px solid #cc8800;padding:11px 16px;font-size:15px;color:#7a4400;font-weight:bold;margin-bottom:14px;line-height:1.6}
+.needs-box{background:#fff8e8;border-left:4px solid #cc8800;padding:14px 16px;font-size:15px;color:#7a4400;margin-bottom:16px;line-height:1.6;border-radius:0 8px 8px 0}
+.prev-math{background:#fff3d0;border-radius:6px;padding:14px 16px;margin-top:8px;font-size:16px;line-height:2.2;overflow-x:auto}
 .math-box{background:#f4f3fe;border-left:4px solid #534ab7;padding:18px 20px;margin-bottom:16px;line-height:2.2;font-size:18px;color:#1a1a6e;overflow-x:auto}
 .task-label{font-size:16px;font-weight:bold;margin-bottom:12px;color:var(--text)}
 
@@ -241,8 +242,10 @@ const STATIONS = [
   {
     num:3, dept:"Pharmacy", topic:"Log rule",
     color:"#993300", bg:"#fff0e8", numBg:"#FAECE7", numColor:"#712B13",
-    scenario:"The pharmacist models antidote absorption \\(D(x)\\), where \\(x\\) is hours since administration. The log coefficient comes from your Station 2 answer. Find the absorption rate at \\(x = 1\\) hour.",
-    needs:"Station 2 answer plugged in: \\(\\; D(x) = 3\\ln(x) + 2x^3\\)",
+    scenario:"The pharmacist models antidote absorption \\(D(x)\\), where \\(x\\) is hours since administration. The log coefficient comes from your Station 2 result. Find the absorption rate at \\(x = 1\\) hour.",
+    needs:true,
+    prevTitle:"Station 2 result — carried forward",
+    prevMath:"\\[ T(t) = 3e^t + 4t^2 \\quad \\Rightarrow \\quad T'(t) = 3e^t + 8t \\]\n\\[ T'(0) = 3e^0 + 8(0) = 3(1) + 0 = \\boxed{3} \\]\n\\[ \\text{This value (3) becomes the coefficient of } \\ln(x) \\text{ in Station 3:} \\]\n\\[ D(x) = \\mathbf{3}\\ln(x) + 2x^3 \\]",
     math:"\\[ D(x) = 3\\ln(x) + 2x^3 \\]\n\\[ \\text{Find } D'(x), \\text{ then evaluate } D'(1). \\]\n\\[ \\text{Recall: } \\frac{d}{dx}[\\ln x] = \\frac{1}{x} \\]",
     task:"Select the correct answer:",
     choices:[
@@ -258,8 +261,10 @@ const STATIONS = [
   {
     num:4, dept:"Neurology", topic:"Trig derivatives",
     color:"#883366", bg:"#fbeaf0", numBg:"#FBEAF0", numColor:"#72243E",
-    scenario:"The neurology scan models nerve signal amplitude \\(N(t)\\) over time. The cosine coefficient comes from your Station 3 answer. Evaluate at \\(t = 0\\) using unit circle values.",
-    needs:"Station 3 answer plugged in: \\(\\; N(t) = 9\\cos(t) + 5\\sin(t)\\)",
+    scenario:"The neurology scan models nerve signal amplitude \\(N(t)\\) over time. The cosine coefficient comes from your Station 3 result. Evaluate at \\(t = 0\\) using unit circle values.",
+    needs:true,
+    prevTitle:"Station 3 result — carried forward",
+    prevMath:"\\[ D(x) = 3\\ln(x) + 2x^3 \\quad \\Rightarrow \\quad D'(x) = \\frac{3}{x} + 6x^2 \\]\n\\[ D'(1) = \\frac{3}{1} + 6(1)^2 = 3 + 6 = \\boxed{9} \\]\n\\[ \\text{This value (9) becomes the coefficient of } \\cos(t) \\text{ in Station 4:} \\]\n\\[ N(t) = \\mathbf{9}\\cos(t) + 5\\sin(t) \\]",
     math:"\\[ N(t) = 9\\cos(t) + 5\\sin(t) \\]\n\\[ \\text{Find } N'(t), \\text{ then evaluate } N'(0). \\]\n\\[ \\frac{d}{dt}[\\cos t] = -\\sin t \\qquad \\frac{d}{dt}[\\sin t] = \\cos t \\]\n\\[ \\sin(0) = 0 \\qquad \\cos(0) = 1 \\]",
     task:"Select the correct answer:",
     choices:[
@@ -275,8 +280,10 @@ const STATIONS = [
   {
     num:5, dept:"Radiology", topic:"Chain rule",
     color:"#0f6e56", bg:"#e1f5ee", numBg:"#E1F5EE", numColor:"#085041",
-    scenario:"Radiation dosing uses a composite function. The constant inside comes from your Station 4 answer. Apply the chain rule: outer function is \\(u^2\\), inner function is \\(u = t^2 + 5\\).",
-    needs:"Station 4 answer plugged in: \\(\\; R(t) = (t^2 + 5)^2\\)",
+    scenario:"Radiation dosing uses a composite function. The constant inside comes from your Station 4 result. Apply the chain rule: outer function is \\(u^2\\), inner function is \\(u = t^2 + 5\\).",
+    needs:true,
+    prevTitle:"Station 4 result — carried forward",
+    prevMath:"\\[ N(t) = 9\\cos(t) + 5\\sin(t) \\quad \\Rightarrow \\quad N'(t) = -9\\sin(t) + 5\\cos(t) \\]\n\\[ N'(0) = -9\\sin(0) + 5\\cos(0) = 0 + 5(1) = \\boxed{5} \\]\n\\[ \\text{This value (5) goes inside the composition in Station 5:} \\]\n\\[ R(t) = (t^2 + \\mathbf{5})^2 \\]",
     math:"\\[ R(t) = (t^2 + 5)^2 \\]\n\\[ \\text{Find } R'(t) \\text{ using the chain rule, then evaluate } R'(1). \\]\n\\[ \\text{Outer: } u^2 \\rightarrow 2u \\qquad \\text{Inner: } t^2+5 \\rightarrow 2t \\]",
     task:"Select the correct answer:",
     choices:[
@@ -292,8 +299,10 @@ const STATIONS = [
   {
     num:6, dept:"Final Diagnosis", topic:"Product rule",
     color:"#1a7a3a", bg:"#e8fff0", numBg:"#EAF3DE", numColor:"#27500A",
-    scenario:"The antidote delivery rate \\(P(t)\\) is the product of two functions. The constant comes from your Station 5 answer. If \\(P'(0) > 70\\) mg/hr², the antidote is working and Alex Rivera is saved.",
-    needs:"Station 5 answer plugged in: \\(\\; P(t) = (t + 24)(3e^t)\\)",
+    scenario:"The antidote delivery rate \\(P(t)\\) is the product of two functions. The constant comes from your Station 5 result. If \\(P'(0) > 70\\) mg/hr², the antidote is working and Alex Rivera is saved.",
+    needs:true,
+    prevTitle:"Station 5 result — carried forward",
+    prevMath:"\\[ R(t) = (t^2+5)^2 \\quad \\Rightarrow \\quad R'(t) = 2(t^2+5)\\cdot 2t = 4t(t^2+5) \\]\n\\[ R'(1) = 4(1)(1+5) = 4 \\cdot 6 = \\boxed{24} \\]\n\\[ \\text{This value (24) becomes the constant in Station 6:} \\]\n\\[ P(t) = (t + \\mathbf{24})(3e^t) \\]",
     math:"\\[ P(t) = (t + 24)(3e^t) \\]\n\\[ \\text{Find } P'(t) \\text{ using the product rule, then evaluate } P'(0). \\]\n\\[ f = t+24, \\quad f' = 1, \\quad g = 3e^t, \\quad g' = 3e^t \\]",
     task:"Select the correct answer:",
     choices:[
@@ -391,7 +400,7 @@ function renderStation(){
         </div>
       </div>
       <div class="station-body">
-        ${s.needs?`<div class="needs-box">⚠ Previous answer plugged in: ${s.needs}</div>`:''}
+        ${s.needs?`<div class="needs-box"><div style="font-size:13px;font-weight:bold;color:#854f0b;letter-spacing:.3px;margin-bottom:10px;">📋 ${s.prevTitle}</div><div class="prev-math">${s.prevMath}</div><div style="font-size:12px;color:#a06010;margin-top:10px;font-style:italic;">The boxed value above is substituted into this station's problem below.</div></div>`:''}
         <div class="scenario-box">${s.scenario}</div>
         <div class="math-box">${s.math}</div>
         <div class="task-label">${s.task}</div>
