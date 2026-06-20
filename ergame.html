@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--red:#cc0000;--green:#1a7a3a;--border:#ddd;--bg:#f8f7f4;--card:#fff;--text:#1a1a1a;--text2:#555}
+:root{--red:#cc0000;--green:#1a7a3a;--border:#ddd;--bg:#f8f7f4;--card:#fff;--text:#1a1a1a;--text2:#555;--team-color:#cc0000}
 body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:17px}
 .screen{display:none;min-height:100vh}
 .screen.active{display:flex;flex-direction:column}
@@ -24,7 +24,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 
 #ekg-bar{background:#000d00;width:100%;height:52px;display:block}
 
-.patient-bar{background:#1a0000;border-bottom:1px solid #440000;padding:9px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.patient-bar{background:#1a0000;border-bottom:1px solid var(--team-color,#440000);border-top:2px solid var(--team-color,#cc0000);padding:9px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .patient-name{color:#ff6666;font-size:14px;font-weight:bold}
 .vitals{display:flex;gap:16px;flex-wrap:wrap}
 .vital{font-size:12px;color:#cc8888}
@@ -33,7 +33,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 .progress-wrap{padding:10px 20px;background:#fff;border-bottom:1px solid var(--border)}
 .progress-label{font-size:13px;color:var(--text2);margin-bottom:6px;display:flex;justify-content:space-between}
 .progress-track{background:#eee;border-radius:999px;height:10px;overflow:hidden}
-.progress-fill{background:linear-gradient(90deg,var(--red),#ff6644);height:100%;border-radius:999px;transition:width .5s}
+.progress-fill{background:linear-gradient(90deg,var(--team-color,var(--red)),var(--team-color,#ff6644));height:100%;border-radius:999px;transition:width .5s;filter:brightness(1.1)}
 
 .game-main{flex:1;padding:18px 20px;max-width:740px;margin:0 auto;width:100%}
 
@@ -68,6 +68,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 .choice.correct{border-color:#1a7a3a;background:#e8fff0;color:#0a3a1a;cursor:default}
 .choice.wrong{border-color:#cc0000;background:#fff0f0;color:#7a0000;cursor:default}
 .choice.locked{cursor:default;opacity:.7}
+.choice.reveal-correct{border-color:#1a7a3a;background:#e8fff0;color:#0a3a1a}
 
 /* feedback */
 .feedback-box{border-radius:8px;padding:14px 18px;font-size:15px;margin-bottom:14px;display:none;line-height:1.7}
@@ -335,7 +336,7 @@ const STATIONS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[];
+let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[], teamColor='#cc0000';
 let timerSecs=50*60, timerRunning=false, timerInt;
 let teamName="Your Team", winFired=false, flatlineFired=false;
 let audioCtx=null, beepInt=null, flatline=false;
@@ -355,7 +356,12 @@ function confirmHome(){
 
 function startGame(){
   teamName=document.getElementById('teamName').value.trim()||"Your Team";
+  teamColor=document.getElementById('teamColor').value;
   document.getElementById('hdr-team').textContent="🏥 "+teamName;
+  // apply team color to header and progress bar
+  document.querySelector('.er-header').style.background=teamColor;
+  document.querySelector('.er-header').style.background=teamColor;
+  document.documentElement.style.setProperty('--team-color', teamColor);
   showScreen('screen-game');
   renderStation();
   timerRunning=true;
@@ -402,6 +408,15 @@ function updateVitals(n){
 }
 
 // ── RENDER ───────────────────────────────────────────────────────────────────
+function shuffleArray(arr){
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
 function renderStation(){
   const s=STATIONS[cur];
   updateVitals(cur);
@@ -419,8 +434,10 @@ function renderStation(){
 
   const plugHTML = '';
 
-  const choicesHTML = s.choices.map((c,i)=>
-    `<button class="choice" id="ch-${i}" onclick="selectChoice(${i})">${c.text}</button>`
+  const shuffled = shuffleArray(s.choices.map((ch,i)=>({...ch, origIdx:i})));
+  window._shuffledChoices = shuffled;
+  const choicesHTML = shuffled.map((ch,i)=>
+    `<button class="choice" id="ch-${i}" onclick="selectChoice(${i})">${ch.text}</button>`
   ).join('');
 
   document.getElementById('station-area').innerHTML = `
@@ -465,13 +482,16 @@ function submitAnswer(){
   submitted=true;
 
   const s=STATIONS[cur];
-  const correct=s.choices[selectedChoice].correct;
+  const shuffled=window._shuffledChoices||s.choices;
+  const correct=shuffled[selectedChoice].correct;
   const fb=document.getElementById('feedback');
   const nv=document.getElementById('next-val');
 
   // lock all choices
+  const sh=window._shuffledChoices||s.choices;
   document.querySelectorAll('.choice').forEach((el,i)=>{
     el.classList.add('locked');
+    if(sh[i].correct) el.classList.add('reveal-correct');
     if(i===selectedChoice) el.classList.add(correct?'correct':'wrong');
     el.onclick=null;
   });
