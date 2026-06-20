@@ -86,7 +86,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 .btn-submit{background:var(--red);color:#fff}
 .btn-next{background:var(--green);color:#fff;display:none}
 .btn-row{display:flex;gap:12px;flex-wrap:wrap}
-.btn-back{background:transparent;color:var(--text2);border:1.5px solid var(--border);font-size:14px;padding:8px 18px;border-radius:8px;cursor:pointer;display:none}
+.btn-back{background:transparent;color:var(--text2);border:1.5px solid var(--border);font-size:14px;padding:8px 18px;border-radius:8px;cursor:pointer}
 .btn-back:hover{background:var(--bg);color:var(--text)}
 
 /* intro */
@@ -166,7 +166,10 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 <!-- GAME -->
 <div id="screen-game" class="screen">
   <div class="er-header">
-    <div><h1 id="hdr-team">🏥 Calculus ER</h1><div class="sub">Station <span id="hdr-station">1</span> of 6 — one attempt per station</div></div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <button onclick="confirmHome()" title="Return to home" style="background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);border-radius:8px;color:#fff;font-size:13px;font-weight:bold;padding:7px 13px;cursor:pointer;white-space:nowrap;flex-shrink:0" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">🏠 Home</button>
+      <div><h1 id="hdr-team">🏥 Calculus ER</h1><div class="sub">Station <span id="hdr-station">1</span> of 6 — one attempt per station</div></div>
+    </div>
     <div><div class="time" id="timer">50:00</div><div class="tl">remaining</div></div>
   </div>
   <canvas id="ekg-bar" height="52"></canvas>
@@ -339,6 +342,17 @@ let audioCtx=null, beepInt=null, flatline=false;
 let ekgBuf=[], ekgPos=0, lastBpm=0;
 
 // ── GAME START ───────────────────────────────────────────────────────────────
+function confirmHome(){
+  const btn = event.currentTarget;
+  if(btn.dataset.confirm !== '1'){
+    btn.textContent = '✓ Confirm?';
+    btn.dataset.confirm = '1';
+    setTimeout(()=>{ btn.textContent='🏠 Home'; btn.dataset.confirm='0'; }, 3000);
+    return;
+  }
+  location.reload();
+}
+
 function startGame(){
   teamName=document.getElementById('teamName').value.trim()||"Your Team";
   document.getElementById('hdr-team').textContent="🏥 "+teamName;
@@ -427,16 +441,14 @@ function renderStation(){
         <div class="feedback-box" id="feedback"></div>
         <div class="next-val-box" id="next-val"></div>
         <div class="btn-row">
-          <button class="btn-back" id="btn-back" onclick="goBack()">← Back</button>
+          <button class="btn-back" id="btn-back" onclick="goBack()" style="display:${cur>0?'block':'none'}">← Back</button>
           <button class="btn btn-submit" id="btn-submit" onclick="submitAnswer()">Submit answer</button>
-          <button class="btn btn-next" id="btn-next" onclick="nextStation()">${s.isWin?'🎉 Save Alex Rivera!':'Next station →'}</button>
+          <button class="btn btn-next" id="btn-next" onclick="nextStation()" style="display:none">${s.isWin?'🎉 Save Alex Rivera!':'Next station →'}</button>
         </div>
       </div>
     </div>`;
 
   if(window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(()=>{});
-  const bb=document.getElementById('btn-back');
-  if(bb) bb.style.display=cur>0?'block':'none';
 }
 
 // ── ANSWER ───────────────────────────────────────────────────────────────────
