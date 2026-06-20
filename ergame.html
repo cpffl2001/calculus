@@ -335,7 +335,7 @@ const STATIONS = [
 ];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let cur=0, furthestStation=0, submitted=false, correctCount=0;
+let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[];
 let timerSecs=50*60, timerRunning=false, timerInt;
 let teamName="Your Team", winFired=false, flatlineFired=false;
 let audioCtx=null, beepInt=null, flatline=false;
@@ -441,9 +441,9 @@ function renderStation(){
         <div class="feedback-box" id="feedback"></div>
         <div class="next-val-box" id="next-val"></div>
         <div class="btn-row">
-          <button class="btn-back" id="btn-back" onclick="goBack()" style="display:${cur>0?'block':'none'}">← Back</button>
+          <button class="btn-back" id="btn-back" onclick="goBack()" style="display:${cur>0?`block`:`none`}">← Back</button>
           <button class="btn btn-submit" id="btn-submit" onclick="submitAnswer()">Submit answer</button>
-          <button class="btn btn-next" id="btn-next" onclick="nextStation()" style="display:none">${s.isWin?'🎉 Save Alex Rivera!':'Next station →'}</button>
+          <button class="btn btn-next" id="btn-next" onclick="nextStation()" style="display:none">${s.isWin?`🎉 Save Alex Rivera!`:`Next station →`}</button>
         </div>
       </div>
     </div>`;
@@ -480,6 +480,7 @@ function submitAnswer(){
 
   if(correct){
     correctCount++;
+    stationResults[cur]=true;
     fb.className='feedback-box show correct';
     fb.innerHTML=s.correct_msg;
     beep(880,0.12,0.2);
@@ -488,6 +489,7 @@ function submitAnswer(){
       nv.innerHTML='<strong>For your paper:</strong> '+s.nextNote;
     }
   } else {
+    stationResults[cur]=false;
     fb.className='feedback-box show wrong';
     fb.innerHTML=s.wrong_msg;
     if(s.nextNote){
@@ -584,17 +586,57 @@ function nextStation(){
 }
 
 function triggerWin(){
-  winFired=true;timerRunning=false;flatline=false;
+  winFired=true; timerRunning=false; flatline=false;
   if(beepInt){clearInterval(beepInt);beepInt=null;}
-  setTimeout(()=>beep(660,0.15,0.22),0);
-  setTimeout(()=>beep(780,0.15,0.22),350);
-  setTimeout(()=>beep(880,0.25,0.22),700);
-  document.getElementById('win-team-name').textContent=teamName;
-  const m=Math.floor(timerSecs/60),s=timerSecs%60;
-  document.getElementById('ws-time').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  document.getElementById('ws-att').textContent=correctCount+'/6 correct';
-  showScreen('screen-win');
-  startConfetti();
+
+  const allCorrect = correctCount === 6;
+
+  if(allCorrect){
+    // full win — patient saved
+    setTimeout(()=>beep(660,0.15,0.22),0);
+    setTimeout(()=>beep(780,0.15,0.22),350);
+    setTimeout(()=>beep(880,0.25,0.22),700);
+    document.getElementById('win-team-name').textContent=teamName;
+    const m=Math.floor(timerSecs/60),s2=timerSecs%60;
+    document.getElementById('ws-time').textContent=String(m).padStart(2,'0')+':'+String(s2).padStart(2,'0');
+    document.getElementById('ws-att').textContent='6 / 6 correct';
+    showScreen('screen-win');
+    startConfetti();
+  } else {
+    // reached end but had errors — show incomplete result
+    showIncomplete();
+  }
+}
+
+function showIncomplete(){
+  const missed = 6 - correctCount;
+  const area = document.getElementById('station-area');
+
+  // build station result summary
+  const rows = stationResults.map((r,i)=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid #eee">
+      <div style="width:28px;height:28px;border-radius:50%;background:${r?'#e8fff0':'#fff0f0'};border:1.5px solid ${r?'#1a7a3a':'#cc0000'};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${r?'✓':'✗'}</div>
+      <div style="font-size:14px;color:${r?'#0a3a1a':'#7a0000'}"><strong>Station ${i+1}</strong> — ${STATIONS[i].dept}: ${r?'Correct':'Incorrect — review on your paper'}</div>
+    </div>`).join('');
+
+  area.innerHTML = `
+    <div style="background:#fff0f0;border:2px solid #cc0000;border-radius:12px;padding:20px 24px;margin-bottom:16px;text-align:center">
+      <div style="font-size:48px;margin-bottom:10px">⚠️</div>
+      <h2 style="color:#cc0000;font-size:22px;margin-bottom:8px">Patient Not Yet Stable</h2>
+      <p style="color:#7a0000;font-size:15px;line-height:1.7">Your team completed all 6 stations but got <strong>${missed} station${missed>1?'s':''} wrong</strong>.<br>Alex Rivera cannot be saved until all 6 answers are correct.<br>Review your paper work, find the errors, and try again.</p>
+    </div>
+    <div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px 20px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:bold;margin-bottom:10px;color:#333">Your results:</div>
+      ${rows}
+    </div>
+    <div style="background:#eeedfe;border-left:4px solid #534ab7;padding:14px 18px;border-radius:0 8px 8px 0;font-size:14px;color:#26215c;line-height:1.7;margin-bottom:16px">
+      <strong>What to do:</strong> Show your professor your paper work for each incorrect station. The correct answer chain is 4 → 5 → 7 → 8 → 36 → 72. If your chain broke at any point, every answer after that will be off.
+    </div>
+    <div style="text-align:center">
+      <button onclick="location.reload()" style="background:#cc0000;color:#fff;padding:12px 30px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer">Try again</button>
+    </div>`;
+
+  if(window.MathJax) MathJax.typesetPromise([area]).catch(()=>{});
 }
 
 // ── EKG ──────────────────────────────────────────────────────────────────────
