@@ -226,7 +226,9 @@ const STATIONS = [
     num:2, dept:"Toxicology", topic:"Exponential rule",
     color:"#3a2a99", bg:"#eeedfe", numBg:"#EEEDFE", numColor:"#3C3489",
     scenario:"Lab results confirm a toxin in Alex's bloodstream. The concentration function uses your Station 1 answer as a coefficient. Differentiate to find how fast the toxin is entering the system at \\(t = 0\\).",
-    needs:"Station 1 answer plugged in: \\(\\; T(t) = 3e^t + 4t^2\\)",
+    needs:true,
+    prevTitle:"Station 1 result — carried forward",
+    prevMath:"\\[ B(t) = 2t^4 - 6t^3 + 9t^2 - 4t + 50 \\quad\\Rightarrow\\quad B'(t) = 8t^3 - 18t^2 + 18t - 4 \\]\n\\[ B'(1) = 8 - 18 + 18 - 4 = \\boxed{4} \\]\n\\[ \\text{Value } \\boxed{4} \\text{ becomes the coefficient of } t^2 \\text{ in Station 2:}\\quad T(t) = 3e^t + \\mathbf{4}\\,t^2 \\]",
     math:"\\[ T(t) = 3e^t + 4t^2 \\]\n\\[ \\text{Find } T'(t), \\text{ then evaluate } T'(0). \\]\n\\[ \\text{Recall: } \\frac{d}{dt}[e^t] = e^t \\text{ and } e^0 = 1 \\]",
     task:"Select the correct answer:",
     choices:[
