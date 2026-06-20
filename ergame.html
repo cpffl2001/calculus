@@ -57,8 +57,6 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 .math-box{background:#f4f3fe;border-left:4px solid #534ab7;padding:20px 22px;margin-bottom:16px;overflow-x:auto;font-size:18px;color:#1a1a6e;line-height:2.4}
 .a-highlight{color:#cc0000;font-weight:bold}
 
-/* plug-in reminder */
-.plug-box{background:#fff0f0;border:1.5px dashed #cc0000;border-radius:8px;padding:12px 16px;font-size:15px;color:#7a0000;margin-bottom:16px;line-height:1.7}
 
 .task-label{font-size:16px;font-weight:bold;margin-bottom:12px;color:var(--text)}
 
@@ -243,7 +241,6 @@ const STATIONS = [
     color:"#3a2a99", bg:"#eeedfe", numBg:"#EEEDFE", numColor:"#3C3489",
     carry:"From Station 1: \\(a = B'(1)\\). Plug your paper answer in for \\(a\\) below.",
     scenario:"Lab results confirm a toxin in Alex's bloodstream modeled by \\(T(t)\\), where \\(t\\) is hours. The value \\(a\\) from Station 1 is the coefficient of \\(t\\). Differentiate and evaluate at \\(t = 0\\).",
-    plugNote:"If your Station 1 answer was correct, \\(a = 4\\), giving \\(T(t) = e^t + 4t\\).",
     math:"\\[ T(t) = e^t + at \\quad (a = \\text{your Station 1 answer}) \\]\n\\[ \\text{Find } T'(t),\\text{ then evaluate } T'(0). \\]\n\\[ \\text{Recall: }\\tfrac{d}{dt}[e^t] = e^t,\\quad e^0 = 1 \\]",
     task:"Select the correct answer — you have one attempt:",
     choices:[
@@ -262,7 +259,6 @@ const STATIONS = [
     color:"#993300", bg:"#fff0e8", numBg:"#FAECE7", numColor:"#712B13",
     carry:"From Station 2: \\(a = T'(0)\\). Plug your paper answer in for \\(a\\) below.",
     scenario:"The pharmacist models antidote absorption \\(D(x)\\), where \\(x\\) is hours since administration. The value \\(a\\) from Station 2 is the coefficient of \\(\\ln(x)\\). Differentiate and evaluate at \\(x = 1\\).",
-    plugNote:"If your Station 2 answer was correct, \\(a = 5\\), giving \\(D(x) = 5\\ln(x) + x^2\\).",
     math:"\\[ D(x) = a\\ln(x) + x^2 \\quad (a = \\text{your Station 2 answer}) \\]\n\\[ \\text{Find } D'(x),\\text{ then evaluate } D'(1). \\]\n\\[ \\text{Recall: }\\tfrac{d}{dx}[\\ln x] = \\tfrac{1}{x} \\]",
     task:"Select the correct answer — you have one attempt:",
     choices:[
@@ -281,7 +277,6 @@ const STATIONS = [
     color:"#883366", bg:"#fbeaf0", numBg:"#FBEAF0", numColor:"#72243E",
     carry:"From Station 3: \\(a = D'(1)\\). Plug your paper answer in for \\(a\\) below.",
     scenario:"The neurology scan models nerve signal amplitude \\(N(t)\\). The value \\(a\\) from Station 3 is the coefficient of \\(t\\). Differentiate and evaluate at \\(t = 0\\).",
-    plugNote:"If your Station 3 answer was correct, \\(a = 7\\), giving \\(N(t) = \\sin(t) + 7t\\).",
     math:"\\[ N(t) = \\sin(t) + at \\quad (a = \\text{your Station 3 answer}) \\]\n\\[ \\text{Find } N'(t),\\text{ then evaluate } N'(0). \\]\n\\[ \\tfrac{d}{dt}[\\sin t] = \\cos t,\\quad \\cos(0)=1 \\]",
     task:"Select the correct answer — you have one attempt:",
     choices:[
@@ -300,7 +295,6 @@ const STATIONS = [
     color:"#0f6e56", bg:"#e1f5ee", numBg:"#E1F5EE", numColor:"#085041",
     carry:"From Station 4: \\(a = N'(0)\\). Plug your paper answer in for \\(a\\) below.",
     scenario:"Radiation dosing uses a composite function. The value \\(a\\) from Station 4 is the constant inside the composition. Apply the chain rule and evaluate at \\(t = 1\\).",
-    plugNote:"If your Station 4 answer was correct, \\(a = 8\\), giving \\(R(t) = (t^2 + 8)^2\\).",
     math:"\\[ R(t) = (t^2 + a)^2 \\quad (a = \\text{your Station 4 answer}) \\]\n\\[ \\text{Find } R'(t) \\text{ using the chain rule, then evaluate } R'(1). \\]\n\\[ \\text{Outer: } u^2 \\rightarrow 2u,\\quad \\text{Inner: } t^2+a \\rightarrow 2t \\]",
     task:"Select the correct answer — you have one attempt:",
     choices:[
@@ -319,7 +313,6 @@ const STATIONS = [
     color:"#1a7a3a", bg:"#e8fff0", numBg:"#EAF3DE", numColor:"#27500A",
     carry:"From Station 5: \\(a = R'(1)\\). Plug your paper answer in for \\(a\\) below.",
     scenario:"The antidote delivery rate \\(P(t)\\) is the product of two functions. The value \\(a\\) from Station 5 is the coefficient of \\(e^t\\). If \\(P'(0) > 70\\) mg/hr², Alex Rivera is saved. This is your one attempt — make it count.",
-    plugNote:"If your Station 5 answer was correct, \\(a = 36\\), giving \\(P(t) = (t+1)(36e^t)\\).",
     math:"\\[ P(t) = (t + 1)(a e^t) \\quad (a = \\text{your Station 5 answer}) \\]\n\\[ \\text{Find } P'(t) \\text{ using the product rule, then evaluate } P'(0). \\]\n\\[ f = t+1,\\; f'=1 \\qquad g = ae^t,\\; g'=ae^t \\]",
     task:"Select the correct answer — you have one attempt:",
     choices:[
@@ -408,10 +401,7 @@ function renderStation(){
       <div class="carry-val">${s.carry}</div>
     </div>` : '';
 
-  const plugHTML = s.plugNote ? `
-    <div class="plug-box">
-      ⚠ <strong>Before you start:</strong> ${s.plugNote}
-    </div>` : '';
+  const plugHTML = '';
 
   const choicesHTML = s.choices.map((c,i)=>
     `<button class="choice" id="ch-${i}" onclick="selectChoice(${i})">${c.text}</button>`
@@ -429,7 +419,6 @@ function renderStation(){
       <div class="station-body">
         ${carryHTML}
         <div class="scenario-box">${s.scenario}</div>
-        ${plugHTML}
         <div class="math-box">${s.math}</div>
         <div class="task-label">${s.task}</div>
         <div class="choices">${choicesHTML}</div>
