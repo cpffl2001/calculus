@@ -362,7 +362,15 @@ function confirmHome(btn) {
 
 // Start game
 function startGame() {
-  teamName = document.getElementById('teamName').value.trim() || 'Your Team';
+  var nameVal = document.getElementById('teamName').value.trim();
+  if (!nameVal) {
+    document.getElementById('teamName').style.borderColor = '#cc0000';
+    document.getElementById('teamName').placeholder = 'Required — enter your team name!';
+    document.getElementById('teamName').focus();
+    return;
+  }
+  document.getElementById('teamName').style.borderColor = '';
+  teamName = nameVal;
   teamColor = document.getElementById('teamColor').value;
   document.getElementById('hdr-team').textContent = '\u2302 ' + teamName;
   showScreen('screen-game');
@@ -512,23 +520,40 @@ function renderChiefGate(s) {
   document.getElementById('er-header').style.background = teamColor;
 }
 
+var CORRECT_A = { 1:4, 2:5, 3:7, 4:6, 5:24 };
+
 function unlockStation() {
   var codeInp = document.getElementById('code-input');
   var aInp = document.getElementById('a-input');
   var err = document.getElementById('a-error');
   var correctCode = UNLOCK_CODES[cur] || '';
 
+  // Check unlock code first
   if (!codeInp || codeInp.value.trim().toUpperCase() !== correctCode) {
     err.textContent = 'Incorrect unlock code. See the Chief of Emergency Medicine.';
     err.style.display = 'block';
-    if (codeInp) { codeInp.style.borderColor = '#cc0000'; }
+    if (codeInp) codeInp.style.borderColor = '#cc0000';
     return;
   }
+
+  // Check a value is entered
   if (!aInp || aInp.value.trim() === '') {
-    err.textContent = 'Please also enter your value of a from your paper work.';
+    err.textContent = 'Please enter your value of a from your paper work.';
     err.style.display = 'block';
     return;
   }
+
+  // Check a value is correct
+  var enteredVal = parseFloat(aInp.value.trim());
+  var correctVal = CORRECT_A[cur];
+  if (isNaN(enteredVal) || enteredVal !== correctVal) {
+    err.textContent = 'Incorrect value of a. Check your paper work and try again.';
+    err.style.display = 'block';
+    aInp.style.borderColor = '#cc0000';
+    return;
+  }
+
+  // All correct — unlock
   err.style.display = 'none';
   enteredA[cur] = aInp.value.trim();
   stationUnlocked[cur] = true;
