@@ -334,7 +334,7 @@ const STATIONS = [
   },];
 
 // ── STATE ────────────────────────────────────────────────────────────────────
-let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[], teamColor='#cc0000', shuffledChoices=[];
+let cur=0, furthestStation=0, submitted=false, correctCount=0, stationResults=[], teamColor='#cc0000', shuffledChoices=[], stationUnlocked=[true], enteredA=[];
 let timerSecs=50*60, timerRunning=false, timerInt;
 let teamName="Your Team", winFired=false, flatlineFired=false;
 let audioCtx=null, beepInt=null, flatline=false;
@@ -423,13 +423,11 @@ function renderStation(){
   document.getElementById('hdr-station').textContent=cur+1;
   submitted=false;
 
-  const carryHTML = s.carry ? `
-    <div class="carry-box">
-      <div class="carry-box-title">📋 Carry forward</div>
-      <div class="carry-val">${s.carry}</div>
-    </div>` : '';
-
-  const plugHTML = '';
+  // Stations 2-6: show index card gate first, then reveal problem after 'a' is entered
+  if(cur > 0 && !stationUnlocked[cur]){
+    renderIndexCardGate(s);
+    return;
+  }
 
   // shuffle once per station and store by station index
   if(!shuffledChoices[cur]){
@@ -450,7 +448,10 @@ function renderStation(){
         </div>
       </div>
       <div class="station-body">
-        ${carryHTML}
+        <div class="carry-box">
+          <div class="carry-box-title">📋 From your index card</div>
+          <div class="carry-val" style="font-size:16px;">${s.carry} &nbsp;|&nbsp; <em>a</em> = <strong id="a-display" style="color:#cc0000">${enteredA[cur]}</strong></div>
+        </div>
         <div class="scenario-box">${s.scenario}</div>
         <div class="math-box">${s.math}</div>
         <div class="task-label">${s.task}</div>
@@ -518,8 +519,73 @@ function submitAnswer(){
     }
   }
 
-  document.getElementById('btn-next').style.display='block';
+  if(STATIONS[cur].isWin){
+    document.getElementById('btn-next').style.display='block';
+  } else {
+    // Show "go see Chief" button instead of Next
+    const chiefBtn = document.createElement('button');
+    chiefBtn.className = 'btn btn-next';
+    chiefBtn.style.display = 'block';
+    chiefBtn.style.background = '#7a4400';
+    chiefBtn.textContent = '🏥 Go see the Chief of Emergency Medicine →';
+    chiefBtn.onclick = goToChief;
+    document.getElementById('btn-next').replaceWith(chiefBtn);
+  }
   if(window.MathJax) MathJax.typesetPromise([fb,nv]).catch(()=>{});
+}
+
+function goToChief(){
+  cur++;
+  furthestStation=Math.max(furthestStation,cur);
+  selectedChoice=null;
+  renderStation(); // will hit index card gate since stationUnlocked[cur] is undefined
+  window.scrollTo(0,0);
+}
+
+function renderIndexCardGate(s){
+  document.getElementById('hdr-station').textContent=cur+1;
+  document.getElementById('station-area').innerHTML = `
+    <div style="background:#1a0000;border-radius:12px;padding:28px 24px;margin-bottom:16px;text-align:center;border:2px solid #cc0000;">
+      <div style="font-size:52px;margin-bottom:12px;">🏥</div>
+      <h2 style="color:#ff6666;font-size:22px;margin-bottom:10px;">Go see the Chief of Emergency Medicine</h2>
+      <p style="color:#ffaaaa;font-size:15px;line-height:1.8;max-width:420px;margin:0 auto 20px;">
+        Your Station ${cur} results have been logged.<br>
+        Bring your paper work to the Chief for your next case file.<br>
+        <strong style="color:#ff4444;">You must show your work to receive Station ${cur+1}.</strong>
+      </p>
+    </div>
+    <div style="background:#fff8e8;border:1.5px solid #cc8800;border-radius:12px;padding:22px 24px;">
+      <div style="font-size:14px;font-weight:bold;color:#854f0b;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px;">📋 Station ${cur+1} — Enter your value of <em>a</em></div>
+      <p style="font-size:14px;color:#7a4400;margin-bottom:14px;line-height:1.6;">
+        The Chief has given you an index card with Station ${cur+1}'s problem.<br>
+        Enter the value of <strong><em>a</em></strong> from your paper work below, then unlock the problem.
+      </p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label style="font-size:15px;font-weight:bold;color:#5a3000;white-space:nowrap;">a =</label>
+        <input type="number" id="a-input" placeholder="your answer" step="any"
+          style="padding:10px 14px;border:2px solid #cc8800;border-radius:8px;font-size:16px;width:140px;"
+          onkeydown="if(event.key==='Enter') unlockStation()">
+        <button onclick="unlockStation()"
+          style="background:#cc8800;color:#fff;padding:10px 22px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer;">
+          Unlock Station ${cur+1} →
+        </button>
+      </div>
+      <div id="a-error" style="color:#cc0000;font-size:13px;margin-top:8px;display:none;">Please enter a number first.</div>
+    </div>`;
+}
+
+function unlockStation(){
+  const inp = document.getElementById('a-input');
+  const errEl = document.getElementById('a-error');
+  if(!inp || inp.value.trim()===''){
+    if(errEl) errEl.style.display='block';
+    return;
+  }
+  enteredA[cur] = inp.value.trim();
+  stationUnlocked[cur] = true;
+  submitted = false;
+  renderStation();
+  window.scrollTo(0,0);
 }
 
 function goBack(){
@@ -600,11 +666,8 @@ function goForward(){
 
 function nextStation(){
   if(STATIONS[cur].isWin){triggerWin();return;}
-  cur++;
-  furthestStation=Math.max(furthestStation,cur);
-  selectedChoice=null;
-  renderStation();
-  window.scrollTo(0,0);
+  // shouldn't normally be called now (replaced by goToChief), but keep as fallback
+  goToChief();
 }
 
 function triggerWin(){
