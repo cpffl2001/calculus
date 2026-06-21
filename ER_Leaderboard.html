@@ -11,11 +11,6 @@
   .header { background: #cc0000; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
   .header-left h1 { color: #fff; font-size: 26px; font-weight: bold; letter-spacing: 1px; }
   .header-left p { color: #ffaaaa; font-size: 13px; margin-top: 3px; }
-  .timer { font-size: 52px; font-weight: bold; color: #fff; font-variant-numeric: tabular-nums; line-height: 1; }
-  .timer.warning { color: #ffdd44; }
-  .timer.critical { color: #ff4444; animation: blink 1s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.35} }
-  .timer-label { font-size: 12px; color: #ffaaaa; text-align: right; margin-top: 2px; }
 
   .patient-bar { background: #110000; border-bottom: 1px solid #440000; padding: 8px 28px; display: flex; align-items: center; gap: 28px; flex-wrap: wrap; }
   .patient-name { color: #ff5555; font-size: 16px; font-weight: bold; white-space: nowrap; }
@@ -30,7 +25,7 @@
 
   .main { flex: 1; padding: 16px 28px; display: flex; flex-direction: column; gap: 10px; }
 
-  .col-labels { display: flex; align-items: center; padding: 0 0 4px 0; gap: 0; }
+  .col-labels { display: flex; align-items: center; padding: 0 0 4px 0; }
   .col-team-space { width: 220px; flex-shrink: 0; }
   .col-stations { display: flex; gap: 8px; flex: 1; }
   .col-st { text-align: center; font-size: 10px; color: #555588; line-height: 1.3; }
@@ -93,22 +88,18 @@
 
 <div class="header">
   <div class="header-left">
-    <h1>🏥 Calculus ER — Live Leaderboard</h1>
-    <p>Race to save Alex Rivera · Click any station dot to mark solved · Station 6 = WIN</p>
-  </div>
-  <div style="text-align:right">
-    <div class="timer" id="timer">50:00</div>
-    <div class="timer-label">Time Remaining</div>
+    <h1>🏥 Calculus ER — Save Ms. Cindy!</h1>
+    <p>Click any station dot to mark solved &nbsp;·&nbsp; Station 6 = WIN &nbsp;·&nbsp; First team to complete all 6 saves Ms. Cindy!</p>
   </div>
 </div>
 
 <div class="patient-bar">
-  <div class="patient-name"><span class="pulse">♥</span> Patient: Alex Rivera</div>
+  <div class="patient-name"><span class="pulse">♥</span> Ms. Cindy</div>
   <div class="vitals">
     <div class="vital">BP: <span id="vbp" class="bad">158/94</span></div>
     <div class="vital">HR: <span id="vhr" class="bad">112 bpm</span></div>
     <div class="vital">SpO2: <span id="vspo" class="bad">91%</span></div>
-    <div class="vital">Toxin: <span id="vtox" class="bad">ELEVATED</span></div>
+    <div class="vital">Caffeine: <span id="vtox" class="bad">CRITICAL</span></div>
     <div class="vital">Status: <span id="vstatus" class="bad">CRITICAL</span></div>
   </div>
 </div>
@@ -133,17 +124,17 @@
   <button class="grn" onclick="markSolved()">✓ Mark Solved</button>
   <button class="red-btn" onclick="markUnsolved()">✗ Unmark</button>
   <span class="sep">|</span>
-  <button onclick="toggleTimer()">⏸ Pause / Resume</button>
-  <button onclick="resetTimer()">↺ Reset Timer</button>
   <button id="resetBtn" class="red-btn" onclick="resetAll()" data-confirm="0">⚠ Reset All</button>
 </div>
 
 <div class="overlay" id="overlay">
   <div class="win-box">
     <div class="icon">🏆</div>
-    <h2>Patient Saved!</h2>
+    <h2>Ms. Cindy is Saved!</h2>
     <div class="winner-team" id="winnerName"></div>
-    <p>correctly completed all 6 diagnostic stations<br>and submitted a correct Treatment Order.<br><br>Alex Rivera is stable. Outstanding calculus!</p>
+    <p>correctly completed all 6 diagnostic stations!<br><br>
+    Ms. Cindy is stable and will be back to teach on Monday.<br>
+    Professor Von Failsworth has been escorted from the building. 😈</p>
     <button onclick="document.getElementById('overlay').classList.remove('show')">Continue</button>
   </div>
 </div>
@@ -158,69 +149,71 @@ const TEAMS = [
 ];
 
 const STATIONS = [
-  { short:"S1", label:"Triage", sub:"Power", cls:"s1" },
-  { short:"S2", label:"Toxicol.", sub:"Exp", cls:"s2" },
-  { short:"S3", label:"Pharmacy", sub:"Log", cls:"s3" },
-  { short:"S4", label:"Neurology", sub:"Trig", cls:"s4" },
-  { short:"S5", label:"Radiology", sub:"Chain", cls:"s5" },
-  { short:"S6", label:"Diagnosis", sub:"WIN ★", cls:"s6" },
+  { short:"S1", label:"Triage",    sub:"Power",  cls:"s1" },
+  { short:"S2", label:"Toxicol.",  sub:"Exp",    cls:"s2" },
+  { short:"S3", label:"Pharmacy",  sub:"Log",    cls:"s3" },
+  { short:"S4", label:"Neurology", sub:"Trig",   cls:"s4" },
+  { short:"S5", label:"Radiology", sub:"Chain",  cls:"s5" },
+  { short:"S6", label:"Diagnosis", sub:"WIN ★",  cls:"s6" },
 ];
 
 let state = TEAMS.map(() => Array(6).fill(false));
 let winnerIdx = -1;
-let timerSecs = 50 * 60;
-let running = true;
-let interval;
 
-// build column labels
+// Build column labels
 (function() {
   const cl = document.getElementById('col-labels');
-  cl.innerHTML = `<div class="col-team-space"></div><div class="col-stations">` +
-    STATIONS.map(s => `<div class="col-st" style="width:44px;flex-shrink:0">${s.label}<br><span style="color:#444466;font-size:9px">${s.sub}</span></div>`).join('<div style="width:8px;flex-shrink:0"></div>') +
-    `</div><div class="col-prog">Progress</div>`;
+  cl.innerHTML = '<div class="col-team-space"></div><div class="col-stations">' +
+    STATIONS.map(s => '<div class="col-st" style="width:44px;flex-shrink:0">' + s.label + '<br><span style="color:#444466;font-size:9px">' + s.sub + '</span></div>').join('<div style="width:8px;flex-shrink:0"></div>') +
+    '</div><div class="col-prog">Progress</div>';
 })();
 
-// populate selects
+// Populate team select
 const ts = document.getElementById('selTeam');
-TEAMS.forEach((t,i) => { const o=document.createElement('option'); o.value=i; o.textContent=t.name; ts.appendChild(o); });
+TEAMS.forEach(function(t, i) {
+  const o = document.createElement('option');
+  o.value = i; o.textContent = t.name; ts.appendChild(o);
+});
 
-function maxSolved() { return Math.max(...state.map(t=>t.filter(Boolean).length)); }
+function maxSolved() {
+  return Math.max.apply(null, state.map(function(t){ return t.filter(Boolean).length; }));
+}
 
 function render() {
   const container = document.getElementById('teams');
   container.innerHTML = '';
   const ms = maxSolved();
 
-  state.forEach((clues, ti) => {
+  state.forEach(function(clues, ti) {
     const n = clues.filter(Boolean).length;
-    const pct = Math.round(n/6*100);
+    const pct = Math.round(n / 6 * 100);
     const isWin = ti === winnerIdx;
     const isLead = !isWin && n === ms && n > 0;
 
     const card = document.createElement('div');
-    card.className = 'team-card' + (isWin?' winner':isLead?' leader':n>0?' active':'');
+    card.className = 'team-card' + (isWin ? ' winner' : isLead ? ' leader' : n > 0 ? ' active' : '');
 
-    const dots = STATIONS.map((s,ci) => {
+    const dots = STATIONS.map(function(s, ci) {
       const solved = clues[ci];
-      const cls = solved ? `dot solved ${s.cls}${ci===5&&solved?' win-dot':''}` : 'dot pending';
-      return `<div class="${cls}" onclick="toggle(${ti},${ci})" title="${solved?'Click to unmark':'Click to mark solved'}">${s.short}<br>${solved?'✓':'○'}</div>`;
+      const cls = solved ? ('dot solved ' + s.cls + (ci === 5 && solved ? ' win-dot' : '')) : 'dot pending';
+      return '<div class="' + cls + '" onclick="toggle(' + ti + ',' + ci + ')" title="' + (solved ? 'Click to unmark' : 'Click to mark solved') + '">' + s.short + '<br>' + (solved ? '✓' : '○') + '</div>';
     }).join('<div style="width:8px;flex-shrink:0"></div>');
 
-    card.innerHTML = `
-      <div class="team-color" style="background:${TEAMS[ti].color}"></div>
-      <div class="team-info">
-        <div class="team-name">
-          ${TEAMS[ti].name}
-          ${isWin?'<span class="badge badge-win">WINNER</span>':''}
-          ${isLead?'<span class="badge badge-lead">LEADING</span>':''}
-        </div>
-        <div class="team-roles">Physician · Mathematician · Nurse · Lab Tech</div>
-      </div>
-      <div class="stations">${dots}</div>
-      <div class="prog-wrap">
-        <div class="prog-bar"><div class="prog-fill${n===6?' full':''}" style="width:${pct}%"></div></div>
-        <div class="prog-txt">${n} / 6</div>
-      </div>`;
+    card.innerHTML =
+      '<div class="team-color" style="background:' + TEAMS[ti].color + '"></div>' +
+      '<div class="team-info">' +
+        '<div class="team-name">' + TEAMS[ti].name +
+          (isWin ? '<span class="badge badge-win">WINNER</span>' : '') +
+          (isLead ? '<span class="badge badge-lead">LEADING</span>' : '') +
+        '</div>' +
+        '<div class="team-roles">Physician &middot; Mathematician &middot; Nurse &middot; Lab Tech</div>' +
+      '</div>' +
+      '<div class="stations">' + dots + '</div>' +
+      '<div class="prog-wrap">' +
+        '<div class="prog-bar"><div class="prog-fill' + (n === 6 ? ' full' : '') + '" style="width:' + pct + '%"></div></div>' +
+        '<div class="prog-txt">' + n + ' / 6</div>' +
+      '</div>';
+
     container.appendChild(card);
   });
 
@@ -229,73 +222,65 @@ function render() {
 
 function updateVitals(ms) {
   const stages = [
-    { bp:"158/94",hr:"112 bpm",spo:"91%",tox:"ELEVATED",st:"CRITICAL", bpC:"bad",hrC:"bad",spoC:"bad",toxC:"bad",stC:"bad" },
-    { bp:"152/90",hr:"105 bpm",spo:"93%",tox:"HIGH",    st:"CRITICAL", bpC:"bad",hrC:"bad",spoC:"mid",toxC:"bad",stC:"bad" },
-    { bp:"144/86",hr:"98 bpm", spo:"95%",tox:"MODERATE",st:"GUARDED",  bpC:"mid",hrC:"mid",spoC:"mid",toxC:"mid",stC:"mid" },
-    { bp:"136/82",hr:"91 bpm", spo:"96%",tox:"DECLINING",st:"IMPROVING",bpC:"mid",hrC:"mid",spoC:"mid",toxC:"mid",stC:"mid" },
-    { bp:"128/80",hr:"86 bpm", spo:"97%",tox:"LOW",     st:"IMPROVING", bpC:"mid",hrC:"mid",spoC:"ok",toxC:"mid",stC:"mid" },
-    { bp:"122/78",hr:"80 bpm", spo:"98%",tox:"CLEARING", st:"STABLE",   bpC:"ok",hrC:"ok",spoC:"ok",toxC:"ok",stC:"mid" },
-    { bp:"118/76",hr:"74 bpm", spo:"99%",tox:"CLEAR",   st:"STABLE",   bpC:"ok",hrC:"ok",spoC:"ok",toxC:"ok",stC:"ok" },
+    { bp:"158/94", hr:"112 bpm", spo:"91%", tox:"CRITICAL",  st:"CRITICAL",  bpC:"bad", hrC:"bad", spoC:"bad", toxC:"bad", stC:"bad" },
+    { bp:"152/90", hr:"105 bpm", spo:"93%", tox:"HIGH",      st:"CRITICAL",  bpC:"bad", hrC:"bad", spoC:"mid", toxC:"bad", stC:"bad" },
+    { bp:"144/86", hr:"98 bpm",  spo:"95%", tox:"HIGH",      st:"GUARDED",   bpC:"mid", hrC:"mid", spoC:"mid", toxC:"bad", stC:"mid" },
+    { bp:"136/82", hr:"91 bpm",  spo:"96%", tox:"MODERATE",  st:"IMPROVING", bpC:"mid", hrC:"mid", spoC:"mid", toxC:"mid", stC:"mid" },
+    { bp:"128/80", hr:"86 bpm",  spo:"97%", tox:"DECLINING", st:"IMPROVING", bpC:"mid", hrC:"mid", spoC:"ok",  toxC:"mid", stC:"mid" },
+    { bp:"122/78", hr:"80 bpm",  spo:"98%", tox:"LOW",       st:"STABLE",    bpC:"ok",  hrC:"ok",  spoC:"ok",  toxC:"ok",  stC:"mid" },
+    { bp:"118/76", hr:"74 bpm",  spo:"99%", tox:"CLEAR",     st:"STABLE",    bpC:"ok",  hrC:"ok",  spoC:"ok",  toxC:"ok",  stC:"ok"  },
   ];
   const idx = winnerIdx >= 0 ? 6 : Math.min(ms, 5);
   const d = stages[idx];
-  const set = (id,val,cls) => { const el=document.getElementById(id); el.textContent=val; el.className=cls; };
-  set('vbp',d.bp,d.bpC); set('vhr',d.hr,d.hrC); set('vspo',d.spo,d.spoC);
-  set('vtox',d.tox,d.toxC); set('vstatus',d.st,d.stC);
+  function set(id, val, cls) { var el = document.getElementById(id); el.textContent = val; el.className = cls; }
+  set('vbp', d.bp, d.bpC); set('vhr', d.hr, d.hrC); set('vspo', d.spo, d.spoC);
+  set('vtox', d.tox, d.toxC); set('vstatus', d.st, d.stC);
 }
 
 function toggle(ti, ci) {
   state[ti][ci] = !state[ti][ci];
-  if(!state[ti][ci] && winnerIdx===ti) winnerIdx=-1;
+  if (!state[ti][ci] && winnerIdx === ti) winnerIdx = -1;
   checkWin(ti);
   render();
 }
 
 function checkWin(ti) {
-  if(winnerIdx===-1 && state[ti].every(Boolean)) {
+  if (winnerIdx === -1 && state[ti].every(Boolean)) {
     winnerIdx = ti;
-    running = false;
     document.getElementById('winnerName').textContent = TEAMS[ti].name;
-    setTimeout(()=>document.getElementById('overlay').classList.add('show'), 500);
+    setTimeout(function(){ document.getElementById('overlay').classList.add('show'); }, 500);
   }
 }
 
 function markSolved() {
-  const ti=+document.getElementById('selTeam').value;
-  const ci=+document.getElementById('selStation').value;
-  state[ti][ci]=true; checkWin(ti); render();
-}
-function markUnsolved() {
-  const ti=+document.getElementById('selTeam').value;
-  const ci=+document.getElementById('selStation').value;
-  state[ti][ci]=false; if(winnerIdx===ti) winnerIdx=-1; render();
+  const ti = +document.getElementById('selTeam').value;
+  const ci = +document.getElementById('selStation').value;
+  state[ti][ci] = true; checkWin(ti); render();
 }
 
-function updateTimerDisplay() {
-  const m=Math.floor(timerSecs/60), s=timerSecs%60;
-  const el=document.getElementById('timer');
-  el.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-  el.className='timer'+(timerSecs<=300?' critical':timerSecs<=600?' warning':'');
+function markUnsolved() {
+  const ti = +document.getElementById('selTeam').value;
+  const ci = +document.getElementById('selStation').value;
+  state[ti][ci] = false;
+  if (winnerIdx === ti) winnerIdx = -1;
+  render();
 }
-function toggleTimer(){ running=!running; }
-function resetTimer(){ timerSecs=50*60; running=true; updateTimerDisplay(); }
-function resetAll(){
+
+function resetAll() {
   const btn = document.getElementById('resetBtn');
-  if(btn.dataset.confirm !== '1'){
+  if (btn.dataset.confirm !== '1') {
     btn.textContent = '✓ Confirm Reset?';
     btn.dataset.confirm = '1';
-    setTimeout(()=>{ btn.textContent='⚠ Reset All'; btn.dataset.confirm='0'; }, 3000);
+    setTimeout(function(){ btn.textContent = '⚠ Reset All'; btn.dataset.confirm = '0'; }, 3000);
     return;
   }
-  btn.textContent='⚠ Reset All'; btn.dataset.confirm='0';
-  state=TEAMS.map(()=>Array(6).fill(false));
-  winnerIdx=-1; timerSecs=50*60; running=true;
+  btn.textContent = '⚠ Reset All'; btn.dataset.confirm = '0';
+  state = TEAMS.map(function(){ return Array(6).fill(false); });
+  winnerIdx = -1;
   document.getElementById('overlay').classList.remove('show');
-  updateTimerDisplay(); render();
+  render();
 }
 
-interval=setInterval(()=>{ if(running&&timerSecs>0){timerSecs--;updateTimerDisplay();} },1000);
-updateTimerDisplay();
 render();
 </script>
 </body>
