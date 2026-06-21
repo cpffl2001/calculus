@@ -504,10 +504,24 @@ function renderChiefGate(s) {
 }
 
 function unlockStation() {
-  var inp = document.getElementById('a-input');
+  var codeInp = document.getElementById('code-input');
+  var aInp = document.getElementById('a-input');
   var err = document.getElementById('a-error');
-  if (!inp || inp.value.trim() === '') { if (err) err.style.display = 'block'; return; }
-  enteredA[cur] = inp.value.trim();
+  var correctCode = UNLOCK_CODES[cur] || '';
+
+  if (!codeInp || codeInp.value.trim().toUpperCase() !== correctCode) {
+    err.textContent = 'Incorrect unlock code. See the Chief of Emergency Medicine.';
+    err.style.display = 'block';
+    if (codeInp) { codeInp.style.borderColor = '#cc0000'; }
+    return;
+  }
+  if (!aInp || aInp.value.trim() === '') {
+    err.textContent = 'Please also enter your value of a from your paper work.';
+    err.style.display = 'block';
+    return;
+  }
+  err.style.display = 'none';
+  enteredA[cur] = aInp.value.trim();
   stationUnlocked[cur] = true;
   submitted = false;
   renderStation();
