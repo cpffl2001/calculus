@@ -731,28 +731,25 @@ function showIncomplete() {
       '<div style="font-size:56px;margin-bottom:10px">&#128565;</div>' +
       '<h2 style="color:#ff4444;font-size:24px;margin-bottom:10px">MS. CINDY HAS GONE INTO A COMA</h2>' +
       '<p style="color:#ffaaaa;font-size:15px;line-height:1.8;max-width:460px;margin:0 auto">' +
-        'Due to incorrect diagnostic calculations, the antidote protocol failed.<br>' +
+        'Due to incorrect diagnostic calculations, the caffeine antidote failed.<br>' +
         'Ms. Cindy is stable &mdash; but unconscious. Professor Von Failsworth is already circling.<br><br>' +
         '<strong style="color:#ff6666">One last chance.</strong> The Chief has an emergency problem.<br>' +
         'Solve it on paper, then enter your answer below.' +
       '</p>' +
     '</div>' +
-
     '<div style="background:#fff;border:1px solid #ddd;border-radius:12px;padding:16px 20px;margin-bottom:16px">' +
       '<div style="font-size:14px;font-weight:bold;margin-bottom:10px;color:#333">Your diagnostic results:</div>' + rows +
     '</div>' +
-
     '<div style="background:#f4f3fe;border-left:4px solid #534ab7;border-radius:0 8px 8px 0;padding:20px 22px;margin-bottom:16px">' +
       '<div style="font-size:14px;font-weight:bold;color:#3C3489;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">&#127973; Emergency Bonus Problem &mdash; Quotient Rule</div>' +
       '<p style="font-size:14px;color:#26215c;line-height:1.7;margin-bottom:14px">' +
-        'The drug ratio \\(Q(t)\\) models how antidote concentration compares to toxin over time. ' +
-        'Differentiate using the quotient rule and evaluate at \\(t = 0\\). Show all work on paper.' +
+        'The drug ratio models antidote vs toxin concentration. Differentiate using the quotient rule and evaluate at t = 0. Show all work on paper.' +
       '</p>' +
-      '<div id="bonus-math-slot"></div>' +
+      '<div id="bonus-math-slot" style="background:#eeedfe;border-left:3px solid #534ab7;padding:16px 18px;margin-bottom:14px;overflow-x:auto;min-height:80px"></div>' +
       '<div style="background:#fff8e8;border:1.5px solid #cc8800;border-radius:10px;padding:18px 20px">' +
         '<div style="font-size:14px;font-weight:bold;color:#854f0b;margin-bottom:12px">Enter your answer:</div>' +
         '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
-          '<span style="font-size:16px;font-weight:bold;color:#5a3000">\\\\(Q\'(0)\\\\) =</span>' +
+          '<span style="font-size:15px;font-weight:bold;color:#5a3000">Q\'(0) =</span>' +
           '<input type="number" id="bonus-answer" step="any" placeholder="your answer" style="padding:10px 14px;border:2px solid #cc8800;border-radius:8px;font-size:16px;width:150px" onkeydown="if(event.key===\'Enter\') checkBonusAnswer()">' +
           '<button onclick="checkBonusAnswer()" style="background:#cc0000;color:#fff;padding:10px 22px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer">Submit &#8594;</button>' +
         '</div>' +
@@ -760,8 +757,17 @@ function showIncomplete() {
       '</div>' +
     '</div>';
 
-  if (window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(function(){});
+  // Inject math into the slot using the pre-rendered hidden template
+  var tmpl = document.getElementById('bonus-math-template');
+  var slot = document.getElementById('bonus-math-slot');
+  if (tmpl && slot) {
+    slot.innerHTML = tmpl.innerHTML;
+  }
+  if (window.MathJax) {
+    MathJax.typesetPromise([document.getElementById('station-area')]).catch(function(){});
+  }
 }
+
 
 function checkBonusAnswer() {
   var inp = document.getElementById('bonus-answer');
