@@ -482,7 +482,7 @@ function renderStation() {
 }
 
 // Chief gate
-var UNLOCK_CODES = { 2:'PULSE2', 3:'STAT3', 4:'NEURO4', 5:'XRAY5', 6:'CODE6' };
+var UNLOCK_CODES = { 1:'PULSE2', 2:'STAT3', 3:'NEURO4', 4:'XRAY5', 5:'CODE6' };
 
 function renderChiefGate(s) {
   document.getElementById('hdr-station').textContent = cur + 1;
@@ -494,10 +494,10 @@ function renderChiefGate(s) {
     '</div>' +
     '<div class="a-entry">' +
       '<div class="a-entry-title">&#128203; Station ' + (cur + 1) + ' &mdash; Enter unlock code and value of a</div>' +
-      '<p style="margin-bottom:14px">The Chief will give you an index card with the Station ' + (cur + 1) + ' problem and a secret unlock code. Enter both below.</p>' +
+      '<p style="margin-bottom:14px">Enter the unlock code from your index card and your calculated value of <em>a</em>.</p>' +
       '<div style="margin-bottom:14px">' +
         '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Unlock code (from the Chief):</label>' +
-        '<input type="text" id="code-input" placeholder="e.g. PULSE2" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-size:16px;padding:10px 14px;border:2px solid #cc8800;border-radius:8px;width:180px">' +
+        '<input type="text" id="code-input" placeholder="Enter code" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-size:16px;padding:10px 14px;border:2px solid #cc8800;border-radius:8px;width:180px">' +
       '</div>' +
       '<div style="margin-bottom:14px">' +
         '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Your value of <em>a</em> (from your paper):</label>' +
