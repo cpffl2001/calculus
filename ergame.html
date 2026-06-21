@@ -215,10 +215,10 @@ var STATIONS = [
 \\[ \\text{Find } B'(t), \\text{ then evaluate } B'(1). \\]`,
     task: "Select the correct answer &mdash; you have one attempt:",
     choices: [
-      { text: `\\(B'(t) = 8t^3 - 12t^2 + 6t + 2 \\quad\\Rightarrow\\quad B'(1) = 4\\)`, correct: true },
-      { text: `\\(B'(t) = 8t^3 - 12t^2 + 6t + 2 \\quad\\Rightarrow\\quad B'(1) = 2\\)`, correct: false },
-      { text: `\\(B'(t) = 2t^3 - 4t^2 + 3t + 2 \\quad\\Rightarrow\\quad B'(1) = 3\\)`, correct: false },
-      { text: `\\(B'(t) = 8t^3 - 12t^2 + 6t \\quad\\Rightarrow\\quad B'(1) = 2\\)`, correct: false }
+      { text: `\\(B'(1) = 4\\)`, correct: true },
+      { text: `\\(B'(1) = 2\\)`, correct: false },
+      { text: `\\(B'(1) = 3\\)`, correct: false },
+      { text: `\\(B'(1) = 6\\)`, correct: false },
     ],
     correct_msg: "Correct! Blood pressure is rising &mdash; prepare vasodilators.",
     wrong_msg: "Locked in. Show your full derivative work on paper. You still need this value &mdash; solve it on your worksheet to get \\(a\\) for Station 2.",
@@ -236,10 +236,10 @@ var STATIONS = [
 \\[ \\text{Find } T'(t), \\text{ then evaluate } T'(0). \\]`,
     task: "Select the correct answer &mdash; you have one attempt:",
     choices: [
-      { text: `\\(T'(t) = e^t + a \\quad\\Rightarrow\\quad T'(0) = 1 + a = 5\\)`, correct: true },
-      { text: `\\(T'(t) = e^t + a \\quad\\Rightarrow\\quad T'(0) = a = 4\\)`, correct: false },
-      { text: `\\(T'(t) = e^t + at \\quad\\Rightarrow\\quad T'(0) = 1\\)`, correct: false },
-      { text: `\\(T'(t) = te^t + a \\quad\\Rightarrow\\quad T'(0) = a = 4\\)`, correct: false }
+      { text: `\\(T'(0) = 5\\)`, correct: true },
+      { text: `\\(T'(0) = 4\\)`, correct: false },
+      { text: `\\(T'(0) = 1\\)`, correct: false },
+      { text: `\\(T'(0) = 3\\)`, correct: false },
     ],
     correct_msg: "Correct! Toxin entry rate confirmed.",
     wrong_msg: "Locked in. Show your full derivative work on paper. You still need this value &mdash; solve it on your worksheet to get \\(a\\) for Station 3.",
@@ -257,10 +257,10 @@ var STATIONS = [
 \\[ \\text{Find } D'(x), \\text{ then evaluate } D'(1). \\]`,
     task: "Select the correct answer &mdash; you have one attempt:",
     choices: [
-      { text: `\\(D'(x) = \\dfrac{a}{x} + 2x \\quad\\Rightarrow\\quad D'(1) = a + 2 = 7\\)`, correct: true },
-      { text: `\\(D'(x) = \\dfrac{a}{x} + 2x \\quad\\Rightarrow\\quad D'(1) = a = 5\\)`, correct: false },
-      { text: `\\(D'(x) = \\dfrac{1}{ax} + 2x \\quad\\Rightarrow\\quad D'(1) = \\tfrac{1}{a}+2\\)`, correct: false },
-      { text: `\\(D'(x) = \\dfrac{a}{x} + x^2 \\quad\\Rightarrow\\quad D'(1) = a+1 = 6\\)`, correct: false }
+      { text: `\\(D'(1) = 7\\)`, correct: true },
+      { text: `\\(D'(1) = 5\\)`, correct: false },
+      { text: `\\(D'(1) = 6\\)`, correct: false },
+      { text: `\\(D'(1) = 3\\)`, correct: false },
     ],
     correct_msg: "Correct! Antidote is absorbing at hour 1.",
     wrong_msg: "Locked in. Show your full derivative work on paper. You still need this value &mdash; solve it on your worksheet to get \\(a\\) for Station 4.",
@@ -278,10 +278,10 @@ var STATIONS = [
 \\[ \\text{Find } N'(t), \\text{ then evaluate } N'(0). \\]`,
     task: "Select the correct answer &mdash; you have one attempt:",
     choices: [
-      { text: `\\(N'(t) = (a-1)\\cos(t) - \\sin(t) + 2t \\quad\\Rightarrow\\quad N'(0) = a-1 = 6\\)`, correct: true },
-      { text: `\\(N'(t) = (a-1)\\cos(t) + \\sin(t) + 2t \\quad\\Rightarrow\\quad N'(0) = a-1 = 6\\)`, correct: false },
-      { text: `\\(N'(t) = (a-1)\\cos(t) - \\sin(t) + 2t \\quad\\Rightarrow\\quad N'(0) = a = 7\\)`, correct: false },
-      { text: `\\(N'(t) = -(a-1)\\sin(t) - \\cos(t) + 2 \\quad\\Rightarrow\\quad N'(0) = -1\\)`, correct: false }
+      { text: `\\(N'(0) = 6\\)`, correct: true },
+      { text: `\\(N'(0) = 7\\)`, correct: false },
+      { text: `\\(N'(0) = -1\\)`, correct: false },
+      { text: `\\(N'(0) = 8\\)`, correct: false },
     ],
     correct_msg: "Correct! All three terms differentiated correctly &mdash; nerve signal confirmed.",
     wrong_msg: "Locked in. Show your full derivative work on paper. Differentiate each term separately and evaluate at \\(t=0\\). Solve on your worksheet to get \\(a\\) for Station 5.",
@@ -299,10 +299,10 @@ var STATIONS = [
 \\[ \\text{Find } R'(t) \\text{ using the chain rule, then evaluate } R'(0). \\]`,
     task: "Select the correct answer &mdash; you have one attempt:",
     choices: [
-      { text: `\\(R'(t) = 2(t^2+2t+a)(2t+2) \\quad\\Rightarrow\\quad R'(0) = 4a = 24\\)`, correct: true },
-      { text: `\\(R'(t) = 2(t^2+2t+a)(2t+2) \\quad\\Rightarrow\\quad R'(0) = 2a = 12\\)`, correct: false },
-      { text: `\\(R'(t) = 2(t^2+2t+a) \\quad\\Rightarrow\\quad R'(0) = 2a = 12\\)`, correct: false },
-      { text: `\\(R'(t) = (2t+2)^2 \\quad\\Rightarrow\\quad R'(0) = 4\\)`, correct: false }
+      { text: `\\(R'(0) = 24\\)`, correct: true },
+      { text: `\\(R'(0) = 12\\)`, correct: false },
+      { text: `\\(R'(0) = 4\\)`, correct: false },
+      { text: `\\(R'(0) = 36\\)`, correct: false },
     ],
     correct_msg: "Correct! At \\(t=0\\): outer gives \\(2a\\), inner derivative gives \\(2\\) &mdash; product is \\(4a\\). Radiation dose calibrated.",
     wrong_msg: "Locked in. Show your full chain rule work on paper. Inner: \\(u = t^2+2t+a\\), so \\(u'=2t+2\\). At \\(t=0\\): \\(u=a\\) and \\(u'=2\\). Solve on your worksheet to get \\(a\\) for Station 6.",
@@ -321,10 +321,10 @@ var STATIONS = [
 \\[ f = t^2+3t, \\quad g = ae^t \\]`,
     task: "Select the correct answer &mdash; you have one attempt:",
     choices: [
-      { text: `\\(P'(t) = ae^t(t^2+5t+3) \\quad\\Rightarrow\\quad P'(0) = 3a = 72 \\;\\checkmark\\; \\text{ Ms. Cindy saved!}\\)`, correct: true },
-      { text: `\\(P'(t) = ae^t(t^2+5t) \\quad\\Rightarrow\\quad P'(0) = 0 \\;\\times\\; \\text{ Escalate!}\\)`, correct: false },
-      { text: `\\(P'(t) = ae^t(2t^2+6t+3) \\quad\\Rightarrow\\quad P'(0) = 3a = 72 \\;\\checkmark\\; \\text{ Ms. Cindy saved!}\\)`, correct: false },
-      { text: `\\(P'(t) = ae^t(t^2+5t+3) \\quad\\Rightarrow\\quad P'(0) = 5a \\;\\times\\; \\text{ Escalate!}\\)`, correct: false }
+      { text: `\\(P'(0) = 72 \\;\\checkmark\\; \\text{Ms. Cindy saved!}\\)`, correct: true },
+      { text: `\\(P'(0) = 0 \\;\\times\\; \\text{Escalate!}\\)`, correct: false },
+      { text: `\\(P'(0) = 48 \\;\\times\\; \\text{Escalate!}\\)`, correct: false },
+      { text: `\\(P'(0) = 120 \\;\\times\\; \\text{Escalate!}\\)`, correct: false },
     ],
     correct_msg: "Correct! \\(P'(0) = 3a = 72 > 70\\) mg/hr&sup2; &mdash; antidote confirmed. Ms. Cindy is saved!",
     wrong_msg: "Locked in. Show your full product rule work: \\(f'g + fg'\\) where \\(f' = 2t+3\\), \\(g = ae^t\\). Factor out \\(ae^t\\) and evaluate at \\(t=0\\).",
