@@ -724,9 +724,8 @@ function showIncomplete() {
       '<p style="color:#ffaaaa;font-size:15px;line-height:1.8;max-width:460px;margin:0 auto">' +
         'Due to incorrect diagnostic calculations, the antidote protocol failed.<br>' +
         'Ms. Cindy is stable &mdash; but unconscious. Professor Von Failsworth is already circling.<br><br>' +
-        '<strong style="color:#ff6666">You must report to the Chief of Emergency Medicine immediately.</strong><br>' +
-        'The Chief has one last chance to wake Ms. Cindy up: a high-stakes <strong style="color:#ffdd44">Quotient Rule</strong> problem.<br>' +
-        'Solve it correctly on paper and bring your answer back.' +
+        '<strong style="color:#ff6666">One last chance.</strong> The Chief has an emergency problem.<br>' +
+        'Solve it on paper, then enter your answer below.' +
       '</p>' +
     '</div>' +
 
@@ -737,27 +736,75 @@ function showIncomplete() {
     '<div style="background:#f4f3fe;border-left:4px solid #534ab7;border-radius:0 8px 8px 0;padding:20px 22px;margin-bottom:16px">' +
       '<div style="font-size:14px;font-weight:bold;color:#3C3489;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">&#127973; Emergency Bonus Problem &mdash; Quotient Rule</div>' +
       '<p style="font-size:14px;color:#26215c;line-height:1.7;margin-bottom:14px">' +
-        'The drug ratio \(Q(t)\) models how antidote concentration compares to toxin over time. ' +
-        'If \(Q\u0027(0) < 0\) the ratio is falling and Ms. Cindy needs immediate intervention &mdash; and you need to find out before Professor Von Failsworth grades your entire semester.' +
+        'The drug ratio \\(Q(t)\\) models how antidote concentration compares to toxin over time. ' +
+        'Differentiate using the quotient rule and evaluate at \\(t = 0\\). Show all work on paper.' +
       '</p>' +
-      '<div style="background:#eeedfe;border-left:3px solid #534ab7;padding:16px 18px;font-size:18px;color:#1a1a6e;line-height:2.4;margin-bottom:14px;overflow-x:auto">' +
-        '\[ Q(t) = \dfrac{t^2 + 2t + 12}{e^t} \]' +
-        '\[ \text{Find } Q\u0027(t) \text{ using the quotient rule, then evaluate } Q\u0027(0). \]' +
-        '\[ f = t^2+2t+12, \quad g = e^t \]' +
+      '<div style="background:#eeedfe;border-left:3px solid #534ab7;padding:16px 18px;margin-bottom:14px;overflow-x:auto" id="bonus-math">' +
+        '\\\\[ Q(t) = \\\\dfrac{t^2 + 2t + 12}{e^t} \\\\]' +
+        '\\\\[ \\\\text{Find } Q\'(t) \\\\text{ using the quotient rule, then evaluate } Q\'(0). \\\\]' +
+        '\\\\[ f = t^2 + 2t + 12, \\\\quad g = e^t \\\\]' +
       '</div>' +
-      '<div style="font-size:14px;color:#444;line-height:1.7">' +
-        '<strong>Show all work on paper.</strong> If \(Q\u0027(0) &lt; 0\), the antidote ratio is falling &mdash; Ms. Cindy needs a dosage increase to recover from the coma &mdash; and you need to save Calculus class.' +
+      '<div style="background:#fff8e8;border:1.5px solid #cc8800;border-radius:10px;padding:18px 20px">' +
+        '<div style="font-size:14px;font-weight:bold;color:#854f0b;margin-bottom:12px">Enter your answer:</div>' +
+        '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
+          '<span style="font-size:16px;font-weight:bold;color:#5a3000">\\\\(Q\'(0)\\\\) =</span>' +
+          '<input type="number" id="bonus-answer" step="any" placeholder="your answer" style="padding:10px 14px;border:2px solid #cc8800;border-radius:8px;font-size:16px;width:150px" onkeydown="if(event.key===\'Enter\') checkBonusAnswer()">' +
+          '<button onclick="checkBonusAnswer()" style="background:#cc0000;color:#fff;padding:10px 22px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer">Submit &#8594;</button>' +
+        '</div>' +
+        '<div id="bonus-result" style="margin-top:14px;display:none"></div>' +
       '</div>' +
-    '</div>' +
-
-    '<div style="background:#fff8e8;border-left:4px solid #cc8800;border-radius:0 8px 8px 0;padding:14px 18px;margin-bottom:20px;font-size:14px;color:#7a4400;line-height:1.7">' +
-      '<strong>Answer key (for the Chief only):</strong><br>' +
-      '\(Q\u0027(t) = \dfrac{-t^2 - 10}{e^t}\) &nbsp;&nbsp; \(Q\u0027(0) = -10 < 0\) &mdash; ratio is falling. Increase the dosage and wake Ms. Cindy up!' +
-    '</div>' +
-
-    '<div style="text-align:center"><button onclick="location.reload()" style="background:#cc0000;color:#fff;padding:12px 30px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer">Try again &mdash; Ms. Cindy is waiting! &mdash; Ms. Cindy needs you!</button></div>';
+    '</div>';
 
   if (window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(function(){});
+}
+
+function checkBonusAnswer() {
+  var inp = document.getElementById('bonus-answer');
+  var result = document.getElementById('bonus-result');
+  if (!inp || inp.value.trim() === '') {
+    result.style.display = 'block';
+    result.innerHTML = '<p style="color:#cc0000;font-weight:bold">Please enter your answer first.</p>';
+    return;
+  }
+  var val = parseFloat(inp.value.trim());
+  inp.disabled = true;
+  document.querySelector('[onclick="checkBonusAnswer()"]').disabled = true;
+
+  if (val === -10) {
+    // Correct!
+    result.style.display = 'block';
+    result.innerHTML =
+      '<div style="background:#001a08;border:2px solid #44ff88;border-radius:12px;padding:22px;text-align:center">' +
+        '<div style="font-size:48px;margin-bottom:10px">&#127974;</div>' +
+        '<h2 style="color:#44ff88;font-size:22px;margin-bottom:8px">Ms. Cindy is Waking Up!</h2>' +
+        '<p style="color:#aaffcc;font-size:15px;line-height:1.8">' +
+          '\\(Q\'(0) = -10 < 0\\) &mdash; the ratio was falling, but your correct diagnosis triggered the emergency antidote adjustment.<br><br>' +
+          'Ms. Cindy is opening her eyes. Professor Von Failsworth has been escorted from the building.<br><br>' +
+          '<strong style="color:#ffdd44">She says: &ldquo;Next time, get the whole chain right the first time.&rdquo;</strong>' +
+        '</p>' +
+      '</div>';
+    if (window.MathJax) MathJax.typesetPromise([result]).catch(function(){});
+    // Trigger mini confetti
+    startConfetti();
+    setTimeout(function() {
+      var canvas = document.getElementById('confetti-canvas');
+      if (canvas) canvas.style.display = 'none';
+    }, 5000);
+  } else {
+    // Wrong
+    result.style.display = 'block';
+    result.innerHTML =
+      '<div style="background:#1a0000;border:2px solid #cc0000;border-radius:12px;padding:22px;text-align:center">' +
+        '<div style="font-size:48px;margin-bottom:10px">&#128127;</div>' +
+        '<h2 style="color:#ff4444;font-size:22px;margin-bottom:8px">Good Luck With Your New Professor.</h2>' +
+        '<p style="color:#ffaaaa;font-size:15px;line-height:1.8">' +
+          'That is not correct. Ms. Cindy remains in her coma.<br><br>' +
+          'Professor <strong style="color:#ff6666">Diabolus Von Failsworth III</strong> has taken over the course.<br>' +
+          'His first assignment: derive every function in the textbook. By hand. Tonight.<br><br>' +
+          '<em style="color:#ff9999">Maybe check your quotient rule. Hint: it is not ' + val + '.</em>' +
+        '</p>' +
+      '</div>';
+  }
 }
 
 // EKG
@@ -878,4 +925,18 @@ function startConfetti() {
 }
 </script>
 </body>
-</html>
+</html>      '<div id="bonus-math" style="background:#f4f3fe;border-left:4px solid #534ab7;border-radius:0 8px 8px 0;padding:20px 22px;margin-bottom:16px">' +
+      '<div style="font-size:14px;font-weight:bold;color:#3C3489;margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">&#127973; Emergency Bonus Problem &mdash; Quotient Rule</div>' +
+      '<p style="font-size:14px;color:#26215c;line-height:1.7;margin-bottom:14px">' +
+        'The drug ratio \\(Q(t)\\) models how antidote concentration compares to toxin over time. ' +
+        'If \\(Q(0) &lt; 0\\) the ratio is falling and Ms. Cindy needs immediate intervention.' +
+      '</p>' +
+      '<div style="background:#eeedfe;border-left:3px solid #534ab7;padding:16px 18px;margin-bottom:14px;overflow-x:auto;font-size:16px">' +
+        '\\[ Q(t) = \\dfrac{t^2 + 2t + 12}{e^t} \\]' +
+        '\\[ \\text{Find } Q\'(t) \\text{ using the quotient rule, then evaluate } Q\'(0). \\]' +
+        '\\[ f = t^2+2t+12, \\quad g = e^t \\]' +
+      '</div>' +
+      '<div style="font-size:14px;color:#444;line-height:1.7">' +
+        '<strong>Show all work on paper.</strong> Bring your answer for \\(Q\'(0)\\) to the Chief of Emergency Medicine.' +
+      '</div>' +
+    '</div>' +
