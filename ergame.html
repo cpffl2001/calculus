@@ -482,23 +482,32 @@ function renderStation() {
 }
 
 // Chief gate
+var UNLOCK_CODES = { 2:'PULSE2', 3:'STAT3', 4:'NEURO4', 5:'XRAY5', 6:'CODE6' };
+
 function renderChiefGate(s) {
   document.getElementById('hdr-station').textContent = cur + 1;
   document.getElementById('station-area').innerHTML =
     '<div class="chief-gate">' +
       '<div style="font-size:52px;margin-bottom:12px">&#127973;</div>' +
       '<h2>Go see the Chief of Emergency Medicine</h2>' +
-      '<p>Station ' + cur + ' results logged.<br>Bring your paper work to the Chief for your next case file.<br><strong style="color:#ff4444">You must show your work to receive Station ' + (cur + 1) + '.</strong></p>' +
+      '<p>Station ' + cur + ' results logged.<br>Bring your paper work to the Chief for your next case file and unlock code.<br><strong style="color:#ff4444">You must show your work to receive your card.</strong></p>' +
     '</div>' +
     '<div class="a-entry">' +
-      '<div class="a-entry-title">&#128203; Station ' + (cur + 1) + ' &mdash; Enter your value of <em>a</em></div>' +
-      '<p>The Chief has given you the index card for Station ' + (cur + 1) + '.<br>Enter the value of <strong><em>a</em></strong> from your paper work, then unlock the problem.</p>' +
-      '<div class="a-input-row">' +
-        '<label><em>a</em> =</label>' +
-        '<input type="number" id="a-input" placeholder="your answer" step="any" onkeydown="if(event.key===\'Enter\') unlockStation()">' +
-        '<button onclick="unlockStation()">Unlock Station ' + (cur + 1) + ' &#8594;</button>' +
+      '<div class="a-entry-title">&#128203; Station ' + (cur + 1) + ' &mdash; Enter unlock code and value of a</div>' +
+      '<p style="margin-bottom:14px">The Chief will give you an index card with the Station ' + (cur + 1) + ' problem and a secret unlock code. Enter both below.</p>' +
+      '<div style="margin-bottom:14px">' +
+        '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Unlock code (from the Chief):</label>' +
+        '<input type="text" id="code-input" placeholder="e.g. PULSE2" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-size:16px;padding:10px 14px;border:2px solid #cc8800;border-radius:8px;width:180px">' +
       '</div>' +
-      '<div class="a-error" id="a-error">Please enter a number first.</div>' +
+      '<div style="margin-bottom:14px">' +
+        '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Your value of <em>a</em> (from your paper):</label>' +
+        '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
+          '<span style="font-size:15px;font-weight:bold;color:#5a3000"><em>a</em> =</span>' +
+          '<input type="number" id="a-input" placeholder="your answer" step="any" style="padding:10px 14px;border:2px solid #cc8800;border-radius:8px;font-size:16px;width:140px">' +
+          '<button onclick="unlockStation()" style="background:#cc8800;color:#fff;padding:10px 22px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer">Unlock &#8594;</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="a-error" style="color:#cc0000;font-size:14px;font-weight:bold;display:none;margin-top:6px"></div>' +
     '</div>';
   document.getElementById('er-header').style.background = teamColor;
 }
