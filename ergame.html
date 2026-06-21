@@ -185,6 +185,15 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
 </div>
 
 <!-- FLATLINE -->
+<!-- Hidden bonus math template - rendered by MathJax on page load -->
+<div id="bonus-math-template" style="display:none">
+  <div style="background:#eeedfe;border-left:3px solid #534ab7;padding:16px 18px;margin-bottom:14px;overflow-x:auto;font-size:16px">
+    \[ Q(t) = \dfrac{t^2 + 2t + 12}{e^t} \]
+    \[ \text{Find } Q'(t) \text{ using the quotient rule, then evaluate } Q'(0). \]
+    \[ f = t^2+2t+12, \quad g = e^t \]
+  </div>
+</div>
+
 <div class="flatline-overlay" id="flatline">
   <div style="font-size:60px">&#128148;</div>
   <h2>Time's Up</h2>
@@ -739,11 +748,7 @@ function showIncomplete() {
         'The drug ratio \\(Q(t)\\) models how antidote concentration compares to toxin over time. ' +
         'Differentiate using the quotient rule and evaluate at \\(t = 0\\). Show all work on paper.' +
       '</p>' +
-      '<div style="background:#eeedfe;border-left:3px solid #534ab7;padding:16px 18px;margin-bottom:14px;overflow-x:auto" id="bonus-math">' +
-        '\\\\[ Q(t) = \\\\dfrac{t^2 + 2t + 12}{e^t} \\\\]' +
-        '\\\\[ \\\\text{Find } Q\'(t) \\\\text{ using the quotient rule, then evaluate } Q\'(0). \\\\]' +
-        '\\\\[ f = t^2 + 2t + 12, \\\\quad g = e^t \\\\]' +
-      '</div>' +
+      '<div id="bonus-math-slot"></div>' +
       '<div style="background:#fff8e8;border:1.5px solid #cc8800;border-radius:10px;padding:18px 20px">' +
         '<div style="font-size:14px;font-weight:bold;color:#854f0b;margin-bottom:12px">Enter your answer:</div>' +
         '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">' +
