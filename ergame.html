@@ -115,7 +115,7 @@ body{font-family:Arial,sans-serif;background:var(--bg);color:var(--text);min-hei
   <div class="intro-wrap">
     <div class="intro-icon">&#128680;</div>
     <h1>Code Red</h1>
-    <p class="tagline">Patient Ms. Cindy has been rushed in unconscious. Solve Station 1 on screen, then visit the <strong>Chief of Emergency Medicine</strong> for each subsequent case file. Every answer feeds the next problem. <strong>One attempt per station. Show all work on paper.</strong></p>
+    <p class="tagline">Patient Ms. Cindy has been rushed in unconscious. Solve Station 1 on screen, then call the <strong>Chief of Emergency Medicine</strong> over to your station for each subsequent unlock code. Every answer feeds the next problem. <strong>One attempt per station. Show all work on paper.</strong></p>
     <div class="station-list">
       <div class="sl-item"><div class="sl-num" style="color:#cc0000">Station 1</div><div class="sl-name">Triage</div><div class="sl-topic">Power rule</div></div>
       <div class="sl-item"><div class="sl-num" style="color:#3a2a99">Station 2</div><div class="sl-name">Toxicology</div><div class="sl-topic">Exponential rule</div></div>
@@ -506,12 +506,12 @@ function renderChiefGate(s) {
   document.getElementById('station-area').innerHTML =
     '<div class="chief-gate">' +
       '<div style="font-size:52px;margin-bottom:12px">&#127973;</div>' +
-      '<h2>Go see the Chief of Emergency Medicine</h2>' +
-      '<p>Station ' + cur + ' results logged.<br>Ms. Cindy is counting on you. Bring your paper work to the Chief for your next case file and unlock code.<br><strong style="color:#ff4444">Show your work or Professor Von Failsworth takes over.</strong></p>' +
+      '<h2>&#128680; Call the Chief of Emergency Medicine to your station!</h2>' +
+      '<p>Station ' + cur + ' results logged.<br>Ms. Cindy is counting on you. Show your paper work when the Chief arrives at your station.<br><strong style="color:#ff4444">Show your work or Professor Von Failsworth takes over.</strong></p>' +
     '</div>' +
     '<div class="a-entry">' +
       '<div class="a-entry-title">&#128203; Station ' + (cur + 1) + ' &mdash; Enter unlock code and value of a</div>' +
-      '<p style="margin-bottom:14px">Enter the unlock code from your index card and your calculated value of <em>a</em>.</p>' +
+      '<p style="margin-bottom:14px">Enter the unlock code given by the Chief and your calculated value of <em>a</em>.</p>' +
       '<div style="margin-bottom:14px">' +
         '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Unlock code (from the Chief):</label>' +
         '<input type="text" id="code-input" placeholder="Enter code" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-size:16px;padding:10px 14px;border:2px solid #cc8800;border-radius:8px;width:180px">' +
@@ -610,7 +610,7 @@ function submitAnswer() {
       : s.correct_msg + '<br><br>' +
         '<div style="font-size:24px;margin-bottom:6px">&#128680; &#128680; &#128680;</div>' +
         '<strong style="font-size:17px">CALL the Chief of Emergency Medicine to your station!</strong><br>' +
-        'Show your work to receive your unlock code and index card for the next station.';
+        'Show your work to receive your unlock code for the next station.';
     fb.innerHTML = chiefMsg;
     beep(880, 0.12, 0.2);
     if (s.nextNote) {
@@ -632,7 +632,7 @@ function submitAnswer() {
     }
   }
 
-  // Show next button - if not win, show as "Go see Chief"
+  // Show next button
   var nextBtn = document.getElementById('btn-next');
   if (s.isWin) {
     nextBtn.style.display = 'block';
