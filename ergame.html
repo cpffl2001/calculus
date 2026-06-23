@@ -324,7 +324,7 @@ var STATIONS = [
       { text: `\\(P'(0) = 72 \\;\\checkmark\\; \\text{Ms. Cindy saved!}\\)`, correct: true },
       { text: `\\(P'(0) = 48 \\;\\checkmark\\; \\text{Ms. Cindy saved!}\\)`, correct: false },
       { text: `\\(P'(0) = 0 \\;\\times\\; \\text{Escalate!}\\)`, correct: false },
-      { text: `\\(P'(0) = 3 \\;\\checkmark\\; \\text{Ms. Cindy saved!}\\)`, correct: false },
+      { text: `\\(P'(0) = 72 \\;\\checkmark\\; \\text{Ms. Cindy saved!}\\)`, correct: false },
     ],
     correct_msg: "Correct! \\(P'(0) = 3a = 72 > 70\\) mg/hr&sup2; &mdash; antidote confirmed. Ms. Cindy is saved!",
     wrong_msg: "Locked in. Show your full product rule work: \\(f'g + fg'\\) where \\(f' = 2t+3\\), \\(g = ae^t\\). Factor out \\(ae^t\\) and evaluate at \\(t=0\\).",
@@ -592,11 +592,9 @@ function submitAnswer() {
   var fb = document.getElementById('feedback');
   var nv = document.getElementById('next-val');
 
-  // Lock all choices, reveal correct
-  var sh = shuffledChoices[cur] || s.choices;
+  // Lock all choices — do NOT reveal correct answer
   document.querySelectorAll('.choice').forEach(function(el, i) {
     el.classList.add('locked');
-    if (sh[i].correct) el.classList.add('reveal-correct');
     if (i === selectedChoice) el.classList.add(correct ? 'correct' : 'wrong');
     el.onclick = null;
   });
@@ -616,10 +614,15 @@ function submitAnswer() {
   } else {
     stationResults[cur] = false;
     fb.className = 'feedback-box show wrong';
-    fb.innerHTML = s.wrong_msg;
+    fb.innerHTML =
+      '<div style="font-size:28px;margin-bottom:8px">🚨 🚨 🚨</div>' +
+      '<strong style="font-size:17px">DO NOT LEAVE THIS SCREEN.</strong><br><br>' +
+      'Find your error on your paper work.<br>' +
+      '<strong>Call the Chief of Emergency Medicine over to your table.</strong><br><br>' +
+      '<span style="font-size:13px;opacity:.85">You still need the correct value of <em>a</em> to continue. Work it out — the Chief will verify.</span>';
     if (s.nextNote) {
       nv.className = 'next-val-box show';
-      nv.innerHTML = '<strong>For your paper:</strong> ' + s.nextNote + '<br><span style="font-size:13px;opacity:.8">Even though this answer is locked, you must still solve this problem on paper to find the value of <em>a</em> for the next station.</span>';
+      nv.innerHTML = '<strong>For your paper:</strong> ' + s.nextNote;
     }
   }
 
