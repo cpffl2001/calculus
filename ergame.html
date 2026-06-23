@@ -605,7 +605,13 @@ function submitAnswer() {
     correctCount++;
     stationResults[cur] = true;
     fb.className = 'feedback-box show correct';
-    fb.innerHTML = s.correct_msg;
+    var chiefMsg = s.isWin
+      ? s.correct_msg
+      : s.correct_msg + '<br><br>' +
+        '<div style="font-size:24px;margin-bottom:6px">&#128680; &#128680; &#128680;</div>' +
+        '<strong style="font-size:17px">CALL the Chief of Emergency Medicine to your station!</strong><br>' +
+        'Show your work to receive your unlock code and index card for the next station.';
+    fb.innerHTML = chiefMsg;
     beep(880, 0.12, 0.2);
     if (s.nextNote) {
       nv.className = 'next-val-box show';
