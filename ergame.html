@@ -502,25 +502,37 @@ function renderStation() {
 var UNLOCK_CODES = { 1:'PULSE2', 2:'STAT3', 3:'NEURO4', 4:'XRAY5', 5:'CODE6' };
 
 function renderChiefGate(s) {
+  var stationNames = ['','Triage','Toxicology','Pharmacy','Neurology','Radiology','Final Diagnosis'];
+  var stationEmojis = ['','🚨','🧪','💊','🧠','☢️','⚕️'];
   document.getElementById('hdr-station').textContent = cur + 1;
   document.getElementById('station-area').innerHTML =
-    '<div class="chief-gate">' +
-      '<div style="font-size:52px;margin-bottom:12px">&#127973;</div>' +
-      '<h2>&#128680; Call the Chief of Emergency Medicine to your station!</h2>' +
-      '<p>Station ' + cur + ' results logged.<br>Ms. Cindy is counting on you. Show your paper work when the Chief arrives at your station.<br><strong style="color:#ff4444">Show your work or Professor Von Failsworth takes over.</strong></p>' +
+    '<div style="background:#fff8e8;border:2px solid #cc8800;border-radius:12px;padding:20px 24px;margin-bottom:16px">' +
+      '<div style="font-size:13px;font-weight:bold;color:#854f0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">&#128203; ER Department — Patient Case Transfer Form</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;font-size:13px;color:#7a4400">' +
+        '<div><strong>Patient:</strong> Ms. Cindy (Calculus Prof.)</div>' +
+        '<div><strong>Status:</strong> Stable but grumpy</div>' +
+        '<div><strong>Completed:</strong> ' + stationEmojis[cur] + ' Station ' + cur + ' — ' + stationNames[cur] + '</div>' +
+        '<div><strong>Proceeding to:</strong> ' + stationEmojis[cur+1] + ' Station ' + (cur+1) + ' — ' + stationNames[cur+1] + '</div>' +
+        '<div><strong>Chief verified:</strong> &#9744; Work shown &nbsp; &#9744; No excuses</div>' +
+        '<div><strong>Von Failsworth:</strong> Still lurking in the hallway</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:#996600;font-style:italic;border-top:1px dashed #cc8800;padding-top:8px">' +
+        'By entering the unlock code below, this team certifies that all derivative work was completed on paper, no rules were violated, and Ms. Cindy still has a pulse.' +
+      '</div>' +
     '</div>' +
+
     '<div class="a-entry">' +
-      '<div class="a-entry-title">&#128203; Station ' + (cur + 1) + ' &mdash; Enter unlock code and value of a</div>' +
-      '<p style="margin-bottom:14px">Enter the unlock code given by the Chief and your calculated value of <em>a</em>.</p>' +
+      '<div class="a-entry-title">&#128274; Station ' + (cur + 1) + ' — Enter your unlock code and value of a</div>' +
+      '<p style="margin-bottom:14px;font-size:14px;color:#7a4400">The Chief has given you the unlock code. Enter it below along with your value of <em>a</em> from your paper work to access the next diagnostic.</p>' +
       '<div style="margin-bottom:14px">' +
         '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Unlock code (from the Chief):</label>' +
         '<input type="text" id="code-input" placeholder="Enter code" autocomplete="off" style="text-transform:uppercase;letter-spacing:2px;font-size:16px;padding:10px 14px;border:2px solid #cc8800;border-radius:8px;width:180px">' +
       '</div>' +
       '<div style="margin-bottom:14px">' +
-        '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Your value of <em>a</em> (from your paper):</label>' +
+        '<label style="font-size:14px;font-weight:bold;color:#7a4400;display:block;margin-bottom:6px">Your value of <em>a</em> (from your paper work):</label>' +
         '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">' +
           '<span style="font-size:15px;font-weight:bold;color:#5a3000"><em>a</em> =</span>' +
-          '<input type="number" id="a-input" placeholder="your answer" step="any" style="padding:10px 14px;border:2px solid #cc8800;border-radius:8px;font-size:16px;width:140px">' +
+          '<input type="number" id="a-input" placeholder="your answer" step="any" style="padding:10px 14px;border:2px solid #cc8800;border-radius:8px;font-size:16px;width:140px" onkeydown="if(event.key===\'Enter\') unlockStation()">' +
           '<button onclick="unlockStation()" style="background:#cc8800;color:#fff;padding:10px 22px;border-radius:8px;border:none;font-size:15px;font-weight:bold;cursor:pointer">Unlock &#8594;</button>' +
         '</div>' +
       '</div>' +
