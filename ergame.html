@@ -338,6 +338,7 @@ var STATIONS = [
 var cur = 0;
 var furthestStation = 0;
 var submitted = false;
+var submittedStations = {}; // tracks {stationIdx: {correct, choiceIdx}}
 var correctCount = 0;
 var stationResults = [];
 var teamColor = '#cc0000';
@@ -494,6 +495,49 @@ function renderStation() {
       '</div>' +
     '</div>';
 
+  // If this station was already submitted, restore locked state immediately
+  if (submittedStations[cur] !== undefined) {
+    var prev = submittedStations[cur];
+    var sh = shuffledChoices[cur] || s.choices;
+    document.querySelectorAll('.choice').forEach(function(el, i) {
+      el.classList.add('locked');
+      if (i === prev.choiceIdx) el.classList.add(prev.correct ? 'correct' : 'wrong');
+      el.onclick = null;
+    });
+    var submitBtn = document.getElementById('btn-submit');
+    var nextBtn = document.getElementById('btn-next');
+    if (submitBtn) submitBtn.style.display = 'none';
+    if (nextBtn) nextBtn.style.display = 'block';
+    // Show feedback
+    var fb = document.getElementById('feedback');
+    var nv = document.getElementById('next-val');
+    if (fb) {
+      if (prev.correct) {
+        fb.className = 'feedback-box show correct';
+        var chiefMsg = s.isWin ? s.correct_msg : s.correct_msg +
+          '<br><br><div style="font-size:24px;margin-bottom:6px">&#128680; &#128680; &#128680;</div>' +
+          '<strong style="font-size:17px">CALL the Chief of Emergency Medicine to your station!</strong><br>' +
+          'Show your work to receive your unlock code for the next station.';
+        fb.innerHTML = chiefMsg;
+      } else {
+        fb.className = 'feedback-box show wrong';
+        fb.innerHTML =
+          '<div style="font-size:28px;margin-bottom:8px">&#128680; &#128680; &#128680;</div>' +
+          '<strong style="font-size:17px">DO NOT LEAVE THIS SCREEN.</strong><br><br>' +
+          'Find your error on your paper work.<br>' +
+          '<strong>Call the Chief of Emergency Medicine over to your table.</strong><br><br>' +
+          '<span style="font-size:13px;opacity:.85">You still need the correct value of <em>a</em> to continue. Work it out — the Chief will verify.</span>';
+      }
+    }
+    if (nv && s.nextNote) {
+      nv.className = 'next-val-box show';
+      nv.innerHTML = '<strong>For your paper:</strong> ' + s.nextNote;
+    }
+    if (window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(function() {});
+    document.getElementById('er-header').style.background = teamColor;
+    return;
+  }
+
   if (window.MathJax) MathJax.typesetPromise([document.getElementById('station-area')]).catch(function() {});
   document.getElementById('er-header').style.background = teamColor;
 }
@@ -601,6 +645,8 @@ function submitAnswer() {
   var s = STATIONS[cur];
   var shuffled = shuffledChoices[cur] || s.choices;
   var correct = shuffled[selectedChoice].correct;
+  // Record this submission so back/forward can restore it
+  submittedStations[cur] = { correct: correct, choiceIdx: selectedChoice };
   var fb = document.getElementById('feedback');
   var nv = document.getElementById('next-val');
 
