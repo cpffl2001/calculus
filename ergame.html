@@ -545,6 +545,13 @@ function renderStation() {
 // Chief gate
 var UNLOCK_CODES = { 1:'PULSE2', 2:'STAT3', 3:'NEURO4', 4:'XRAY5', 5:'CODE6' };
 
+function goBackFromGate() {
+  // Go back to review the station they just came from
+  cur--;
+  renderStationReview();
+  window.scrollTo(0, 0);
+}
+
 function renderChiefGate(s) {
   var stationNames = ['','Triage','Toxicology','Pharmacy','Neurology','Radiology','Final Diagnosis'];
   var stationEmojis = ['','🚨','🧪','💊','🧠','☢️','⚕️'];
@@ -566,6 +573,7 @@ function renderChiefGate(s) {
     '</div>' +
 
     '<div class="a-entry">' +
+      '<div style="margin-bottom:12px"><button onclick="goBackFromGate()" style="background:transparent;border:1.5px solid #cc8800;border-radius:8px;color:#7a4400;font-size:14px;font-weight:bold;padding:7px 16px;cursor:pointer;">&#8592; Back to Station ' + cur + '</button></div>' +
       '<div class="a-entry-title">&#128274; Station ' + (cur + 1) + ' — Enter your unlock code and value of a</div>' +
       '<p style="margin-bottom:14px;font-size:14px;color:#7a4400">The Chief has given you the unlock code. Enter it below along with your value of <em>a</em> from your paper work to access the next diagnostic.</p>' +
       '<div style="margin-bottom:14px">' +
