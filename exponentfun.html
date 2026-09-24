@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Power Up! — Rewrite it as a power</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF3F7; --grid:#D3DFEA; --grid-strong:#B9CCDD;
+  --ink:#1C2B4A; --ink-soft:#52627F; --card:#FFFFFF;
+  --hi:#FFE14D; --hi-ink:#3A2F00; --pop:#D6336C; --ok:#1F8A5B; --bad:#C92A3A;
+  --okbg:#DDF3E8; --badbg:#FBE1E4; --line:#C3D2E1;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131C31; --grid:#1D2944; --grid-strong:#27365A;
+    --ink:#E8EEF7; --ink-soft:#A3B1C9; --card:#1A2540;
+    --hi:#FFE14D; --hi-ink:#2A2200; --pop:#FF6B9A; --ok:#4FD19A; --bad:#FF7A85;
+    --okbg:#173A2E; --badbg:#3E1C26; --line:#2E3E63;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131C31; --grid:#1D2944; --grid-strong:#27365A;
+  --ink:#E8EEF7; --ink-soft:#A3B1C9; --card:#1A2540;
+  --hi:#FFE14D; --hi-ink:#2A2200; --pop:#FF6B9A; --ok:#4FD19A; --bad:#FF7A85;
+  --okbg:#173A2E; --badbg:#3E1C26; --line:#2E3E63;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0;min-height:100%;
+  font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color:var(--ink);background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid-strong) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid-strong) 1px,transparent 1px),
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:120px 120px,120px 120px,24px 24px,24px 24px;
+  line-height:1.45;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--pop);outline-offset:3px}
+.wrap{max-width:760px;margin:0 auto;padding:20px 18px 48px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.brand{font-weight:800;font-size:1.25rem;letter-spacing:-.01em;background:none;border:0;padding:0}
+.brand sup{font-size:.6em;color:var(--pop)}
+.tools{display:flex;gap:8px}
+.icon-btn{border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:6px 10px;font-size:.9rem}
+.screen{display:none}.screen.on{display:block}
+
+/* ---- math ---- */
+.m{font-family:"STIX Two Text","Cambria Math","Times New Roman",serif;white-space:nowrap}
+.m i{font-style:italic}
+.m sup{font-size:.58em;vertical-align:.9em;line-height:0;margin-left:.04em}
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em}
+.fr>.fn{border-bottom:.06em solid currentColor;padding:0 .18em .05em}
+.fr>.fd{padding:.05em .18em 0}
+.rad{display:inline-flex;align-items:stretch;vertical-align:baseline}
+.rad .ri{font-size:.5em;align-self:flex-start;margin-right:-.42em;margin-top:.15em;position:relative;z-index:1}
+.rad .rs{font-size:1.08em;line-height:1;align-self:flex-end;transform:translateY(.04em)}
+.rad .rc{border-top:.06em solid currentColor;padding:.12em .1em 0 .06em;margin-top:.1em}
+.dot{margin:0 .08em}
+
+/* ---- home ---- */
+.hero{text-align:center;padding:34px 0 10px}
+.hero h1{font-size:clamp(2.6rem,9vw,4.4rem);line-height:.95;margin:0 0 6px;font-weight:800;letter-spacing:-.03em}
+.hero h1 .up{display:inline-block;font-size:.5em;vertical-align:1.05em;color:var(--pop);transform:rotate(-6deg)}
+.hero p{margin:0 auto;max-width:34ch;color:var(--ink-soft);font-size:1.08rem}
+.demo{margin:26px auto 30px;background:var(--card);border:2px solid var(--ink);border-radius:18px;
+  padding:18px 22px;max-width:460px;box-shadow:6px 6px 0 var(--ink);font-size:clamp(1.5rem,5vw,2rem);text-align:center}
+.demo .arrow{color:var(--pop);margin:0 .35em;font-family:"Bricolage Grotesque",sans-serif}
+.modes{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.mode{text-align:left;background:var(--card);border:2px solid var(--ink);border-radius:16px;padding:16px 18px;
+  box-shadow:4px 4px 0 var(--ink);transition:transform .08s,box-shadow .08s}
+.mode:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 var(--ink)}
+.mode:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+.mode b{display:block;font-size:1.2rem;margin-bottom:2px}
+.mode span{color:var(--ink-soft);font-size:.95rem}
+.mode.arcade{background:var(--hi);color:var(--hi-ink);border-color:var(--ink)}
+.mode.arcade span{color:var(--hi-ink);opacity:.8}
+.best{text-align:center;color:var(--ink-soft);margin-top:18px;font-size:.95rem}
+
+/* ---- game HUD ---- */
+.hud{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.hud .stat{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:6px 12px;min-width:74px;text-align:center}
+.hud .stat small{display:block;color:var(--ink-soft);font-size:.72rem;line-height:1.1}
+.hud .stat strong{font-size:1.15rem}
+.lives{letter-spacing:2px;font-size:1.1rem}
+.mult{color:var(--pop)}
+.timer{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-bottom:14px}
+.timer>div{height:100%;width:100%;background:var(--ink);transform-origin:left;transition:background .3s}
+.timer.low>div{background:var(--bad)}
+.board{background:var(--card);border:2px solid var(--ink);border-radius:20px;box-shadow:6px 6px 0 var(--ink);
+  padding:18px 18px 22px;position:relative;overflow:hidden}
+.prompt{color:var(--ink-soft);font-size:.95rem;text-align:center;margin:0 0 4px}
+.expr{font-size:clamp(2.2rem,9vw,3.6rem);text-align:center;min-height:2.3em;display:flex;align-items:center;justify-content:center;padding:6px 0 10px;overflow-x:auto}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{position:relative;background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:12px 8px;min-height:84px;
+  font-size:clamp(1.25rem,4.6vw,1.7rem);display:flex;align-items:center;justify-content:center;transition:border-color .1s,background .1s}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt .k{position:absolute;top:6px;left:9px;font-family:"Bricolage Grotesque",sans-serif;font-size:.7rem;color:var(--ink-soft)}
+.opt.right{background:var(--okbg);border-color:var(--ok)}
+.opt.wrong{background:var(--badbg);border-color:var(--bad)}
+.opt:disabled{cursor:default}
+.feedback{margin-top:14px;border-radius:14px;padding:12px 14px;display:none}
+.feedback.on{display:block}
+.feedback.good{background:var(--okbg)}
+.feedback.bad{background:var(--badbg)}
+.feedback h3{margin:0 0 4px;font-size:1.05rem}
+.feedback ol{margin:6px 0 0;padding-left:1.25em}
+.feedback li{margin:3px 0}
+.feedback .ans{font-size:1.35rem;margin:4px 0}
+.row{display:flex;gap:10px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+.btn{border:2px solid var(--ink);background:var(--ink);color:var(--card);border-radius:12px;padding:9px 18px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink)}
+.btn.hi{background:var(--hi);color:var(--hi-ink)}
+.levelup{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  background:var(--hi);color:var(--hi-ink);font-weight:800;font-size:clamp(2rem,8vw,3rem);opacity:0;pointer-events:none;transition:opacity .25s}
+.levelup small{font-size:1rem;font-weight:600}
+.levelup.on{opacity:1}
+.pop{position:absolute;font-weight:800;color:var(--pop);pointer-events:none;animation:rise 900ms ease-out forwards;font-size:1.3rem}
+@keyframes rise{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-50px)}}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-3px)}}
+
+/* ---- precision ---- */
+.levels{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:6px 0 16px}
+.chip{border:2px solid var(--line);background:var(--card);border-radius:99px;padding:6px 14px;font-weight:600}
+.chip[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--card)}
+.builder{display:flex;align-items:center;justify-content:center;gap:4px;font-size:clamp(1.7rem,6vw,2.4rem);flex-wrap:wrap;margin:6px 0}
+.builder .eq{margin-right:10px;color:var(--ink-soft)}
+.builder input{width:4.2em;border:2px solid var(--line);border-radius:10px;background:var(--paper);text-align:center;
+  padding:4px 4px;font-family:"STIX Two Text",serif;font-size:.8em}
+.builder input.exp{width:3.6em;font-size:.55em;align-self:flex-start;margin-top:-.2em}
+.builder input:focus{border-color:var(--ink);outline:none}
+.preview{text-align:center;color:var(--ink-soft);min-height:2.2em;font-size:1.2rem}
+.help{font-size:.85rem;color:var(--ink-soft);text-align:center;margin:4px 0 0}
+
+/* ---- rules / results ---- */
+.card{background:var(--card);border:2px solid var(--ink);border-radius:18px;box-shadow:6px 6px 0 var(--ink);padding:18px 20px}
+.rules{display:grid;gap:10px}
+.rule{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;border-bottom:1.5px dashed var(--line);padding:10px 0}
+.rule:last-child{border-bottom:0}
+.rule .m{font-size:1.45rem;overflow-x:auto}
+.rule p{margin:2px 0 0;color:var(--ink-soft);font-size:.9rem}
+.rule .tag{font-size:.8rem;background:var(--hi);color:var(--hi-ink);border-radius:8px;padding:3px 8px;white-space:nowrap}
+h2{margin:0 0 10px;font-size:1.6rem;letter-spacing:-.01em}
+.big{font-size:3.4rem;font-weight:800;line-height:1;margin:6px 0}
+.misses{margin-top:14px}
+.miss{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1.5px dashed var(--line);font-size:1.3rem;overflow-x:auto}
+.miss .arrow{color:var(--pop);font-family:"Bricolage Grotesque",sans-serif}
+.muted{color:var(--ink-soft)}
+@media (max-width:420px){.opt{min-height:74px}.hud .stat{min-width:64px;padding:5px 8px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="brand" id="homeBtn" aria-label="Back to start">Power Up<sup>!</sup></button>
+    <div class="tools">
+      <button class="icon-btn" id="rulesBtn">Rules</button>
+      <button class="icon-btn" id="soundBtn" aria-pressed="true">Sound on</button>
+    </div>
+  </header>
+
+  <!-- HOME -->
+  <section class="screen on" id="home">
+    <div class="hero">
+      <h1>Power<span class="up">up!</span></h1>
+      <p>Every root, every fraction, every <span class="m"><i>x</i></span> in a denominator can be written as one clean power.</p>
+    </div>
+    <div class="demo m" id="demo" aria-live="polite"></div>
+    <div class="modes">
+      <button class="mode arcade" id="startArcade"><b>Arcade</b><span>Pick the match before time runs out. Three lives, streak multipliers, four levels.</span></button>
+      <button class="mode" id="startPrecision"><b>Precision</b><span>Type the coefficient and exponent yourself. Ten problems, no clock.</span></button>
+    </div>
+    <p class="best" id="bestLine"></p>
+  </section>
+
+  <!-- ARCADE -->
+  <section class="screen" id="arcade">
+    <div class="hud">
+      <div class="stat"><small>Score</small><strong id="aScore">0</strong></div>
+      <div class="stat"><small>Streak</small><strong><span id="aStreak">0</span> <span class="mult" id="aMult">×1</span></strong></div>
+      <div class="stat"><small>Level</small><strong id="aLevel">1</strong></div>
+      <div class="stat"><small>Lives</small><strong class="lives" id="aLives">♥♥♥</strong></div>
+    </div>
+    <div class="timer" id="aTimer"><div id="aTimerBar"></div></div>
+    <div class="board" id="aBoard">
+      <p class="prompt" id="aPrompt">Rewrite as a power of x</p>
+      <div class="expr m" id="aExpr"></div>
+      <div class="opts" id="aOpts"></div>
+      <div class="feedback" id="aFb" aria-live="polite"></div>
+      <div class="levelup" id="levelUp"><span id="levelUpText">Level 2</span><small id="levelUpSub"></small></div>
+    </div>
+  </section>
+
+  <!-- PRECISION -->
+  <section class="screen" id="precision">
+    <div class="levels" role="group" aria-label="Difficulty">
+      <button class="chip" data-lv="1" aria-pressed="true">Level 1</button>
+      <button class="chip" data-lv="2" aria-pressed="false">Level 2</button>
+      <button class="chip" data-lv="3" aria-pressed="false">Level 3</button>
+      <button class="chip" data-lv="4" aria-pressed="false">Level 4</button>
+    </div>
+    <div class="hud">
+      <div class="stat"><small>Problem</small><strong id="pNum">1/10</strong></div>
+      <div class="stat"><small>Correct</small><strong id="pCorrect">0</strong></div>
+      <div class="stat"><small>Hints used</small><strong id="pHints">0</strong></div>
+    </div>
+    <div class="board">
+      <p class="prompt">Write it as <span class="m">a<i>x</i><sup>n</sup></span></p>
+      <div class="expr m" id="pExpr"></div>
+      <div class="builder m">
+        <span class="eq">=</span>
+        <input id="pCoef" inputmode="text" autocomplete="off" aria-label="Coefficient" placeholder="a">
+        <i>x</i>
+        <input id="pExp" class="exp" inputmode="text" autocomplete="off" aria-label="Exponent" placeholder="n">
+      </div>
+      <div class="preview m" id="pPreview"></div>
+      <p class="help">Use fractions like 3/4 or −1/2. Leave the coefficient blank if it's 1.</p>
+      <div class="feedback" id="pFb" aria-live="polite"></div>
+      <div class="row">
+        <button class="btn ghost" id="pHintBtn">Hint</button>
+        <button class="btn" id="pCheck">Check</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RULES -->
+  <section class="screen" id="rules">
+    <div class="card">
+      <h2>The rewrite rules</h2>
+      <div class="rules" id="rulesList"></div>
+      <div class="row"><button class="btn" id="rulesBack">Back</button></div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="results">
+    <div class="card">
+      <h2 id="rTitle">Game over</h2>
+      <div class="big" id="rScore">0</div>
+      <p class="muted" id="rStats"></p>
+      <div class="misses" id="rMisses"></div>
+      <div class="row">
+        <button class="btn ghost" id="rHome">Home</button>
+        <button class="btn hi" id="rAgain">Play again</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(()=>{
+/* ---------- fractions ---------- */
+const gcd=(a,b)=>{a=Math.abs(a);b=Math.abs(b);while(b){[a,b]=[b,a%b]}return a||1};
+const F=(n,d=1)=>{if(d<0){n=-n;d=-d}const g=gcd(n,d);return [n/g,d/g]};
+const add=(a,b)=>F(a[0]*b[1]+b[0]*a[1],a[1]*b[1]);
+const neg=a=>[-a[0],a[1]];
+const recip=a=>F(a[1],a[0]);
+const val=a=>a[0]/a[1];
+const eq=(a,b)=>a[0]===b[0]&&a[1]===b[1];
+const key=(c,e)=>c.join('/')+'|'+e.join('/');
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const coprimeTo=(n,lo,hi)=>{let m;do{m=ri(lo,hi)}while(gcd(m,n)!==1);return m};
+
+/* ---------- math rendering ---------- */
+const MINUS='−';
+const frac=(n,d)=>`<span class="fr"><span class="fn">${n}</span><span class="fd">${d}</span></span>`;
+const rad=(idx,inner)=>`<span class="rad">${idx?`<span class="ri">${idx}</span>`:''}<span class="rs">√</span><span class="rc">${inner}</span></span>`;
+const pw=(b,e)=>(e==='1'||e===1)?b:`${b}<sup>${e}</sup>`;
+const X='<i>x</i>';
+const num=n=>(n<0?MINUS:'')+Math.abs(n);
+const eStr=e=>e[1]===1?num(e[0]):`${num(e[0])}/${e[1]}`;
+const idx=n=>n===2?'':n;
+const ordinal=n=>({2:'square',3:'cube',4:'4th',5:'5th',6:'6th',7:'7th'})[n]||n+'th';
+
+function powerForm(c,e){
+  let co='';
+  if(!(c[0]===1&&c[1]===1)) co=c[1]===1?num(c[0]):frac(c[0],c[1]);
+  const ex=eStr(e);
+  return co+pw(X,ex);
+}
+function radPart(p,q){ // p>0
+  if(q===1) return pw(X,p);
+  return rad(idx(q),pw(X,p));
+}
+function radicalForm(c,e){
+  const [a,b]=c,[p,q]=e;
+  const part=radPart(Math.abs(p),q);
+  if(p<0){
+    const den=(b===1?'':b)+part;
+    return frac(a,den);
+  }
+  if(b===1) return (a===1?'':a)+part;
+  return frac(a,b)+part;
+}
+
+/* ---------- problem generators ---------- */
+// each returns {c, e, disp, why:[...], extra:[[c,e],...]}
+const G={
+  recip(){const n=ri(1,6);return{c:[1,1],e:[-n,1],disp:frac(1,pw(X,n)),
+    why:[`A power of ${X} in the denominator can move to the numerator.`,`When it moves, the exponent changes sign: ${n} becomes ${MINUS}${n}.`]}},
+  sqrt(){return{c:[1,1],e:[1,2],disp:rad('',X),why:[`A square root is the same as the power 1/2.`]}},
+  nroot(){const n=ri(3,6);return{c:[1,1],e:[1,n],disp:rad(n,X),why:[`The ${ordinal(n)} root is the power 1/${n}.`,`The root index becomes the denominator of the exponent.`]}},
+  rootpow(){const n=pick([2,3,3,4,5]);const m=coprimeTo(n,2,7);return{c:[1,1],e:[m,n],disp:rad(idx(n),pw(X,m)),
+    why:[`The power inside (${m}) is the numerator of the exponent.`,`The root index (${n}) is the denominator.`],extra:[[[1,1],F(n,m)]]}},
+  powroot(){const n=pick([2,3,4,5]);const m=coprimeTo(n,2,5);return{c:[1,1],e:[m,n],disp:`(${rad(idx(n),X)})<sup>${m}</sup>`,
+    why:[`${rad(idx(n),X)} is ${pw(X,'1/'+n)}.`,`A power of a power multiplies: (1/${n})·${m} = ${m}/${n}.`]}},
+  recipRoot(){const n=pick([2,2,3,4,5]);const m=Math.random()<.5?1:coprimeTo(n,2,5);
+    return{c:[1,1],e:[-m,n],disp:frac(1,rad(idx(n),pw(X,m))),
+    why:[`First rewrite the root: ${rad(idx(n),pw(X,m))} = ${pw(X,m+'/'+n)}.`,`It's in the denominator, so the exponent flips sign: ${MINUS}${m}/${n}.`]}},
+  coefRecip(){const a=ri(2,9),n=ri(1,5);return{c:[a,1],e:[-n,1],disp:frac(a,pw(X,n)),
+    why:[`The ${a} is already in the numerator, so it stays put as the coefficient.`,`Only ${pw(X,n)} moves up: ${pw(X,MINUS+n)}.`],extra:[[[1,a],[-n,1]],[[a,1],[n,1]]]}},
+  fracCoefRoot(){const n=pick([2,2,3,4]);const m=Math.random()<.6?1:coprimeTo(n,2,5);let a=ri(1,7),b;do{b=ri(2,9)}while(gcd(a,b)!==1);
+    return{c:[a,b],e:[-m,n],disp:frac(a,b+rad(idx(n),pw(X,m))),
+    why:[`Split it: (${a}/${b}) · 1/${rad(idx(n),pw(X,m))}.`,`The ${b} is just a number — it stays a coefficient in the denominator, it does not get an exponent.`,`${rad(idx(n),pw(X,m))} = ${pw(X,m+'/'+n)}, and in the denominator that becomes ${pw(X,MINUS+m+'/'+n)}.`],
+    extra:[[[a*b,1],[-m,n]]]}},
+  recipCoefPow(){const b=ri(2,9),n=ri(1,5);return{c:[1,b],e:[-n,1],disp:frac(1,b+pw(X,n)),
+    why:[`Split it: (1/${b}) · 1/${pw(X,n)}.`,`Only the ${X} moves up — the ${b} stays below as the coefficient 1/${b}.`,`So you get (1/${b})${pw(X,MINUS+n)}, not ${b}${pw(X,MINUS+n)}.`]}},
+  coefTimesRoot(){const n=pick([2,3,4]);const m=Math.random()<.6?1:coprimeTo(n,2,5);let a=ri(1,7),b;do{b=ri(2,9)}while(gcd(a,b)!==1);
+    const r=rad(idx(n),pw(X,m));const disp=Math.random()<.5?frac(a,b)+r:frac((a===1?'':a)+r,b);
+    return{c:[a,b],e:[m,n],disp,why:[`The number part is ${a}/${b}.`,`The root part is ${r} = ${pw(X,m+'/'+n)}; it's in the numerator, so the exponent stays positive.`]}},
+  xTimesRoot(){const k=ri(1,4),n=pick([2,2,3,4]);const e=F(k*n+1,n);return{c:[1,1],e,disp:pw(X,k)+rad(idx(n),X),
+    why:[`Rewrite: ${pw(X,k)} · ${pw(X,'1/'+n)}.`,`Multiplying same bases adds exponents: ${k} + 1/${n} = ${eStr(e)}.`],extra:[[[1,1],F(k,n)]]}},
+  xOverRoot(){const k=ri(1,4),n=pick([2,2,3,4]);const e=F(k*n-1,n);return{c:[1,1],e,disp:frac(pw(X,k),rad(idx(n),X)),
+    why:[`Rewrite: ${pw(X,k)} / ${pw(X,'1/'+n)}.`,`Dividing same bases subtracts exponents: ${k} ${MINUS} 1/${n} = ${eStr(e)}.`],extra:[[[1,1],F(k*n+1,n)]]}},
+  rootOverX(){const k=ri(1,3),n=pick([2,2,3]);const e=F(1-k*n,n);return{c:[1,1],e,disp:frac(rad(idx(n),X),pw(X,k)),
+    why:[`Rewrite: ${pw(X,'1/'+n)} / ${pw(X,k)}.`,`Subtract exponents (top minus bottom): 1/${n} ${MINUS} ${k} = ${eStr(e)}.`],extra:[[[1,1],F(1+k*n,n)]]}},
+  coefXOverRoot(){const k=ri(1,3),n=pick([2,3]);let a=ri(1,7),b;do{b=ri(2,8)}while(gcd(a,b)!==1);const e=F(k*n-1,n);
+    return{c:[a,b],e,disp:frac((a===1?'':a)+pw(X,k),b+rad(idx(n),X)),
+    why:[`Numbers first: the coefficient is ${a}/${b}.`,`Then the ${X}'s: ${pw(X,k)} / ${pw(X,'1/'+n)} = ${pw(X,eStr(e))} (subtract exponents).`]}},
+  coefOverXRoot(){const n=pick([2,3]);let a=ri(1,6),b;do{b=ri(2,8)}while(gcd(a,b)!==1);const e=neg(F(n+1,n));
+    return{c:[a,b],e,disp:frac(a,b+X+rad(idx(n),X)),
+    why:[`Coefficient: ${a}/${b}.`,`Downstairs, ${X}·${rad(idx(n),X)} = ${pw(X,'1 + 1/'+n)} = ${pw(X,(n+1)+'/'+n)}.`,`Move it up and flip the sign: ${pw(X,eStr(e))}.`]}},
+};
+const POOL={
+  1:['recip','recip','sqrt','nroot','nroot'],
+  2:['rootpow','powroot','recipRoot','recipRoot','coefRecip','sqrt'],
+  3:['fracCoefRoot','fracCoefRoot','recipCoefPow','coefTimesRoot','recipRoot','coefRecip'],
+  4:['xTimesRoot','xOverRoot','rootOverX','coefXOverRoot','coefOverXRoot','fracCoefRoot'],
+};
+let lastKey='';
+function makeProblem(level){
+  let p,k,tries=0;
+  do{p=G[pick(POOL[level])]();k=key(p.c,p.e)+p.disp.length;tries++}while(k===lastKey&&tries<10);
+  lastKey=k;return p;
+}
+function distractors(p){
+  const seen=new Set([key(p.c,p.e)]);const out=[];
+  const tryAdd=(c,e)=>{if(e[0]===0)return;const k=key(c,e);if(!seen.has(k)){seen.add(k);out.push([c,e])}};
+  (p.extra||[]).forEach(([c,e])=>tryAdd(c,e));
+  const cands=shuffle([[p.c,neg(p.e)],[p.c,F(p.e[1]*Math.sign(p.e[0]),Math.abs(p.e[0]))],[recip(p.c),p.e],[recip(p.c),neg(p.e)],
+    [p.c,F(p.e[1]*-Math.sign(p.e[0]),Math.abs(p.e[0]))]]);
+  cands.forEach(([c,e])=>tryAdd(c,e));
+  let n=1;while(out.length<3){tryAdd(p.c,add(p.e,[n%2?n:-n,p.e[1]===1?1:p.e[1]]));n++}
+  return out.slice(0,3);
+}
+
+/* ---------- sound ---------- */
+let soundOn=true,actx=null;
+function beep(freqs,dur=.09,type='triangle'){
+  if(!soundOn)return;
+  try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    freqs.forEach((f,i)=>{const o=actx.createOscillator(),g=actx.createGain();o.type=type;o.frequency.value=f;
+      const t=actx.currentTime+i*dur;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.18,t+.01);
+      g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g).connect(actx.destination);o.start(t);o.stop(t+dur+.02)})}catch(e){}
+}
+const sfx={right:()=>beep([660,880]),wrong:()=>beep([220,165],.14,'sawtooth'),level:()=>beep([523,659,784,1047],.1),over:()=>beep([392,330,262],.18)};
+
+/* ---------- storage ---------- */
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- screens ---------- */
+const $=id=>document.getElementById(id);
+let current='home';
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));current=id;window.scrollTo(0,0)}
+function goHome(){stopTimer();show('home');updateBest();startDemo()}
+$('homeBtn').onclick=goHome;
+$('soundBtn').onclick=()=>{soundOn=!soundOn;$('soundBtn').textContent=soundOn?'Sound on':'Sound off';$('soundBtn').setAttribute('aria-pressed',soundOn)};
+let rulesReturn='home';
+$('rulesBtn').onclick=()=>{if(current==='rules')return;rulesReturn=current;if(current==='arcade')pauseArcade();show('rules')};
+$('rulesBack').onclick=()=>{show(rulesReturn);if(rulesReturn==='arcade')resumeArcade();if(rulesReturn==='home')startDemo()};
+
+function updateBest(){const b=store.get('powerup-best');$('bestLine').textContent=b?`Your best arcade score: ${Number(b).toLocaleString()}`:''}
+
+/* ---------- home demo ---------- */
+let demoTimer=null;
+const demoItems=[[frac(1,X),[1,1],[-1,1]],[rad('',X),[1,1],[1,2]],[frac(3,'4'+rad('',X)),[3,4],[-1,2]],[rad(3,X),[1,1],[1,3]],[rad(3,pw(X,2)),[1,1],[2,3]],[frac(5,pw(X,4)),[5,1],[-4,1]]];
+let demoI=0;
+function startDemo(){
+  clearInterval(demoTimer);
+  const draw=()=>{const [d,c,e]=demoItems[demoI%demoItems.length];$('demo').innerHTML=`${d}<span class="arrow">=</span>${powerForm(c,e)}`;demoI++};
+  draw();demoTimer=setInterval(()=>{if(current!=='home'){clearInterval(demoTimer);return}draw()},2200);
+}
+
+/* ---------- rules ---------- */
+$('rulesList').innerHTML=[
+  [`${frac(1,pw(X,'n'))} = ${pw(X,MINUS+'n')}`,'Denominator to numerator: flip the sign of the exponent.','Move it'],
+  [`${rad('',X)} = ${pw(X,'1/2')}`,'A square root is the one-half power.','Roots'],
+  [`${rad('n',pw(X,'m'))} = ${pw(X,'m/n')}`,'Power inside on top, root index on the bottom.','Roots'],
+  [`${frac(1,'b'+pw(X,'n'))} = ${frac(1,'b')}${pw(X,MINUS+'n')}`,'Only the variable moves. The number stays as a coefficient.','Watch out'],
+  [`${frac('a','b'+rad('',X))} = ${frac('a','b')}${pw(X,MINUS+'1/2')}`,'Coefficient first, then rewrite the root, then flip the sign.','Combo'],
+  [`${pw(X,'a')}·${pw(X,'b')} = ${pw(X,'a+b')}`,'Multiplying: add exponents.','Combine'],
+  [`${frac(pw(X,'a'),pw(X,'b'))} = ${pw(X,'a−b')}`,'Dividing: subtract exponents (top minus bottom).','Combine'],
+].map(([m,p,t])=>`<div class="rule"><div><div class="m">${m}</div><p>${p}</p></div><span class="tag">${t}</span></div>`).join('');
+
+/* ---------- ARCADE ---------- */
+const A={};
+const TIME={1:15,2:15,3:17,4:20};
+function startArcade(){
+  Object.assign(A,{score:0,streak:0,best:0,level:1,lives:3,correct:0,answered:0,levelCorrect:0,misses:[],locked:false,paused:false});
+  show('arcade');renderHud();nextArcade();
+}
+function mult(){return Math.min(5,1+Math.floor(A.streak/3))}
+function renderHud(){
+  $('aScore').textContent=A.score.toLocaleString();$('aStreak').textContent=A.streak;$('aMult').textContent='×'+mult();
+  $('aLevel').textContent=A.level;$('aLives').textContent='♥'.repeat(A.lives)+'♡'.repeat(Math.max(0,3-A.lives));
+}
+let tStart=0,tDur=0,tLeft=0,raf=null;
+function startTimer(sec){tDur=sec*1000;tLeft=tDur;tStart=performance.now();tick()}
+function tick(){
+  cancelAnimationFrame(raf);
+  const run=()=>{if(A.paused)return;const el=performance.now()-tStart;const rem=Math.max(0,tLeft-el);
+    $('aTimerBar').style.transform=`scaleX(${rem/tDur})`;$('aTimer').classList.toggle('low',rem<tDur*.3);
+    if(rem<=0){timeUp();return}raf=requestAnimationFrame(run)};
+  raf=requestAnimationFrame(run);
+}
+function remaining(){return Math.max(0,tLeft-(performance.now()-tStart))}
+function stopTimer(){cancelAnimationFrame(raf)}
+function pauseArcade(){if(A.locked)return;A.paused=true;tLeft=remaining();stopTimer()}
+function resumeArcade(){if(!A.paused)return;A.paused=false;tStart=performance.now();tick()}
+
+function nextArcade(){
+  A.locked=false;
+  const p=makeProblem(A.level);A.p=p;
+  const reverse=A.level>=2&&Math.random()<.25;A.reverse=reverse;
+  const opts=shuffle([[p.c,p.e,true],...distractors(p).map(([c,e])=>[c,e,false])]);
+  $('aPrompt').textContent=reverse?'Which expression equals this power?':'Rewrite as a power of x';
+  $('aExpr').innerHTML=reverse?powerForm(p.c,p.e):p.disp;
+  $('aOpts').innerHTML='';
+  opts.forEach(([c,e,ok],i)=>{
+    const b=document.createElement('button');b.className='opt m';b.dataset.ok=ok?'1':'0';
+    b.innerHTML=`<span class="k">${i+1}</span>${reverse?radicalForm(c,e):powerForm(c,e)}`;
+    b.onclick=()=>chooseArcade(b);$('aOpts').appendChild(b);
+  });
+  $('aFb').className='feedback';$('aFb').innerHTML='';
+  startTimer(TIME[A.level]);
+}
+function floatText(txt,el){
+  const r=el.getBoundingClientRect(),br=$('aBoard').getBoundingClientRect();
+  const s=document.createElement('span');s.className='pop';s.textContent=txt;
+  s.style.left=(r.left-br.left+r.width/2-30)+'px';s.style.top=(r.top-br.top+6)+'px';$('aBoard').appendChild(s);setTimeout(()=>s.remove(),950);
+}
+function chooseArcade(btn){
+  if(A.locked||A.paused)return;A.locked=true;stopTimer();
+  const ok=btn.dataset.ok==='1';A.answered++;
+  document.querySelectorAll('#aOpts .opt').forEach(o=>{o.disabled=true;if(o.dataset.ok==='1')o.classList.add('right')});
+  if(ok){
+    A.streak++;A.best=Math.max(A.best,A.streak);A.correct++;A.levelCorrect++;
+    const speed=Math.round(50*remaining()/tDur);const pts=(100*A.level+speed)*mult();A.score+=pts;
+    floatText('+'+pts,btn);sfx.right();renderHud();
+    const fb=$('aFb');fb.className='feedback on good';
+    fb.innerHTML=`<h3>${pick(['Nice.','Clean.','Powered up.','Exactly.','Yes!'])}${speed>30?' Quick, too.':''}</h3>`;
+    if(A.levelCorrect>=6&&A.level<4){setTimeout(levelUp,700)}else setTimeout(nextArcade,850);
+  }else{
+    btn.classList.add('wrong');wrongArcade('Not that one.');
+  }
+}
+function timeUp(){
+  if(A.locked)return;A.locked=true;A.answered++;
+  document.querySelectorAll('#aOpts .opt').forEach(o=>{o.disabled=true;if(o.dataset.ok==='1')o.classList.add('right')});
+  wrongArcade("Time's up.");
+}
+function wrongArcade(title){
+  A.streak=0;A.lives--;sfx.wrong();renderHud();
+  $('aBoard').classList.remove('shake');void $('aBoard').offsetWidth;$('aBoard').classList.add('shake');
+  A.misses.push(A.p);
+  const p=A.p,fb=$('aFb');fb.className='feedback on bad';
+  fb.innerHTML=`<h3>${title}</h3><div class="ans m">${p.disp} = ${powerForm(p.c,p.e)}</div><ol>${p.why.map(w=>`<li>${w}</li>`).join('')}</ol>
+    <div class="row"><button class="btn" id="aNext">${A.lives>0?'Next problem':'See results'}</button></div>`;
+  const nb=$('aNext');nb.onclick=()=>A.lives>0?nextArcade():endArcade();nb.focus();
+}
+function levelUp(){
+  A.level++;A.levelCorrect=0;sfx.level();renderHud();
+  const sub={2:'Roots with powers, and roots in the denominator',3:'Coefficients enter the chat',4:'Combine exponents'}[A.level];
+  $('levelUpText').textContent='Level '+A.level;$('levelUpSub').textContent=sub;$('levelUp').classList.add('on');
+  setTimeout(()=>{$('levelUp').classList.remove('on');nextArcade()},1500);
+}
+function endArcade(){
+  stopTimer();sfx.over();
+  const prev=Number(store.get('powerup-best')||0);const record=A.score>prev;if(record)store.set('powerup-best',A.score);
+  $('rTitle').textContent=record&&A.score>0?'New best score':'Game over';
+  $('rScore').textContent=A.score.toLocaleString();
+  $('rStats').textContent=`${A.correct} of ${A.answered} correct · reached level ${A.level} · longest streak ${A.best}`;
+  showMisses(A.misses);$('rAgain').onclick=startArcade;show('results');
+}
+function showMisses(list){
+  $('rMisses').innerHTML=list.length?`<h3>Review these</h3>`+list.map(p=>`<div class="miss m"><span>${p.disp}</span><span class="arrow">=</span><span>${powerForm(p.c,p.e)}</span></div>`).join(''):`<p class="muted">No misses. Try a higher level next time.</p>`;
+}
+$('startArcade').onclick=startArcade;
+
+/* ---------- PRECISION ---------- */
+const P={level:1};
+document.querySelectorAll('.chip').forEach(ch=>ch.onclick=()=>{
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c===ch));P.level=Number(ch.dataset.lv);startPrecision();
+});
+function startPrecision(){Object.assign(P,{i:0,correct:0,hints:0,misses:[]});show('precision');nextPrecision()}
+function nextPrecision(){
+  P.p=makeProblem(P.level);P.hintI=0;P.tries=0;P.done=false;
+  $('pNum').textContent=`${P.i+1}/10`;$('pCorrect').textContent=P.correct;$('pHints').textContent=P.hints;
+  $('pExpr').innerHTML=P.p.disp;$('pCoef').value='';$('pExp').value='';$('pPreview').innerHTML='';
+  $('pFb').className='feedback';$('pCheck').textContent='Check';$('pHintBtn').disabled=false;$('pCoef').focus();
+}
+function parse(s,blankIsOne){
+  s=(s||'').replace(/[−–]/g,'-').replace(/[()\s]/g,'');
+  if(s===''||s==='+')return blankIsOne?[1,1]:null;
+  if(s==='-')return blankIsOne?[-1,1]:null;
+  let m=s.match(/^([+-]?\d+)\/([+-]?\d+)$/);if(m){const d=Number(m[2]);return d===0?null:F(Number(m[1]),d)}
+  m=s.match(/^[+-]?(\d+\.?\d*|\.\d+)$/);if(m){const v=Number(s);for(let d=1;d<=1000;d++){const n=Math.round(v*d);if(Math.abs(n/d-v)<1e-9)return F(n,d)}}
+  return null;
+}
+function preview(){
+  const c=parse($('pCoef').value,true),e=parse($('pExp').value,false);
+  $('pPreview').innerHTML=c&&e&&e[0]!==0?`You're writing: ${powerForm(c,e)}`:'';
+}
+$('pCoef').oninput=preview;$('pExp').oninput=preview;
+[$('pCoef'),$('pExp')].forEach(el=>el.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();checkPrecision()}}));
+$('pHintBtn').onclick=()=>{
+  if(P.done)return;const why=P.p.why;if(P.hintI>=why.length)return;
+  P.hints++;$('pHints').textContent=P.hints;
+  const fb=$('pFb');fb.className='feedback on';fb.innerHTML=`<h3>Hint ${P.hintI+1}</h3><ol>${why.slice(0,P.hintI+1).map(w=>`<li>${w}</li>`).join('')}</ol>`;
+  P.hintI++;if(P.hintI>=why.length)$('pHintBtn').disabled=true;
+};
+function checkPrecision(){
+  if(P.done){P.i++;if(P.i>=10)return endPrecision();return nextPrecision()}
+  const c=parse($('pCoef').value,true),e=parse($('pExp').value,false),fb=$('pFb');
+  if(!e){fb.className='feedback on bad';fb.innerHTML=`<h3>Enter an exponent</h3>Type a number or fraction in the small box, like 1/2 or −3.`;$('pExp').focus();return}
+  if(!c){fb.className='feedback on bad';fb.innerHTML=`<h3>Check the coefficient</h3>Use a whole number, decimal or fraction like 3/4.`;$('pCoef').focus();return}
+  const cOk=eq(c,P.p.c),eOk=eq(e,P.p.e);P.tries++;
+  if(cOk&&eOk){
+    P.correct++;P.done=true;sfx.right();$('pCorrect').textContent=P.correct;
+    fb.className='feedback on good';fb.innerHTML=`<h3>${P.tries===1?'Right on the first try.':'Got it.'}</h3><div class="ans m">${P.p.disp} = ${powerForm(P.p.c,P.p.e)}</div>`;
+    $('pCheck').textContent=P.i===9?'See results':'Next problem';$('pCheck').focus();return;
+  }
+  sfx.wrong();
+  if(P.tries>=2){
+    P.done=true;P.misses.push(P.p);fb.className='feedback on bad';
+    fb.innerHTML=`<h3>Here's how it works</h3><div class="ans m">${P.p.disp} = ${powerForm(P.p.c,P.p.e)}</div><ol>${P.p.why.map(w=>`<li>${w}</li>`).join('')}</ol>`;
+    $('pCheck').textContent=P.i===9?'See results':'Next problem';$('pCheck').focus();return;
+  }
+  let msg=cOk?'Your coefficient is right — recheck the exponent.':eOk?'Your exponent is right — recheck the coefficient.':'Both parts need another look.';
+  if(!eOk&&eq(e,neg(P.p.e)))msg+=' Check the sign: is that piece in the numerator or the denominator?';
+  else if(!eOk&&P.p.e[1]!==1&&eq(e,F(P.p.e[1]*Math.sign(P.p.e[0]),Math.abs(P.p.e[0]))))msg+=' Your fraction is upside down — the root index goes on the bottom.';
+  if(!cOk&&eq(c,recip(P.p.c)))msg+=' A number in the denominator stays in the denominator.';
+  fb.className='feedback on bad';fb.innerHTML=`<h3>Almost</h3>${msg} One more try.`;
+  $('pBoard')&&0;$('pExp').select();
+}
+$('pCheck').onclick=checkPrecision;
+function endPrecision(){
+  $('rTitle').textContent=P.correct>=9?'Precision master':P.correct>=7?'Solid work':'Keep practicing';
+  $('rScore').textContent=`${P.correct}/10`;
+  $('rStats').textContent=`Level ${P.level} · ${P.hints} hint${P.hints===1?'':'s'} used`;
+  showMisses(P.misses);$('rAgain').onclick=startPrecision;show('results');
+}
+$('startPrecision').onclick=()=>{document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.lv==String(P.level)));startPrecision()};
+$('rHome').onclick=goHome;
+
+/* ---------- keyboard for arcade ---------- */
+document.addEventListener('keydown',ev=>{
+  if(current!=='arcade')return;
+  if(/^[1-4]$/.test(ev.key)){const b=document.querySelectorAll('#aOpts .opt')[Number(ev.key)-1];if(b&&!b.disabled)b.click()}
+});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&current==='arcade')pauseArcade();else if(!document.hidden&&current==='arcade'&&A.paused)resumeArcade()});
+
+updateBest();startDemo();
+})();
+</script>
+</body>
+</html>
