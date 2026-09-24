@@ -63,11 +63,14 @@ button{cursor:pointer}
 .m sup{font-size:.58em;vertical-align:.9em;line-height:0;margin-left:.04em}
 .fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .12em}
 .fr>.fn{border-bottom:.06em solid currentColor;padding:0 .18em .05em}
-.fr>.fd{padding:.05em .18em 0}
-.rad{display:inline-flex;align-items:stretch;vertical-align:baseline}
-.rad .ri{font-size:.5em;align-self:flex-start;margin-right:-.42em;margin-top:.15em;position:relative;z-index:1}
-.rad .rs{font-size:1.08em;line-height:1;align-self:flex-end;transform:translateY(.04em)}
-.rad .rc{border-top:.06em solid currentColor;padding:.12em .1em 0 .06em;margin-top:.1em}
+.fr>.fd{padding:.14em .18em 0}
+.rad{--t:.065em;position:relative;display:inline-flex;align-items:stretch;vertical-align:-.12em;margin:0 .04em}
+.rad.hi{padding-left:.16em}
+.rad .ri{position:absolute;left:.02em;bottom:1.25em;font-size:.42em;line-height:1}
+.rad .rs{flex:none;width:.52em;height:auto;overflow:visible;fill:none;stroke:currentColor;stroke-width:var(--t);stroke-linejoin:round;stroke-linecap:round}
+.rad .rc{position:relative;line-height:1.15;padding:.16em .06em .02em .05em}
+.rad .rc::before{content:"";position:absolute;left:-.02em;right:0;top:calc(var(--t) / -2);height:var(--t);background:currentColor;border-radius:1px}
+.rad .rc sup{line-height:1;vertical-align:.7em}
 .dot{margin:0 .08em}
 
 /* ---- home ---- */
@@ -280,7 +283,7 @@ const coprimeTo=(n,lo,hi)=>{let m;do{m=ri(lo,hi)}while(gcd(m,n)!==1);return m};
 /* ---------- math rendering ---------- */
 const MINUS='−';
 const frac=(n,d)=>`<span class="fr"><span class="fn">${n}</span><span class="fd">${d}</span></span>`;
-const rad=(idx,inner)=>`<span class="rad">${idx?`<span class="ri">${idx}</span>`:''}<span class="rs">√</span><span class="rc">${inner}</span></span>`;
+const rad=(idx,inner)=>`<span class="rad${idx?' hi':''}">${idx?`<span class="ri">${idx}</span>`:''}<svg class="rs" viewBox="0 0 10 20" preserveAspectRatio="none" aria-hidden="true"><path vector-effect="non-scaling-stroke" d="M0.4 12.6 L2.6 11.2 L5.4 19.4 L10 0 L10.6 0"/></svg><span class="rc">${inner}</span></span>`;
 const pw=(b,e)=>(e==='1'||e===1)?b:`${b}<sup>${e}</sup>`;
 const X='<i>x</i>';
 const num=n=>(n<0?MINUS:'')+Math.abs(n);
@@ -567,7 +570,7 @@ function checkPrecision(){
   else if(!eOk&&P.p.e[1]!==1&&eq(e,F(P.p.e[1]*Math.sign(P.p.e[0]),Math.abs(P.p.e[0]))))msg+=' Your fraction is upside down — the root index goes on the bottom.';
   if(!cOk&&eq(c,recip(P.p.c)))msg+=' A number in the denominator stays in the denominator.';
   fb.className='feedback on bad';fb.innerHTML=`<h3>Almost</h3>${msg} One more try.`;
-  $('pBoard')&&0;$('pExp').select();
+$('pExp').select();
 }
 $('pCheck').onclick=checkPrecision;
 function endPrecision(){
