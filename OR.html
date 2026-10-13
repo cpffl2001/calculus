@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculus OR — Operation Accumulation</title>
+<script>
+window.MathJax = { tex: { inlineMath: [['\\(','\\)']] }, startup: { typeset: false } };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--teal:#0b6e69;--teal-dark:#06403d;--red:#cc0000;--green:#1a7a3a;--green-l:#e8fff0;--bad:#b00020;--bad-l:#ffecee;--border:#d6dcdc;--bg:#f3f6f6;--card:#fff;--text:#1a1a1a;--text2:#555;--team:#0b6e69}
+body{font-family:Arial,Helvetica,sans-serif;background:var(--bg);color:var(--text);font-size:18px;min-height:100vh}
+.screen{display:none}
+.screen.active{display:block}
+
+/* header */
+.hdr{background:var(--team);color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.hdr h1{font-size:22px}
+.hdr .sub{font-size:13px;opacity:.85;margin-top:3px}
+.team-chip{background:rgba(255,255,255,.18);padding:6px 14px;border-radius:20px;font-weight:bold;font-size:15px}
+#ekg{display:block;width:100%;height:56px;background:#001a0d}
+.vbar{background:#0d1f1e;color:#bfe;padding:9px 22px;display:flex;gap:22px;flex-wrap:wrap;align-items:center;font-size:14px}
+.vbar b{color:#fff}
+.meter{flex:1;min-width:200px;height:16px;background:#233;border-radius:9px;overflow:hidden;position:relative}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,#ff4444,#ffcc33 50%,#33dd77);width:0;transition:width .6s}
+.meter .mark{position:absolute;top:0;bottom:0;left:70%;width:2px;background:#fff;opacity:.7}
+
+/* progress */
+.prog{display:flex;gap:6px;padding:10px 22px;background:#fff;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.pill{font-size:12px;padding:5px 10px;border-radius:14px;background:#e9eeee;color:#777}
+.pill.cur{background:var(--team);color:#fff;font-weight:bold}
+.pill.done{background:var(--green-l);color:var(--green);font-weight:bold}
+
+.wrap{max-width:900px;margin:0 auto;padding:22px 18px 60px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 22px;margin-bottom:16px}
+.card h2{font-size:22px;margin-bottom:8px}
+.story{background:#0d1f1e;color:#dff;border-left:6px solid #33dd77;line-height:1.5}
+.story h2{color:#fff}
+.story .fn{background:#fff;color:#111;border-radius:8px;padding:12px;margin-top:12px;font-size:20px;text-align:center}
+.label{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--text2);font-weight:bold;margin-bottom:8px}
+.part{opacity:.4;pointer-events:none}
+.part.open{opacity:1;pointer-events:auto}
+.part.locked .ctrl{pointer-events:none}
+.q{font-size:18px;line-height:1.5;margin-bottom:12px}
+.note{font-size:14px;color:var(--text2);margin-top:6px}
+
+table.vt{border-collapse:collapse;margin:6px 0 12px}
+table.vt td,table.vt th{border:2px solid #999;padding:8px 10px;text-align:center;min-width:78px}
+table.vt th{background:#eef4f4}
+table.vt input{width:76px;font-size:17px;padding:5px;text-align:center;border:1px solid #aaa;border-radius:6px}
+table.vt input.ok{background:var(--green-l);border-color:var(--green)}
+table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
+
+.num{font-size:19px;padding:8px 10px;width:170px;border:2px solid #aaa;border-radius:8px}
+.btn{font-size:17px;font-weight:bold;padding:10px 20px;border:none;border-radius:8px;background:var(--team);color:#fff;cursor:pointer}
+.btn:disabled{background:#aaa;cursor:not-allowed}
+.btn.big{font-size:20px;padding:14px 28px}
+.choices{display:grid;gap:8px}
+.choice{display:flex;align-items:center;gap:10px;border:2px solid var(--border);border-radius:9px;padding:10px 14px;cursor:pointer;font-size:18px;background:#fff}
+.choice:hover{border-color:var(--team)}
+.choice.sel{border-color:var(--team);background:#eef7f6}
+.choice.ok{border-color:var(--green);background:var(--green-l)}
+.choice.no{border-color:var(--bad);background:var(--bad-l)}
+.fb{margin-top:10px;font-weight:bold;font-size:16px;min-height:1px}
+.fb.ok{color:var(--green)}
+.fb.no{color:var(--bad)}
+
+.chief{border:3px dashed var(--team);text-align:center}
+.chief .bigicon{font-size:44px}
+.code{font-size:22px;padding:9px 12px;width:220px;text-transform:uppercase;text-align:center;border:2px solid #aaa;border-radius:8px;letter-spacing:2px}
+.score-badge{display:inline-block;font-size:30px;font-weight:bold;color:var(--team);margin:6px 0}
+
+/* start */
+.hero{background:linear-gradient(160deg,#06403d,#0b6e69);color:#fff;text-align:center;padding:46px 20px 36px}
+.hero h1{font-size:40px;letter-spacing:1px}
+.hero p{opacity:.9;margin-top:8px;font-size:18px}
+.colors{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 4px}
+.sw{width:42px;height:42px;border-radius:50%;cursor:pointer;border:4px solid transparent}
+.sw.sel{border-color:#111}
+.inp{font-size:20px;padding:10px 12px;width:100%;max-width:420px;border:2px solid #aaa;border-radius:8px}
+
+/* end */
+.end{text-align:center;padding:50px 20px}
+.end h1{font-size:42px;margin-bottom:10px}
+.err{color:var(--bad);font-weight:bold;margin-top:8px;min-height:22px}
+.gear{position:fixed;bottom:10px;right:12px;font-size:13px;color:#aaa;background:none;border:none;cursor:pointer}
+@media(max-width:600px){table.vt td,table.vt th{min-width:54px;padding:5px}table.vt input{width:58px}.hero h1{font-size:30px}}
+</style>
+</head>
+<body>
+
+<!-- START -->
+<div class="screen active" id="s-start">
+  <div class="hero">
+    <div style="font-size:52px">🏥</div>
+    <h1>CALCULUS OR</h1>
+    <p><b>Operation Accumulation</b> — Ms. Cindy is on the operating table.</p>
+  </div>
+  <div class="wrap">
+    <div class="card story">
+      <h2>⚠️ Code Blue in OR 3</h2>
+      <p>Professor <b>Diabolus Von Failsworth III</b> is back. After his defeat in the ER, he slipped <b>The Accumulator</b> into Ms. Cindy's coffee. It's a toxin that makes every vital sign <i>pile up</i> over time.</p>
+      <p style="margin-top:10px">Your surgical team has six procedures to get through. At each one you will measure a <b>rate</b>, build a table, estimate the total with <b>Riemann sums</b>, and confirm it exactly with an <b>antiderivative</b>.</p>
+      <p style="margin-top:10px">Every correct answer raises Ms. Cindy's <b>Stability</b>. Reach <b>70%</b> by the end and she walks out of the hospital. Fall short and Von Failsworth takes over your class. Forever.</p>
+    </div>
+    <div class="card">
+      <div class="label">Surgical team name</div>
+      <input class="inp" id="teamName" maxlength="28" placeholder="e.g. The Integral Interns">
+      <div class="label" style="margin-top:16px">Scrub color</div>
+      <div class="colors" id="colors"></div>
+      <div class="label" style="margin-top:16px">Rules</div>
+      <ul style="margin-left:22px;line-height:1.6;font-size:16px">
+        <li><b>One attempt</b> per answer. Once you submit, it's locked.</li>
+        <li>Show <b>all work on your paper</b>. The game tells you right or wrong, never how.</li>
+        <li>Round to <b>2 decimal places</b>. Calculators in <b>RADIAN</b> mode.</li>
+        <li>After each procedure, <b>call the Chief Surgeon over</b> to check your paper and get the code for the next room.</li>
+      </ul>
+      <div class="err" id="startErr"></div>
+      <button class="btn big" style="margin-top:8px" onclick="startGame()">Scrub In →</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="s-game">
+  <div class="hdr">
+    <div><h1 id="hTitle">Procedure 1</h1><div class="sub">Patient: Ms. Cindy · OR 3 · San Antonio General</div></div>
+    <div class="team-chip" id="hTeam"></div>
+  </div>
+  <canvas id="ekg"></canvas>
+  <div class="vbar">
+    <span>❤️ HR <b id="vHR">--</b></span>
+    <span>🫁 SpO₂ <b id="vO2">--</b></span>
+    <span>Stability</span>
+    <div class="meter"><i id="meter"></i><span class="mark"></span></div>
+    <b id="vStab">0%</b>
+  </div>
+  <div class="prog" id="prog"></div>
+  <div class="wrap" id="station"></div>
+</div>
+
+<!-- END -->
+<div class="screen" id="s-end">
+  <div class="wrap end" id="endBox"></div>
+</div>
+
+<button class="gear" onclick="teacherReset()">⚙ reset</button>
+
+<script>
+// ===================== STATION DATA =====================
+const STATIONS = [
+ { title:"IV Fluids", icon:"💧", room:"Pre-Op",
+   story:"Ms. Cindy is dehydrated from fighting the toxin. The nurse opens the IV and the drip rate climbs steadily as the line opens up. How much fluid does she receive in the first 8 minutes?",
+   fn:"r(t) = 4t + 10", fnTex:"r(t) = 4t + 10", rateUnit:"mL/min", totUnit:"mL", var:"t", tUnit:"min",
+   ts:[0,2,4,6,8], vals:[10,18,26,34,42], dt:2, a:0, b:8,
+   dir:"inc", L:176, R:240, avg:208, exact:208,
+   anti:["2t^2+10t+C","4t^2+10t+C","2t^2+10+C","t^2+10t+C"], code:null },
+ { title:"Blood Loss Clamp", icon:"🩸", room:"Incision",
+   story:"The first incision nicks a vessel! The surgeon clamps it, and the rate of blood loss slows down every minute. Estimate the total blood lost during the first 4 minutes.",
+   fnTex:"B(t) = 50 - 2t^2", rateUnit:"mL/min", totUnit:"mL", var:"t", tUnit:"min",
+   ts:[0,1,2,3,4], vals:[50,48,42,32,18], dt:1, a:0, b:4,
+   dir:"dec", L:172, R:140, avg:156, exact:157.33,
+   anti:["50t-\\frac{2}{3}t^3+C","50-\\frac{2}{3}t^3+C","50t-4t+C","50t-\\frac{1}{3}t^3+C"], code:"CLAMP" },
+ { title:"Infection Culture", icon:"🦠", room:"Lab",
+   story:"The lab finds The Accumulator is feeding a bacterial infection. Bacteria are being added at a rate that grows exponentially. How many bacteria are added over the first 4 hours?",
+   fnTex:"f(t) = 4e^{0.5t}", rateUnit:"million bacteria/hr", totUnit:"million bacteria", var:"t", tUnit:"hr",
+   ts:[0,1,2,3,4], vals:[4,6.59,10.87,17.93,29.56], dt:1, a:0, b:4,
+   dir:"inc", L:39.39, R:64.95, avg:52.17, exact:51.11,
+   anti:["8e^{0.5t}+C","2e^{0.5t}+C","4e^{0.5t}+C","8e^{1.5t}+C"], code:"PETRI" },
+ { title:"Anesthesia", icon:"😴", room:"OR 3",
+   story:"The anesthesiologist puts Ms. Cindy under. Her body absorbs the anesthetic quickly at first, then slower and slower. How much is absorbed from hour 1 to hour 5?",
+   fnTex:"A(t) = \\frac{24}{t}", rateUnit:"mg/hr", totUnit:"mg", var:"t", tUnit:"hr",
+   ts:[1,2,3,4,5], vals:[24,12,8,6,4.8], dt:1, a:1, b:5,
+   dir:"dec", L:50, R:30.8, avg:40.4, exact:38.63,
+   anti:["24\\ln|t|+C","-\\frac{24}{t^2}+C","12t^2+C","\\ln|24t|+C"], code:"SLEEP" },
+ { title:"Defibrillator", icon:"⚡", room:"OR 3",
+   story:"FLATLINE! Von Failsworth's toxin stopped her heart. The defibrillator charges at a rate that follows a sine curve. How much energy is stored in the first 3 seconds? (RADIANS!)",
+   fnTex:"E(t) = 6\\sin(0.5t)", rateUnit:"joules/sec", totUnit:"joules", var:"t", tUnit:"sec",
+   ts:[0,1,2,3], vals:[0,2.88,5.05,5.98], dt:1, a:0, b:3,
+   dir:"inc", L:7.93, R:13.91, avg:10.92, exact:11.15,
+   anti:["-12\\cos(0.5t)+C","12\\cos(0.5t)+C","-3\\cos(0.5t)+C","-6\\cos(0.5t)+C"], code:"SPARK" },
+ { title:"Oxygen Recovery", icon:"🫁", room:"Recovery",
+   story:"Her heart is beating again! In recovery, oxygen is pumped to her lungs at a rate that keeps rising. How many liters of oxygen does she receive in the first 4 minutes?",
+   fnTex:"O(t) = 6\\sqrt{t}", rateUnit:"L/min", totUnit:"L", var:"t", tUnit:"min",
+   ts:[0,1,2,3,4], vals:[0,6,8.49,10.39,12], dt:1, a:0, b:4,
+   dir:"inc", L:24.88, R:36.88, avg:30.88, exact:32,
+   anti:["4t^{3/2}+C","9t^{3/2}+C","3t^{-1/2}+C","6t^{3/2}+C"], code:"BREATHE" }
+];
+const FINAL_CODE = "DISCHARGE";
+const PARTS_PER = 8;
+const MAX = STATIONS.length * PARTS_PER;
+const PASS = 0.70;
+const COLORS = ["#0b6e69","#c0392b","#2c5aa0","#7d3c98","#d35400","#1e8449","#b7950b","#c2185b","#34495e","#00838f"];
+
+// ===================== STATE =====================
+const KEY = "calcOR_state_v1";
+let S = load() || { team:"", color:COLORS[0], st:0, unlocked:[true], parts:{}, scores:[], done:false };
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function total(){ return S.scores.reduce((a,b)=>a+(b||0),0); }
+
+// ===================== HELPERS =====================
+const $ = id => document.getElementById(id);
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0,0); }
+function tex(el){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(()=>{}); else setTimeout(()=>tex(el),300); }
+function near(x, target, tol){ const t = tol ?? Math.max(0.15, Math.abs(target)*0.003); return Math.abs(x-target) <= t; }
+function shuffle(a, seed){ const r=[...a]; let s=seed; for(let i=r.length-1;i>0;i--){ s=(s*9301+49297)%233280; const j=Math.floor(s/233280*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
+function seedOf(str){ let h=7; for(const c of str) h=(h*31+c.charCodeAt(0))%100000; return h; }
+
+// ===================== START =====================
+function buildColors(){
+  $('colors').innerHTML = COLORS.map(c=>`<div class="sw ${c===S.color?'sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
+}
+function pickColor(c){ S.color=c; buildColors(); }
+function startGame(){
+  const n = $('teamName').value.trim();
+  if(!n){ $('startErr').textContent = "Enter your team name first."; return; }
+  S.team = n; save(); enterGame();
+}
+function enterGame(){
+  document.documentElement.style.setProperty('--team', S.color);
+  $('hTeam').textContent = "🩺 " + S.team;
+  if(S.done){ showEnd(); return; }
+  show('s-game'); renderStation(); startEKG();
+}
+
+// ===================== STATION RENDER =====================
+function renderStation(){
+  const i = S.st, d = STATIONS[i];
+  updateVitals();
+  $('hTitle').textContent = `Procedure ${i+1} of ${STATIONS.length}: ${d.title}`;
+  $('prog').innerHTML = STATIONS.map((x,k)=>`<span class="pill ${k<i?'done':k===i?'cur':''}">${x.icon} ${k+1}. ${x.title}</span>`).join('');
+  const el = $('station');
+
+  if(!S.unlocked[i]){
+    el.innerHTML = `<div class="card chief">
+      <div class="bigicon">🔒</div><h2>${d.icon} ${d.room} is locked</h2>
+      <p class="q">The Chief Surgeon must check your paper before you can scrub in to Procedure ${i+1}.</p>
+      <input class="code" id="codeIn" placeholder="CODE"> <button class="btn" onclick="tryCode()">Unlock</button>
+      <div class="err" id="codeErr"></div></div>`;
+    return;
+  }
+
+  const p = S.parts[i] || (S.parts[i] = {});
+  const v = d.var;
+  const seed = seedOf(S.team + i);
+  const antiOrder = shuffle(d.anti.map((x,k)=>({tex:x, ok:k===0})), seed);
+  p.antiOrder = p.antiOrder || antiOrder.map(o=>d.anti.indexOf(o.tex));
+  const nInt = d.ts.length - 1;
+
+  el.innerHTML = `
+  <div class="card story">
+    <h2>${d.icon} Procedure ${i+1}: ${d.title}</h2>
+    <p>${d.story}</p>
+    <div class="fn">\\(${d.fnTex}\\) &nbsp; <span style="font-size:15px;color:#555">${d.rateUnit}, &nbsp; \\(${v}\\) in ${d.tUnit}</span><br>
+    <span style="font-size:16px;color:#333">Interval: \\(${d.a} \\le ${v} \\le ${d.b}\\) &nbsp;·&nbsp; \\(\\Delta ${v} = ${d.dt}\\) &nbsp;·&nbsp; ${nInt} subintervals</span></div>
+  </div>
+
+  ${partBox(0,"Step 1 · Vital Signs Table",`
+    <div class="q">Fill in the table by plugging each time into the rate function. Round to 2 decimals.</div>
+    <table class="vt"><tr><th>\\(${v}\\) (${d.tUnit})</th>${d.ts.map(t=>`<td><b>${t}</b></td>`).join('')}</tr>
+    <tr><th>rate</th>${d.ts.map((t,k)=>`<td><input class="ctrl" id="tb${k}" inputmode="decimal"></td>`).join('')}</tr></table>
+    <button class="btn ctrl" onclick="subTable()">Submit Table</button>`)}
+
+  ${partBox(1,"Step 2 · Read the Monitor",`
+    <div class="q">On this interval, the rate function is…</div>
+    ${choices('dir',[["inc","Increasing ↗"],["dec","Decreasing ↘"]])}
+    <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(1,'dir')">Submit</button>`)}
+
+  ${partBox(2,"Step 3 · Left-Hand Sum",`
+    <div class="q">Compute the <b>left-hand</b> Riemann sum (${d.totUnit}).</div>
+    <input class="num ctrl" id="n2" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(2,'L')">Submit</button>`)}
+
+  ${partBox(3,"Step 4 · Right-Hand Sum",`
+    <div class="q">Compute the <b>right-hand</b> Riemann sum (${d.totUnit}).</div>
+    <input class="num ctrl" id="n3" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(3,'R')">Submit</button>`)}
+
+  ${partBox(4,"Step 5 · Over or Under?",`
+    <div class="q">Which sum is the <b>overestimate</b> of the true total?</div>
+    ${choices('over',[["L","The left-hand sum"],["R","The right-hand sum"]])}
+    <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(4,'over')">Submit</button>`)}
+
+  ${partBox(5,"Step 6 · Average Estimate",`
+    <div class="q">Compute the <b>average</b> of your left and right sums (${d.totUnit}).</div>
+    <input class="num ctrl" id="n5" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(5,'avg')">Submit</button>`)}
+
+  ${partBox(6,"Step 7 · Find the Antiderivative",`
+    <div class="q">Which is an antiderivative of \\(${d.fnTex}\\)?</div>
+    ${choices('anti', p.antiOrder.map(k=>[String(k), `\\(${d.anti[k]}\\)`]))}
+    <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(6,'anti')">Submit</button>`)}
+
+  ${partBox(7,"Step 8 · Exact Total (FTC)",`
+    <div class="q">Use \\(F(${d.b}) - F(${d.a})\\) to find the <b>exact</b> total (${d.totUnit}). Round to 2 decimals.</div>
+    <input class="num ctrl" id="n7" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(7,'exact')">Submit</button>`)}
+
+  <div id="chiefBox"></div>`;
+
+  restoreParts();
+  tex(el);
+}
+
+function partBox(k, label, inner){
+  return `<div class="card part" id="pt${k}"><div class="label">${label}</div>${inner}<div class="fb" id="fb${k}"></div></div>`;
+}
+function choices(name, opts){
+  return `<div class="choices">${opts.map(([val,txt])=>`<label class="choice ctrl" data-n="${name}" data-v="${val}" onclick="sel(this)">${txt}</label>`).join('')}</div>`;
+}
+function sel(lab){
+  if(lab.closest('.part').classList.contains('locked')) return;
+  document.querySelectorAll(`.choice[data-n="${lab.dataset.n}"]`).forEach(c=>c.classList.remove('sel'));
+  lab.classList.add('sel');
+}
+
+// ===================== SUBMIT =====================
+function cur(){ return S.parts[S.st]; }
+function lockPart(k, ok, payload){
+  const p = cur(); p[k] = { ok, v: payload };
+  save(); restoreParts(); updateVitals(); flash(ok);
+}
+function subTable(){
+  const d = STATIONS[S.st]; const vals = d.ts.map((_,k)=>$('tb'+k).value.trim());
+  if(vals.some(x=>x==='' || isNaN(parseFloat(x)))){ $('fb0').className='fb no'; $('fb0').textContent='Fill in every cell with a number.'; return; }
+  const nums = vals.map(parseFloat);
+  const each = nums.map((x,k)=>near(x, d.vals[k], 0.02));
+  lockPart(0, each.every(Boolean), {nums, each});
+}
+function subChoice(k, name){
+  const s = document.querySelector(`.choice[data-n="${name}"].sel`);
+  if(!s){ $('fb'+k).className='fb no'; $('fb'+k).textContent='Pick an answer first.'; return; }
+  const d = STATIONS[S.st]; const v = s.dataset.v;
+  let ok;
+  if(name==='dir') ok = v===d.dir;
+  else if(name==='over') ok = v===(d.dir==='inc'?'R':'L');
+  else ok = v==='0';
+  lockPart(k, ok, v);
+}
+function subNum(k, key){
+  const raw = $('n'+k).value.trim(); const x = parseFloat(raw);
+  if(raw==='' || isNaN(x)){ $('fb'+k).className='fb no'; $('fb'+k).textContent='Enter a number.'; return; }
+  lockPart(k, near(x, STATIONS[S.st][key]), x);
+}
+
+// ===================== RESTORE / LOCK UI =====================
+function restoreParts(){
+  const p = cur(); const d = STATIONS[S.st];
+  let firstOpen = 0; while(p[firstOpen]) firstOpen++;
+  for(let k=0;k<PARTS_PER;k++){
+    const box = $('pt'+k); if(!box) continue;
+    box.classList.toggle('open', k<=firstOpen);
+    const r = p[k]; const fb = $('fb'+k);
+    if(!r){ continue; }
+    box.classList.add('locked');
+    fb.className = 'fb ' + (r.ok?'ok':'no');
+    fb.textContent = r.ok ? '✓ Correct — vitals improving.' : '✗ Incorrect. Answer locked. Keep going!';
+    box.querySelectorAll('button.ctrl').forEach(b=>b.disabled=true);
+    if(k===0){ r.v.nums.forEach((x,j)=>{ const inp=$('tb'+j); inp.value=x; inp.disabled=true; inp.className='ctrl '+(r.v.each[j]?'ok':'no'); }); }
+    else if([2,3,5,7].includes(k)){ const inp=$('n'+k); inp.value=r.v; inp.disabled=true; }
+    else { box.querySelectorAll('.choice').forEach(c=>{ if(c.dataset.v===r.v){ c.classList.add('sel', r.ok?'ok':'no'); } }); }
+  }
+  if(firstOpen>=PARTS_PER) finishStation();
+}
+
+function finishStation(){
+  const i = S.st; const p = cur();
+  const sc = Object.keys(p).filter(k=>!isNaN(k) && p[k].ok).length;
+  S.scores[i] = sc; save(); updateVitals();
+  const last = i===STATIONS.length-1;
+  $('chiefBox').innerHTML = `<div class="card chief">
+    <div class="bigicon">🙋</div>
+    <h2>Procedure ${i+1} complete!</h2>
+    <div class="score-badge">${sc} / ${PARTS_PER}</div>
+    <p class="q"><b>Call the Chief Surgeon over.</b> Show your paper and your score.</p>
+    <input class="code" id="codeIn" placeholder="CODE"> <button class="btn" onclick="tryCode()">${last?'Discharge Patient':'Next Procedure →'}</button>
+    <div class="err" id="codeErr"></div></div>`;
+}
+
+function tryCode(){
+  const c = $('codeIn').value.trim().toUpperCase();
+  const i = S.st; const last = i===STATIONS.length-1;
+  if(S.unlocked[i] === undefined || !S.unlocked[i]){
+    if(c === STATIONS[i].code){ S.unlocked[i]=true; save(); renderStation(); }
+    else $('codeErr').textContent = "Incorrect code. Wait for the Chief.";
+    return;
+  }
+  const need = last ? FINAL_CODE : STATIONS[i+1].code;
+  if(c !== need){ $('codeErr').textContent = "Incorrect code. Wait for the Chief."; return; }
+  if(last){ S.done=true; save(); showEnd(); }
+  else { S.st=i+1; S.unlocked[S.st]=true; save(); renderStation(); }
+}
+
+// ===================== VITALS / EKG =====================
+let bpm = 140;
+function stability(){ return total()/MAX; }
+function updateVitals(){
+  // count all locked correct parts live (including current station in progress)
+  let ok=0;
+  Object.values(S.parts).forEach(p=>Object.keys(p).forEach(k=>{ if(!isNaN(k) && p[k].ok) ok++; }));
+  const pct = ok/MAX;
+  $('meter').style.width = (pct*100).toFixed(0)+'%';
+  $('vStab').textContent = (pct*100).toFixed(0)+'%';
+  bpm = Math.round(145 - pct*70);
+  $('vHR').textContent = bpm + ' bpm';
+  $('vO2').textContent = Math.round(82 + pct*17) + '%';
+  $('vHR').style.color = pct>=PASS?'#44ff88':pct>=.4?'#ffdd44':'#ff6666';
+}
+function flash(ok){
+  const b=document.body; b.style.transition='background .15s'; b.style.background= ok?'#dfffe9':'#ffe2e2';
+  setTimeout(()=>b.style.background='',300);
+}
+let ekgOn=false;
+function startEKG(){
+  if(ekgOn) return; ekgOn=true;
+  const cv=$('ekg'), ctx=cv.getContext('2d'); let x=0, last=56/2;
+  function size(){ cv.width=cv.clientWidth; cv.height=56; }
+  size(); window.addEventListener('resize',size);
+  function beat(ph){ // ph in [0,1)
+    if(ph<.08) return -Math.sin(ph/.08*Math.PI)*4;
+    if(ph>.14&&ph<.17) return 6;
+    if(ph>=.17&&ph<.21) return -22;
+    if(ph>=.21&&ph<.24) return 10;
+    if(ph>.36&&ph<.48) return -Math.sin((ph-.36)/.12*Math.PI)*6;
+    return 0;
+  }
+  let t=0;
+  setInterval(()=>{
+    const w=cv.width, h=cv.height;
+    ctx.fillStyle='#001a0d'; ctx.fillRect(x,0,14,h);
+    for(let k=0;k<3;k++){
+      t += bpm/60/60;
+      const y = h/2 + beat(t%1);
+      ctx.strokeStyle='#33ff88'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,last); ctx.lineTo(x+1,y); ctx.stroke();
+      last=y; x=(x+1)%w;
+    }
+  },1000/60);
+}
+
+// ===================== END =====================
+function showEnd(){
+  show('s-end');
+  const sc = total(), pct = sc/MAX, saved = pct>=PASS;
+  $('endBox').innerHTML = saved ? `
+    <div style="font-size:70px">🎉</div>
+    <h1 style="color:var(--green)">Ms. Cindy is DISCHARGED!</h1>
+    <p class="q">Team <b>${S.team}</b> neutralized The Accumulator. Von Failsworth has been escorted out by hospital security, still muttering about "upper and lower sums."</p>
+    <div class="score-badge">${sc} / ${MAX} &nbsp;·&nbsp; ${(pct*100).toFixed(0)}% stability</div>
+    <p class="q">Show this screen to the Chief Surgeon for the leaderboard.</p>`
+  : `
+    <div style="font-size:70px">🦹</div>
+    <h1 style="color:var(--bad)">Von Failsworth Wins…</h1>
+    <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She's stable enough to live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily.</p>
+    <div class="score-badge">${sc} / ${MAX}</div>
+    <p class="q">Show this screen to the Chief Surgeon for the leaderboard.</p>`;
+  if(saved) confetti();
+}
+function confetti(){
+  for(let k=0;k<120;k++){
+    const c=document.createElement('div');
+    c.style.cssText=`position:fixed;top:-10px;left:${Math.random()*100}vw;width:9px;height:14px;background:${COLORS[k%COLORS.length]};z-index:99;border-radius:2px;transition:transform ${2+Math.random()*2}s linear,opacity 4s;`;
+    document.body.appendChild(c);
+    requestAnimationFrame(()=>{ c.style.transform=`translateY(105vh) rotate(${Math.random()*720}deg)`; c.style.opacity='.2'; });
+    setTimeout(()=>c.remove(),4500);
+  }
+}
+
+// ===================== TEACHER RESET =====================
+function teacherReset(){
+  const c = prompt("Chief Surgeon code to reset this device:");
+  if(c && c.trim().toUpperCase()==="RESETOR"){ try{localStorage.removeItem(KEY);}catch(e){} location.reload(); }
+}
+
+// ===================== BOOT =====================
+buildColors();
+if(S.team){ enterGame(); }
+</script>
+</body>
+</html>
