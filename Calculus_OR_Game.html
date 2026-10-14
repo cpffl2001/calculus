@@ -233,7 +233,7 @@ function correctCount(){ let ok=0; Object.values(S.parts).forEach(p=>Object.keys
 // ===================== BROADCAST =====================
 function broadcast(){
   if(!S.cls) return;
-  const msg = JSON.stringify({ id:S.id, team:S.team, color:S.color, st:S.st, scores:S.scores, max:MAX, done:S.done, t:Date.now() });
+  const msg = JSON.stringify({ id:S.id, team:S.team, color:S.color, st:S.st, scores:S.scores, max:MAX, done:S.done, forfeit:!!S.forfeit, t:Date.now() });
   const send = (tries) => fetch(RELAY + topicFor(S.cls), { method:"POST", body:msg })
       .catch(()=>{ if(tries>0) setTimeout(()=>send(tries-1), 4000); });
   send(3);
@@ -241,7 +241,7 @@ function broadcast(){
 
 // ===================== HELPERS =====================
 const $ = id => document.getElementById(id);
-function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0,0); }
+function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); document.body.classList.toggle('ingame', id==='s-game'); window.scrollTo(0,0); }
 function tex(el){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(()=>{}); else setTimeout(()=>tex(el),300); }
 function near(x, target){ return Math.abs(x-target) <= Math.max(0.05, Math.abs(target)*0.003); }
 function shuffleIdx(n, seed){ const r=[...Array(n).keys()]; let s=seed; for(let i=n-1;i>0;i--){ s=(s*9301+49297)%233280; const j=Math.floor(s/233280*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
@@ -394,8 +394,13 @@ function startEKG(){
 // ===================== END =====================
 function showEnd(){
   show('s-end');
-  const sc = correctCount(), pct = sc/MAX, saved = pct>=PASS;
-  $('endBox').innerHTML = saved ? `
+  const sc = correctCount(), pct = sc/MAX, saved = pct>=PASS && !S.forfeit;
+  $('endBox').innerHTML = S.forfeit ? `
+    <div style="font-size:70px">🏳️</div>
+    <h1 style="color:var(--bad)">Surgery Abandoned!</h1>
+    <p class="q">Team <b>${S.team}</b> walked out of the operating room. Ms. Cindy is lost, and Professor Diabolus Von Failsworth III takes over your class. Pop quizzes. Daily.</p>
+    <div class="score-badge">${sc} / ${MAX}</div>`
+  : saved ? `
     <div style="font-size:70px">🎉</div>
     <h1 style="color:var(--green)">Ms. Cindy is DISCHARGED!</h1>
     <p class="q">Team <b>${S.team}</b> neutralized The Accumulator. Von Failsworth has been escorted out by hospital security, still muttering about "upper and lower sums."</p>
@@ -405,13 +410,14 @@ function showEnd(){
     <h1 style="color:var(--bad)">Von Failsworth Wins…</h1>
     <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She'll live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily.</p>
     <div class="score-badge">${sc} / ${MAX}</div>`;
-  $('endBox').innerHTML += `<div style="margin-top:28px"><button class="btn big" onclick="newGame()">🔄 Play New Game</button></div>`;
+  $('endBox').innerHTML += `<p class="q" style="margin-top:24px">Show this screen to the Chief Surgeon.</p>`;
   if(saved) confetti();
 }
-function newGame(){
-  if(!confirm("Start a brand-new game on this device? This team's progress will be erased.")) return;
-  try{ localStorage.removeItem(KEY); }catch(e){}
-  location.reload();
+function endGameAsk(){ document.getElementById('endModal').classList.add('on'); AR.sfx.wrong(); }
+function endGameCancel(){ document.getElementById('endModal').classList.remove('on'); }
+function endGameConfirm(){
+  document.getElementById('endModal').classList.remove('on');
+  S.forfeit = true; S.done = true; save(); broadcast(); showEnd();
 }
 function confetti(){
   for(let k=0;k<120;k++){ const c=document.createElement('div');
@@ -433,12 +439,19 @@ if(S.team){ enterGame(); }
 <!-- ===================== ARCADE LAYER ===================== -->
 <div id="fx"></div>
 <div id="sndBtns">
-  <button id="btnRestart" onclick="newGame()" title="Restart game">🔄 <span>Restart</span></button>
+  <button id="btnEnd" onclick="endGameAsk()" title="End game">🛑 <span>End Game</span></button>
   <button id="btnSnd" onclick="AR.toggleSound()" title="Sound effects">🔊</button>
   <button id="btnBeat" onclick="AR.toggleBeat()" title="Heart monitor beep">💓</button>
 </div>
 <div id="intro" onclick="AR.closeIntro()"><div class="inner" id="introInner"></div></div>
 <div id="taunt"></div>
+<div id="endModal"><div class="box">
+  <div style="font-size:54px" class="villain">🦹</div>
+  <h2>⚠ END THE GAME? ⚠</h2>
+  <p>If you end the game now, <b>Ms. Cindy is lost</b> and <b>Von Failsworth wins</b>, no matter what your score is.</p>
+  <p>This <b>cannot be undone</b>. You will <b>not</b> be able to restart.</p>
+  <div class="row"><button class="btn keep" onclick="endGameCancel()">❤️ Keep Operating</button><button class="btn quit" onclick="endGameConfirm()">🏳️ End Game</button></div>
+</div></div>
 <style>
 .px{font-family:'Press Start 2P',monospace}
 .hero{position:relative;overflow:hidden}
@@ -474,8 +487,17 @@ if(S.team){ enterGame(); }
 #sndBtns{position:fixed;top:10px;right:12px;z-index:80;display:flex;gap:6px}
 #sndBtns button{font-size:20px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(0,0,0,.45);cursor:pointer}
 #sndBtns button.off{opacity:.35}
-#sndBtns #btnRestart{width:auto;background:#a8281b;border-color:#fff;border-radius:21px;padding:0 14px;font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;display:flex;align-items:center;gap:6px}
-#sndBtns #btnRestart:hover{background:rgba(192,57,43,.85)}
+#sndBtns #btnEnd{display:none;width:auto;background:#a8281b;border-color:#fff;border-radius:21px;padding:0 14px;font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;align-items:center;gap:6px}
+#sndBtns #btnEnd:hover{background:#d63a2a}
+body.ingame #sndBtns #btnEnd{display:flex}
+#endModal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;display:none;align-items:center;justify-content:center;padding:16px}
+#endModal.on{display:flex}
+#endModal .box{background:#1a0008;border:4px solid #ff3355;border-radius:14px;max-width:520px;padding:26px 24px;text-align:center;color:#fff;animation:popin .3s ease-out;box-shadow:0 0 40px rgba(255,50,80,.5)}
+#endModal h2{font-family:'Press Start 2P',monospace;font-size:20px;color:#ff5577;line-height:1.5;margin:8px 0 14px}
+#endModal p{font-size:17px;line-height:1.5;margin-bottom:10px}
+#endModal .row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+#endModal .keep{background:#1e8449}
+#endModal .quit{background:#a8281b}
 .hdr{padding-right:250px}
 #intro{position:fixed;inset:0;background:#020d0c;z-index:90;display:none;align-items:center;justify-content:center;cursor:pointer}
 #intro.on{display:flex}
@@ -501,7 +523,7 @@ if(S.team){ enterGame(); }
 @keyframes pulse2{50%{transform:scale(1.08)}}
 .villain{display:inline-block;animation:bob 1s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-14px) rotate(6deg)}}
-@media(max-width:600px){#btnRestart span{display:none}.hdr{padding-right:150px}.hero h1{font-size:22px}.banner{font-size:20px}#intro .tt{font-size:16px}#intro .ic{font-size:70px}.hdr h1{font-size:11px}}
+@media(max-width:600px){#btnEnd span{display:none}.hdr{padding-right:150px}.hero h1{font-size:22px}.banner{font-size:20px}#intro .tt{font-size:16px}#intro .ic{font-size:70px}.hdr h1{font-size:11px}}
 </style>
 <div class="streak" id="streak"></div>
 <script>
@@ -669,7 +691,7 @@ const AR = (function(){
   const _end = showEnd;
   showEnd = function(){
     _end();
-    const saved = correctCount()/MAX >= PASS;
+    const saved = correctCount()/MAX >= PASS && !S.forfeit;
     AR.setStreak(0);
     if(saved){ AR.sfx.win(); AR.burst(90); }
     else { AR.sfx.lose(); const v=document.querySelector('#endBox div'); if(v) v.innerHTML='<span class="villain">🦹</span>'; }
