@@ -102,10 +102,12 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
     <div class="card story">
       <h2>⚠️ Code Blue in OR 3</h2>
       <p>Professor <b>Diabolus Von Failsworth III</b> is back. After his defeat in the ER, he slipped <b>The Accumulator</b> into Ms. Cindy's coffee. It's a toxin that makes every vital sign <i>pile up</i> over time.</p>
-      <p style="margin-top:10px">Your surgical team has six procedures to get through. At each one you will measure a <b>rate</b>, build a table, estimate the total with <b>Riemann sums</b>, and confirm it exactly with an <b>antiderivative</b>.</p>
+      <p style="margin-top:10px">Your surgical team has six procedures to get through. First you'll <b>estimate</b> her blood loss with Riemann sums. Then you'll use <b>antiderivatives</b> and the <b>Fundamental Theorem of Calculus</b> to dose her medicine, fight the infection, restart her heart, and bring her oxygen back.</p>
       <p style="margin-top:10px">Every correct answer raises Ms. Cindy's <b>Stability</b>. Reach <b>70%</b> by the end and she walks out of the hospital. Fall short and Von Failsworth takes over your class. Forever.</p>
     </div>
     <div class="card">
+      <div class="label">Class code (on the board)</div>
+      <input class="inp" id="classCode" maxlength="20" placeholder="e.g. MAT1193" style="margin-bottom:16px">
       <div class="label">Surgical team name</div>
       <input class="inp" id="teamName" maxlength="28" placeholder="e.g. The Integral Interns">
       <div class="label" style="margin-top:16px">Scrub color</div>
@@ -149,75 +151,109 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
 <button class="gear" onclick="teacherReset()">⚙ reset</button>
 
 <script>
+// ===================== LIVE LEADERBOARD RELAY =====================
+// Progress is posted to a free public relay (ntfy.sh). The leaderboard listens on the same channel.
+const RELAY = "https://ntfy.sh/";
+function topicFor(code){ return "cpffl2001-calcor-" + String(code).toLowerCase().replace(/[^a-z0-9]/g,""); }
+
 // ===================== STATION DATA =====================
+// part types: table | mc | num
 const STATIONS = [
- { title:"IV Fluids", icon:"💧", room:"Pre-Op",
-   story:"Ms. Cindy is dehydrated from fighting the toxin. The nurse opens the IV and the drip rate climbs steadily as the line opens up. How much fluid does she receive in the first 8 minutes?",
-   fn:"r(t) = 4t + 10", fnTex:"r(t) = 4t + 10", rateUnit:"mL/min", totUnit:"mL", var:"t", tUnit:"min",
-   ts:[0,2,4,6,8], vals:[10,18,26,34,42], dt:2, a:0, b:8,
-   dir:"inc", L:176, R:240, avg:208, exact:208,
-   anti:["2t^2+10t+C","4t^2+10t+C","2t^2+10+C","t^2+10t+C"], code:null },
- { title:"Blood Loss Clamp", icon:"🩸", room:"Incision",
-   story:"The first incision nicks a vessel! The surgeon clamps it, and the rate of blood loss slows down every minute. Estimate the total blood lost during the first 4 minutes.",
-   fnTex:"B(t) = 50 - 2t^2", rateUnit:"mL/min", totUnit:"mL", var:"t", tUnit:"min",
-   ts:[0,1,2,3,4], vals:[50,48,42,32,18], dt:1, a:0, b:4,
-   dir:"dec", L:172, R:140, avg:156, exact:157.33,
-   anti:["50t-\\frac{2}{3}t^3+C","50-\\frac{2}{3}t^3+C","50t-4t+C","50t-\\frac{1}{3}t^3+C"], code:"CLAMP" },
- { title:"Infection Culture", icon:"🦠", room:"Lab",
-   story:"The lab finds The Accumulator is feeding a bacterial infection. Bacteria are being added at a rate that grows exponentially. How many bacteria are added over the first 4 hours?",
-   fnTex:"f(t) = 4e^{0.5t}", rateUnit:"million bacteria/hr", totUnit:"million bacteria", var:"t", tUnit:"hr",
-   ts:[0,1,2,3,4], vals:[4,6.59,10.87,17.93,29.56], dt:1, a:0, b:4,
-   dir:"inc", L:39.39, R:64.95, avg:52.17, exact:51.11,
-   anti:["8e^{0.5t}+C","2e^{0.5t}+C","4e^{0.5t}+C","8e^{1.5t}+C"], code:"PETRI" },
- { title:"Anesthesia", icon:"😴", room:"OR 3",
-   story:"The anesthesiologist puts Ms. Cindy under. Her body absorbs the anesthetic quickly at first, then slower and slower. How much is absorbed from hour 1 to hour 5?",
-   fnTex:"A(t) = \\frac{24}{t}", rateUnit:"mg/hr", totUnit:"mg", var:"t", tUnit:"hr",
-   ts:[1,2,3,4,5], vals:[24,12,8,6,4.8], dt:1, a:1, b:5,
-   dir:"dec", L:50, R:30.8, avg:40.4, exact:38.63,
-   anti:["24\\ln|t|+C","-\\frac{24}{t^2}+C","12t^2+C","\\ln|24t|+C"], code:"SLEEP" },
- { title:"Defibrillator", icon:"⚡", room:"OR 3",
-   story:"FLATLINE! Von Failsworth's toxin stopped her heart. The defibrillator charges at a rate that follows a sine curve. How much energy is stored in the first 3 seconds? (RADIANS!)",
-   fnTex:"E(t) = 6\\sin(0.5t)", rateUnit:"joules/sec", totUnit:"joules", var:"t", tUnit:"sec",
-   ts:[0,1,2,3], vals:[0,2.88,5.05,5.98], dt:1, a:0, b:3,
-   dir:"inc", L:7.93, R:13.91, avg:10.92, exact:11.15,
-   anti:["-12\\cos(0.5t)+C","12\\cos(0.5t)+C","-3\\cos(0.5t)+C","-6\\cos(0.5t)+C"], code:"SPARK" },
- { title:"Oxygen Recovery", icon:"🫁", room:"Recovery",
-   story:"Her heart is beating again! In recovery, oxygen is pumped to her lungs at a rate that keeps rising. How many liters of oxygen does she receive in the first 4 minutes?",
-   fnTex:"O(t) = 6\\sqrt{t}", rateUnit:"L/min", totUnit:"L", var:"t", tUnit:"min",
-   ts:[0,1,2,3,4], vals:[0,6,8.49,10.39,12], dt:1, a:0, b:4,
-   dir:"inc", L:24.88, R:36.88, avg:30.88, exact:32,
-   anti:["4t^{3/2}+C","9t^{3/2}+C","3t^{-1/2}+C","6t^{3/2}+C"], code:"BREATHE" }
+ { title:"Vitals Check: Blood Loss", short:"Blood Loss", icon:"🩸", type:"Riemann Sums",
+   story:"Ms. Cindy is rolled into OR 3 and the first incision nicks a vessel! The surgeon clamps it, and the rate of blood loss slows down every minute. Before she can operate, she needs an <b>estimate</b> of how much blood was lost in the first 4 minutes.",
+   fnTex:"B(t) = 50 - 2t^2", info:"mL/min, \\(t\\) in minutes", interval:"\\(0 \\le t \\le 4\\) &nbsp;·&nbsp; \\(\\Delta t = 1\\) &nbsp;·&nbsp; 4 subintervals",
+   parts:[
+    {type:"table", label:"Vital Signs Table", q:"Fill in the table by plugging each time into \\(B(t)\\).", ts:[0,1,2,3,4], vals:[50,48,42,32,18], rowLabel:"\\(B(t)\\)"},
+    {type:"mc", label:"Read the Monitor", q:"On \\(0 \\le t \\le 4\\), the rate of blood loss is…", opts:["Decreasing ↘","Increasing ↗"], fixed:true},
+    {type:"num", label:"Left-Hand Sum", q:"Compute the <b>left-hand</b> Riemann sum (mL).", ans:172},
+    {type:"num", label:"Right-Hand Sum", q:"Compute the <b>right-hand</b> Riemann sum (mL).", ans:140},
+    {type:"mc", label:"Over or Under?", q:"Which sum is the <b>overestimate</b> of the true blood loss?", opts:["The left-hand sum","The right-hand sum"], fixed:true},
+    {type:"num", label:"Average Estimate", q:"Compute the <b>average</b> of your left and right sums (mL).", ans:156}
+   ], code:null },
+
+ { title:"Pharmacy: Dosage Formulas", short:"Pharmacy", icon:"💊", type:"Antiderivatives",
+   story:"The hospital pharmacist knows the <b>rate</b> each medicine enters Ms. Cindy's body, but the IV pumps need the <b>total-amount formula</b>. Von Failsworth scrambled the labels. Find the antiderivative for each prescription.",
+   parts:[
+    {type:"mc", label:"Prescription A", q:"\\(\\displaystyle\\int (6t^2 + 4t)\\,dt =\\)", opts:["\\(2t^3+2t^2+C\\)","\\(12t+4+C\\)","\\(6t^3+4t^2+C\\)","\\(2t^3+4t^2+C\\)"]},
+    {type:"mc", label:"Prescription B", q:"\\(\\displaystyle\\int \\left(8t^3 + \\frac{1}{t}\\right)dt =\\)", opts:["\\(2t^4+\\ln|t|+C\\)","\\(2t^4-\\frac{1}{t^2}+C\\)","\\(24t^2-\\frac{1}{t^2}+C\\)","\\(8t^4+\\ln|t|+C\\)"]},
+    {type:"mc", label:"Prescription C", q:"\\(\\displaystyle\\int 12e^{0.2t}\\,dt =\\)", opts:["\\(60e^{0.2t}+C\\)","\\(2.4e^{0.2t}+C\\)","\\(12e^{0.2t}+C\\)","\\(60e^{1.2t}+C\\)"]}
+   ], code:"PILLS" },
+
+ { title:"Infection Culture", short:"Infection", icon:"🦠", type:"FTC Part I",
+   story:"The lab finds The Accumulator is feeding a bacterial infection. Bacteria are being added at the rate below. Use the Fundamental Theorem of Calculus to find <b>exactly</b> how many bacteria were added in the first 4 hours.",
+   fnTex:"f(t) = 4e^{0.5t}", info:"million bacteria per hour", interval:"\\(\\displaystyle\\int_0^4 4e^{0.5t}\\,dt = F(4) - F(0)\\)",
+   parts:[
+    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative \\(F(t)\\) of \\(4e^{0.5t}\\)?", opts:["\\(8e^{0.5t}\\)","\\(2e^{0.5t}\\)","\\(4e^{0.5t}\\)","\\(8e^{1.5t}\\)"]},
+    {type:"num", label:"Evaluate F(4)", q:"Compute \\(F(4)\\). Round to 2 decimals.", ans:59.11},
+    {type:"num", label:"Evaluate F(0)", q:"Compute \\(F(0)\\).", ans:8},
+    {type:"num", label:"Total Bacteria Added", q:"Compute \\(F(4) - F(0)\\) (million bacteria).", ans:51.11}
+   ], code:"PETRI" },
+
+ { title:"Anesthesia Wear-Off", short:"Anesthesia", icon:"😴", type:"FTC Application",
+   story:"Surgery is done! Ms. Cindy had <b>60 mg</b> of anesthetic in her bloodstream at hour 1. Her body is now <b>eliminating</b> it at the rate below. How much anesthetic is still in her bloodstream at hour 5?",
+   fnTex:"A(t) = \\frac{24}{t}", info:"mg per hour being removed, \\(t\\) in hours", interval:"from \\(t = 1\\) to \\(t = 5\\) &nbsp;·&nbsp; starting amount: 60 mg",
+   parts:[
+    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative of \\(\\frac{24}{t}\\)?", opts:["\\(24\\ln|t|\\)","\\(-\\frac{24}{t^2}\\)","\\(12t^2\\)","\\(\\ln|24t|\\)"]},
+    {type:"num", label:"Amount Eliminated", q:"Compute \\(\\displaystyle\\int_1^5 \\frac{24}{t}\\,dt\\) (mg). Round to 2 decimals.", ans:38.63},
+    {type:"mc", label:"Add or Subtract?", q:"To find what is <b>left</b> in her bloodstream, you should…", opts:["Subtract it from 60 mg","Add it to 60 mg"], fixed:true},
+    {type:"num", label:"Anesthetic Remaining", q:"How many mg are still in her bloodstream at hour 5?", ans:21.37}
+   ], code:"SLEEP" },
+
+ { title:"Defibrillator", short:"Defib", icon:"⚡", type:"Find C",
+   story:"FLATLINE! Von Failsworth's toxin stopped her heart. The defibrillator charges at the rate below, and it starts completely empty: \\(E(0) = 0\\). Find the energy formula \\(E(t)\\), then how much energy is stored after 3 seconds. (RADIANS!)",
+   fnTex:"E'(t) = 6\\sin(0.5t)", info:"joules per second &nbsp;·&nbsp; \\(E(0) = 0\\)", interval:"Find \\(E(t)\\), then \\(E(3)\\)",
+   parts:[
+    {type:"mc", label:"General Antiderivative", q:"\\(\\displaystyle\\int 6\\sin(0.5t)\\,dt =\\)", opts:["\\(-12\\cos(0.5t)+C\\)","\\(12\\cos(0.5t)+C\\)","\\(-3\\cos(0.5t)+C\\)","\\(-6\\cos(0.5t)+C\\)"]},
+    {type:"num", label:"Solve for C", q:"Use \\(E(0) = 0\\) to find the value of \\(C\\).", ans:12},
+    {type:"num", label:"Charge the Paddles", q:"Compute \\(E(3)\\) (joules). Round to 2 decimals.", ans:11.15}
+   ], code:"SPARK" },
+
+ { title:"Oxygen Recovery", short:"Oxygen", icon:"🫁", type:"FTC Application",
+   story:"Her heart is beating again! In recovery, her oxygen reserve starts at <b>15 liters</b>. Oxygen is pumped in at the rate below. How much oxygen is in her reserve after 4 minutes?",
+   fnTex:"O(t) = 6\\sqrt{t}", info:"liters per minute being added, \\(t\\) in minutes", interval:"from \\(t = 0\\) to \\(t = 4\\) &nbsp;·&nbsp; starting amount: 15 L",
+   parts:[
+    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative of \\(6\\sqrt{t}\\)?", opts:["\\(4t^{3/2}\\)","\\(9t^{3/2}\\)","\\(3t^{-1/2}\\)","\\(6t^{3/2}\\)"]},
+    {type:"num", label:"Oxygen Added", q:"Compute \\(\\displaystyle\\int_0^4 6\\sqrt{t}\\,dt\\) (liters).", ans:32},
+    {type:"num", label:"Total Reserve", q:"How many liters are in her oxygen reserve at \\(t = 4\\)?", ans:47}
+   ], code:"BREATHE" }
 ];
 const FINAL_CODE = "DISCHARGE";
-const PARTS_PER = 8;
-const MAX = STATIONS.length * PARTS_PER;
+const MAX = STATIONS.reduce((a,s)=>a+s.parts.length,0);
 const PASS = 0.70;
 const COLORS = ["#0b6e69","#c0392b","#2c5aa0","#7d3c98","#d35400","#1e8449","#b7950b","#c2185b","#34495e","#00838f"];
 
 // ===================== STATE =====================
-const KEY = "calcOR_state_v1";
-let S = load() || { team:"", color:COLORS[0], st:0, unlocked:[true], parts:{}, scores:[], done:false };
+const KEY = "calcOR_state_v2";
+let S = load() || { id:Math.random().toString(36).slice(2,10), team:"", cls:"", color:COLORS[0], st:0, parts:{}, scores:[], done:false };
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
-function total(){ return S.scores.reduce((a,b)=>a+(b||0),0); }
+function correctCount(){ let ok=0; Object.values(S.parts).forEach(p=>Object.keys(p).forEach(k=>{ if(!isNaN(k) && p[k].ok) ok++; })); return ok; }
+
+// ===================== BROADCAST =====================
+function broadcast(){
+  if(!S.cls) return;
+  const msg = JSON.stringify({ id:S.id, team:S.team, color:S.color, st:S.st, scores:S.scores, max:MAX, done:S.done, t:Date.now() });
+  const send = (tries) => fetch(RELAY + topicFor(S.cls), { method:"POST", body:msg })
+      .catch(()=>{ if(tries>0) setTimeout(()=>send(tries-1), 4000); });
+  send(3);
+}
 
 // ===================== HELPERS =====================
 const $ = id => document.getElementById(id);
 function show(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); window.scrollTo(0,0); }
 function tex(el){ if(window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]).catch(()=>{}); else setTimeout(()=>tex(el),300); }
-function near(x, target, tol){ const t = tol ?? Math.max(0.15, Math.abs(target)*0.003); return Math.abs(x-target) <= t; }
-function shuffle(a, seed){ const r=[...a]; let s=seed; for(let i=r.length-1;i>0;i--){ s=(s*9301+49297)%233280; const j=Math.floor(s/233280*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
+function near(x, target){ return Math.abs(x-target) <= Math.max(0.05, Math.abs(target)*0.003); }
+function shuffleIdx(n, seed){ const r=[...Array(n).keys()]; let s=seed; for(let i=n-1;i>0;i--){ s=(s*9301+49297)%233280; const j=Math.floor(s/233280*(i+1)); [r[i],r[j]]=[r[j],r[i]]; } return r; }
 function seedOf(str){ let h=7; for(const c of str) h=(h*31+c.charCodeAt(0))%100000; return h; }
 
 // ===================== START =====================
-function buildColors(){
-  $('colors').innerHTML = COLORS.map(c=>`<div class="sw ${c===S.color?'sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join('');
-}
+function buildColors(){ $('colors').innerHTML = COLORS.map(c=>`<div class="sw ${c===S.color?'sel':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`).join(''); }
 function pickColor(c){ S.color=c; buildColors(); }
 function startGame(){
-  const n = $('teamName').value.trim();
-  if(!n){ $('startErr').textContent = "Enter your team name first."; return; }
-  S.team = n; save(); enterGame();
+  const n = $('teamName').value.trim(), c = $('classCode').value.trim();
+  if(!c){ $('startErr').textContent = "Enter the class code on the board."; return; }
+  if(!n){ $('startErr').textContent = "Enter your team name."; return; }
+  S.team = n; S.cls = c; save(); broadcast(); enterGame();
 }
 function enterGame(){
   document.documentElement.style.setProperty('--team', S.color);
@@ -231,173 +267,111 @@ function renderStation(){
   const i = S.st, d = STATIONS[i];
   updateVitals();
   $('hTitle').textContent = `Procedure ${i+1} of ${STATIONS.length}: ${d.title}`;
-  $('prog').innerHTML = STATIONS.map((x,k)=>`<span class="pill ${k<i?'done':k===i?'cur':''}">${x.icon} ${k+1}. ${x.title}</span>`).join('');
-  const el = $('station');
-
-  if(!S.unlocked[i]){
-    el.innerHTML = `<div class="card chief">
-      <div class="bigicon">🔒</div><h2>${d.icon} ${d.room} is locked</h2>
-      <p class="q">The Chief Surgeon must check your paper before you can scrub in to Procedure ${i+1}.</p>
-      <input class="code" id="codeIn" placeholder="CODE"> <button class="btn" onclick="tryCode()">Unlock</button>
-      <div class="err" id="codeErr"></div></div>`;
-    return;
-  }
-
+  $('prog').innerHTML = STATIONS.map((x,k)=>`<span class="pill ${k<i?'done':k===i?'cur':''}">${x.icon} ${k+1}. ${x.short}</span>`).join('');
   const p = S.parts[i] || (S.parts[i] = {});
-  const v = d.var;
-  const seed = seedOf(S.team + i);
-  const antiOrder = shuffle(d.anti.map((x,k)=>({tex:x, ok:k===0})), seed);
-  p.antiOrder = p.antiOrder || antiOrder.map(o=>d.anti.indexOf(o.tex));
-  const nInt = d.ts.length - 1;
-
+  const el = $('station');
   el.innerHTML = `
   <div class="card story">
+    <div class="label" style="color:#7fe0c0">${d.type}</div>
     <h2>${d.icon} Procedure ${i+1}: ${d.title}</h2>
     <p>${d.story}</p>
-    <div class="fn">\\(${d.fnTex}\\) &nbsp; <span style="font-size:15px;color:#555">${d.rateUnit}, &nbsp; \\(${v}\\) in ${d.tUnit}</span><br>
-    <span style="font-size:16px;color:#333">Interval: \\(${d.a} \\le ${v} \\le ${d.b}\\) &nbsp;·&nbsp; \\(\\Delta ${v} = ${d.dt}\\) &nbsp;·&nbsp; ${nInt} subintervals</span></div>
+    ${d.fnTex ? `<div class="fn">\\(${d.fnTex}\\) <span style="font-size:15px;color:#555">&nbsp; ${d.info}</span><br><span style="font-size:16px;color:#333">${d.interval}</span></div>` : ''}
   </div>
-
-  ${partBox(0,"Step 1 · Vital Signs Table",`
-    <div class="q">Fill in the table by plugging each time into the rate function. Round to 2 decimals.</div>
-    <table class="vt"><tr><th>\\(${v}\\) (${d.tUnit})</th>${d.ts.map(t=>`<td><b>${t}</b></td>`).join('')}</tr>
-    <tr><th>rate</th>${d.ts.map((t,k)=>`<td><input class="ctrl" id="tb${k}" inputmode="decimal"></td>`).join('')}</tr></table>
-    <button class="btn ctrl" onclick="subTable()">Submit Table</button>`)}
-
-  ${partBox(1,"Step 2 · Read the Monitor",`
-    <div class="q">On this interval, the rate function is…</div>
-    ${choices('dir',[["inc","Increasing ↗"],["dec","Decreasing ↘"]])}
-    <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(1,'dir')">Submit</button>`)}
-
-  ${partBox(2,"Step 3 · Left-Hand Sum",`
-    <div class="q">Compute the <b>left-hand</b> Riemann sum (${d.totUnit}).</div>
-    <input class="num ctrl" id="n2" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(2,'L')">Submit</button>`)}
-
-  ${partBox(3,"Step 4 · Right-Hand Sum",`
-    <div class="q">Compute the <b>right-hand</b> Riemann sum (${d.totUnit}).</div>
-    <input class="num ctrl" id="n3" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(3,'R')">Submit</button>`)}
-
-  ${partBox(4,"Step 5 · Over or Under?",`
-    <div class="q">Which sum is the <b>overestimate</b> of the true total?</div>
-    ${choices('over',[["L","The left-hand sum"],["R","The right-hand sum"]])}
-    <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(4,'over')">Submit</button>`)}
-
-  ${partBox(5,"Step 6 · Average Estimate",`
-    <div class="q">Compute the <b>average</b> of your left and right sums (${d.totUnit}).</div>
-    <input class="num ctrl" id="n5" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(5,'avg')">Submit</button>`)}
-
-  ${partBox(6,"Step 7 · Find the Antiderivative",`
-    <div class="q">Which is an antiderivative of \\(${d.fnTex}\\)?</div>
-    ${choices('anti', p.antiOrder.map(k=>[String(k), `\\(${d.anti[k]}\\)`]))}
-    <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(6,'anti')">Submit</button>`)}
-
-  ${partBox(7,"Step 8 · Exact Total (FTC)",`
-    <div class="q">Use \\(F(${d.b}) - F(${d.a})\\) to find the <b>exact</b> total (${d.totUnit}). Round to 2 decimals.</div>
-    <input class="num ctrl" id="n7" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(7,'exact')">Submit</button>`)}
-
+  ${d.parts.map((pt,k)=>partHTML(pt,k,i)).join('')}
   <div id="chiefBox"></div>`;
-
   restoreParts();
   tex(el);
 }
 
-function partBox(k, label, inner){
-  return `<div class="card part" id="pt${k}"><div class="label">${label}</div>${inner}<div class="fb" id="fb${k}"></div></div>`;
-}
-function choices(name, opts){
-  return `<div class="choices">${opts.map(([val,txt])=>`<label class="choice ctrl" data-n="${name}" data-v="${val}" onclick="sel(this)">${txt}</label>`).join('')}</div>`;
+function partHTML(pt, k, i){
+  let inner = `<div class="q">${pt.q}</div>`;
+  if(pt.type==='table'){
+    inner += `<table class="vt"><tr><th>\\(t\\)</th>${pt.ts.map(t=>`<td><b>${t}</b></td>`).join('')}</tr>
+      <tr><th>${pt.rowLabel}</th>${pt.ts.map((_,j)=>`<td><input class="ctrl" id="tb${k}_${j}" inputmode="decimal"></td>`).join('')}</tr></table>
+      <button class="btn ctrl" onclick="subTable(${k})">Submit Table</button>`;
+  } else if(pt.type==='mc'){
+    const order = pt.fixed ? [...pt.opts.keys()].sort(()=>0) : shuffleIdx(pt.opts.length, seedOf(S.team+i+'-'+k));
+    const shown = pt.fixed ? [...pt.opts.keys()].sort((a,b)=> (seedOf(S.team+i+k)%2) ? b-a : a-b) : order;
+    inner += `<div class="choices">${shown.map(j=>`<label class="choice ctrl" data-k="${k}" data-v="${j}" onclick="sel(this)">${pt.opts[j]}</label>`).join('')}</div>
+      <button class="btn ctrl" style="margin-top:10px" onclick="subChoice(${k})">Submit</button>`;
+  } else {
+    inner += `<input class="num ctrl" id="n${k}" inputmode="decimal"> <button class="btn ctrl" onclick="subNum(${k})">Submit</button>`;
+  }
+  return `<div class="card part" id="pt${k}"><div class="label">Step ${k+1} · ${pt.label}</div>${inner}<div class="fb" id="fb${k}"></div></div>`;
 }
 function sel(lab){
   if(lab.closest('.part').classList.contains('locked')) return;
-  document.querySelectorAll(`.choice[data-n="${lab.dataset.n}"]`).forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll(`.choice[data-k="${lab.dataset.k}"]`).forEach(c=>c.classList.remove('sel'));
   lab.classList.add('sel');
 }
 
 // ===================== SUBMIT =====================
 function cur(){ return S.parts[S.st]; }
-function lockPart(k, ok, payload){
-  const p = cur(); p[k] = { ok, v: payload };
-  save(); restoreParts(); updateVitals(); flash(ok);
+function lockPart(k, ok, v){ cur()[k] = { ok, v }; save(); restoreParts(); updateVitals(); flash(ok); }
+function warn(k,msg){ $('fb'+k).className='fb no'; $('fb'+k).textContent=msg; }
+function subTable(k){
+  const pt = STATIONS[S.st].parts[k];
+  const raw = pt.ts.map((_,j)=>$(`tb${k}_${j}`).value.trim());
+  if(raw.some(x=>x==='' || isNaN(parseFloat(x)))) return warn(k,'Fill in every cell with a number.');
+  const nums = raw.map(parseFloat), each = nums.map((x,j)=>Math.abs(x-pt.vals[j])<=0.02);
+  lockPart(k, each.every(Boolean), {nums, each});
 }
-function subTable(){
-  const d = STATIONS[S.st]; const vals = d.ts.map((_,k)=>$('tb'+k).value.trim());
-  if(vals.some(x=>x==='' || isNaN(parseFloat(x)))){ $('fb0').className='fb no'; $('fb0').textContent='Fill in every cell with a number.'; return; }
-  const nums = vals.map(parseFloat);
-  const each = nums.map((x,k)=>near(x, d.vals[k], 0.02));
-  lockPart(0, each.every(Boolean), {nums, each});
+function subChoice(k){
+  const s = document.querySelector(`.choice[data-k="${k}"].sel`);
+  if(!s) return warn(k,'Pick an answer first.');
+  lockPart(k, s.dataset.v==='0', s.dataset.v);
 }
-function subChoice(k, name){
-  const s = document.querySelector(`.choice[data-n="${name}"].sel`);
-  if(!s){ $('fb'+k).className='fb no'; $('fb'+k).textContent='Pick an answer first.'; return; }
-  const d = STATIONS[S.st]; const v = s.dataset.v;
-  let ok;
-  if(name==='dir') ok = v===d.dir;
-  else if(name==='over') ok = v===(d.dir==='inc'?'R':'L');
-  else ok = v==='0';
-  lockPart(k, ok, v);
-}
-function subNum(k, key){
-  const raw = $('n'+k).value.trim(); const x = parseFloat(raw);
-  if(raw==='' || isNaN(x)){ $('fb'+k).className='fb no'; $('fb'+k).textContent='Enter a number.'; return; }
-  lockPart(k, near(x, STATIONS[S.st][key]), x);
+function subNum(k){
+  const raw = $('n'+k).value.trim(), x = parseFloat(raw);
+  if(raw==='' || isNaN(x)) return warn(k,'Enter a number.');
+  lockPart(k, near(x, STATIONS[S.st].parts[k].ans), x);
 }
 
 // ===================== RESTORE / LOCK UI =====================
 function restoreParts(){
-  const p = cur(); const d = STATIONS[S.st];
-  let firstOpen = 0; while(p[firstOpen]) firstOpen++;
-  for(let k=0;k<PARTS_PER;k++){
-    const box = $('pt'+k); if(!box) continue;
-    box.classList.toggle('open', k<=firstOpen);
-    const r = p[k]; const fb = $('fb'+k);
-    if(!r){ continue; }
+  const p = cur(), d = STATIONS[S.st], n = d.parts.length;
+  let first = 0; while(p[first]) first++;
+  for(let k=0;k<n;k++){
+    const box = $('pt'+k), r = p[k], fb = $('fb'+k), pt = d.parts[k];
+    box.classList.toggle('open', k<=first);
+    if(!r) continue;
     box.classList.add('locked');
     fb.className = 'fb ' + (r.ok?'ok':'no');
     fb.textContent = r.ok ? '✓ Correct — vitals improving.' : '✗ Incorrect. Answer locked. Keep going!';
     box.querySelectorAll('button.ctrl').forEach(b=>b.disabled=true);
-    if(k===0){ r.v.nums.forEach((x,j)=>{ const inp=$('tb'+j); inp.value=x; inp.disabled=true; inp.className='ctrl '+(r.v.each[j]?'ok':'no'); }); }
-    else if([2,3,5,7].includes(k)){ const inp=$('n'+k); inp.value=r.v; inp.disabled=true; }
-    else { box.querySelectorAll('.choice').forEach(c=>{ if(c.dataset.v===r.v){ c.classList.add('sel', r.ok?'ok':'no'); } }); }
+    if(pt.type==='table') r.v.nums.forEach((x,j)=>{ const inp=$(`tb${k}_${j}`); inp.value=x; inp.disabled=true; inp.className='ctrl '+(r.v.each[j]?'ok':'no'); });
+    else if(pt.type==='num'){ const inp=$('n'+k); inp.value=r.v; inp.disabled=true; }
+    else box.querySelectorAll('.choice').forEach(c=>{ if(c.dataset.v===r.v) c.classList.add('sel', r.ok?'ok':'no'); });
   }
-  if(firstOpen>=PARTS_PER) finishStation();
+  if(first>=n) finishStation();
 }
 
 function finishStation(){
-  const i = S.st; const p = cur();
+  const i = S.st, p = cur(), n = STATIONS[i].parts.length;
   const sc = Object.keys(p).filter(k=>!isNaN(k) && p[k].ok).length;
-  S.scores[i] = sc; save(); updateVitals();
+  if(S.scores[i] !== sc){ S.scores[i] = sc; save(); broadcast(); }
   const last = i===STATIONS.length-1;
   $('chiefBox').innerHTML = `<div class="card chief">
     <div class="bigicon">🙋</div>
     <h2>Procedure ${i+1} complete!</h2>
-    <div class="score-badge">${sc} / ${PARTS_PER}</div>
-    <p class="q"><b>Call the Chief Surgeon over.</b> Show your paper and your score.</p>
+    <div class="score-badge">${sc} / ${n}</div>
+    <p class="q"><b>Call the Chief Surgeon over.</b> Show your paper to get the code for the next room.</p>
     <input class="code" id="codeIn" placeholder="CODE"> <button class="btn" onclick="tryCode()">${last?'Discharge Patient':'Next Procedure →'}</button>
     <div class="err" id="codeErr"></div></div>`;
 }
 
 function tryCode(){
-  const c = $('codeIn').value.trim().toUpperCase();
-  const i = S.st; const last = i===STATIONS.length-1;
-  if(S.unlocked[i] === undefined || !S.unlocked[i]){
-    if(c === STATIONS[i].code){ S.unlocked[i]=true; save(); renderStation(); }
-    else $('codeErr').textContent = "Incorrect code. Wait for the Chief.";
-    return;
-  }
+  const c = $('codeIn').value.trim().toUpperCase(), i = S.st, last = i===STATIONS.length-1;
   const need = last ? FINAL_CODE : STATIONS[i+1].code;
   if(c !== need){ $('codeErr').textContent = "Incorrect code. Wait for the Chief."; return; }
-  if(last){ S.done=true; save(); showEnd(); }
-  else { S.st=i+1; S.unlocked[S.st]=true; save(); renderStation(); }
+  if(last){ S.done=true; save(); broadcast(); showEnd(); }
+  else { S.st=i+1; save(); broadcast(); renderStation(); }
 }
 
 // ===================== VITALS / EKG =====================
 let bpm = 140;
-function stability(){ return total()/MAX; }
 function updateVitals(){
-  // count all locked correct parts live (including current station in progress)
-  let ok=0;
-  Object.values(S.parts).forEach(p=>Object.keys(p).forEach(k=>{ if(!isNaN(k) && p[k].ok) ok++; }));
-  const pct = ok/MAX;
+  const pct = correctCount()/MAX;
   $('meter').style.width = (pct*100).toFixed(0)+'%';
   $('vStab').textContent = (pct*100).toFixed(0)+'%';
   bpm = Math.round(145 - pct*70);
@@ -405,63 +379,37 @@ function updateVitals(){
   $('vO2').textContent = Math.round(82 + pct*17) + '%';
   $('vHR').style.color = pct>=PASS?'#44ff88':pct>=.4?'#ffdd44':'#ff6666';
 }
-function flash(ok){
-  const b=document.body; b.style.transition='background .15s'; b.style.background= ok?'#dfffe9':'#ffe2e2';
-  setTimeout(()=>b.style.background='',300);
-}
+function flash(ok){ const b=document.body; b.style.transition='background .15s'; b.style.background= ok?'#dfffe9':'#ffe2e2'; setTimeout(()=>b.style.background='',300); }
 let ekgOn=false;
 function startEKG(){
   if(ekgOn) return; ekgOn=true;
-  const cv=$('ekg'), ctx=cv.getContext('2d'); let x=0, last=56/2;
-  function size(){ cv.width=cv.clientWidth; cv.height=56; }
-  size(); window.addEventListener('resize',size);
-  function beat(ph){ // ph in [0,1)
-    if(ph<.08) return -Math.sin(ph/.08*Math.PI)*4;
-    if(ph>.14&&ph<.17) return 6;
-    if(ph>=.17&&ph<.21) return -22;
-    if(ph>=.21&&ph<.24) return 10;
-    if(ph>.36&&ph<.48) return -Math.sin((ph-.36)/.12*Math.PI)*6;
-    return 0;
-  }
-  let t=0;
-  setInterval(()=>{
-    const w=cv.width, h=cv.height;
-    ctx.fillStyle='#001a0d'; ctx.fillRect(x,0,14,h);
-    for(let k=0;k<3;k++){
-      t += bpm/60/60;
-      const y = h/2 + beat(t%1);
-      ctx.strokeStyle='#33ff88'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,last); ctx.lineTo(x+1,y); ctx.stroke();
-      last=y; x=(x+1)%w;
-    }
-  },1000/60);
+  const cv=$('ekg'), ctx=cv.getContext('2d'); let x=0, last=28, t=0;
+  function size(){ cv.width=cv.clientWidth; cv.height=56; } size(); window.addEventListener('resize',size);
+  function beat(ph){ if(ph<.08) return -Math.sin(ph/.08*Math.PI)*4; if(ph>.14&&ph<.17) return 6; if(ph>=.17&&ph<.21) return -22; if(ph>=.21&&ph<.24) return 10; if(ph>.36&&ph<.48) return -Math.sin((ph-.36)/.12*Math.PI)*6; return 0; }
+  setInterval(()=>{ const w=cv.width,h=cv.height; ctx.fillStyle='#001a0d'; ctx.fillRect(x,0,14,h);
+    for(let k=0;k<3;k++){ t+=bpm/3600; const y=h/2+beat(t%1); ctx.strokeStyle='#33ff88'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x,last); ctx.lineTo(x+1,y); ctx.stroke(); last=y; x=(x+1)%w; } },1000/60);
 }
 
 // ===================== END =====================
 function showEnd(){
   show('s-end');
-  const sc = total(), pct = sc/MAX, saved = pct>=PASS;
+  const sc = correctCount(), pct = sc/MAX, saved = pct>=PASS;
   $('endBox').innerHTML = saved ? `
     <div style="font-size:70px">🎉</div>
     <h1 style="color:var(--green)">Ms. Cindy is DISCHARGED!</h1>
     <p class="q">Team <b>${S.team}</b> neutralized The Accumulator. Von Failsworth has been escorted out by hospital security, still muttering about "upper and lower sums."</p>
-    <div class="score-badge">${sc} / ${MAX} &nbsp;·&nbsp; ${(pct*100).toFixed(0)}% stability</div>
-    <p class="q">Show this screen to the Chief Surgeon for the leaderboard.</p>`
+    <div class="score-badge">${sc} / ${MAX} &nbsp;·&nbsp; ${(pct*100).toFixed(0)}% stability</div>`
   : `
     <div style="font-size:70px">🦹</div>
     <h1 style="color:var(--bad)">Von Failsworth Wins…</h1>
-    <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She's stable enough to live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily.</p>
-    <div class="score-badge">${sc} / ${MAX}</div>
-    <p class="q">Show this screen to the Chief Surgeon for the leaderboard.</p>`;
+    <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She'll live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily.</p>
+    <div class="score-badge">${sc} / ${MAX}</div>`;
   if(saved) confetti();
 }
 function confetti(){
-  for(let k=0;k<120;k++){
-    const c=document.createElement('div');
+  for(let k=0;k<120;k++){ const c=document.createElement('div');
     c.style.cssText=`position:fixed;top:-10px;left:${Math.random()*100}vw;width:9px;height:14px;background:${COLORS[k%COLORS.length]};z-index:99;border-radius:2px;transition:transform ${2+Math.random()*2}s linear,opacity 4s;`;
-    document.body.appendChild(c);
-    requestAnimationFrame(()=>{ c.style.transform=`translateY(105vh) rotate(${Math.random()*720}deg)`; c.style.opacity='.2'; });
-    setTimeout(()=>c.remove(),4500);
-  }
+    document.body.appendChild(c); requestAnimationFrame(()=>{ c.style.transform=`translateY(105vh) rotate(${Math.random()*720}deg)`; c.style.opacity='.2'; }); setTimeout(()=>c.remove(),4500); }
 }
 
 // ===================== TEACHER RESET =====================
