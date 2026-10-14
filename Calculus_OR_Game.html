@@ -433,6 +433,7 @@ if(S.team){ enterGame(); }
 <!-- ===================== ARCADE LAYER ===================== -->
 <div id="fx"></div>
 <div id="sndBtns">
+  <button id="btnRestart" onclick="newGame()" title="Restart game">🔄 <span>Restart</span></button>
   <button id="btnSnd" onclick="AR.toggleSound()" title="Sound effects">🔊</button>
   <button id="btnBeat" onclick="AR.toggleBeat()" title="Heart monitor beep">💓</button>
 </div>
@@ -473,7 +474,9 @@ if(S.team){ enterGame(); }
 #sndBtns{position:fixed;top:10px;right:12px;z-index:80;display:flex;gap:6px}
 #sndBtns button{font-size:20px;width:42px;height:42px;border-radius:50%;border:2px solid rgba(255,255,255,.6);background:rgba(0,0,0,.45);cursor:pointer}
 #sndBtns button.off{opacity:.35}
-.hdr{padding-right:120px}
+#sndBtns #btnRestart{width:auto;background:#a8281b;border-color:#fff;border-radius:21px;padding:0 14px;font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;display:flex;align-items:center;gap:6px}
+#sndBtns #btnRestart:hover{background:rgba(192,57,43,.85)}
+.hdr{padding-right:250px}
 #intro{position:fixed;inset:0;background:#020d0c;z-index:90;display:none;align-items:center;justify-content:center;cursor:pointer}
 #intro.on{display:flex}
 #intro::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.25) 0 2px,transparent 2px 4px)}
@@ -498,7 +501,7 @@ if(S.team){ enterGame(); }
 @keyframes pulse2{50%{transform:scale(1.08)}}
 .villain{display:inline-block;animation:bob 1s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-14px) rotate(6deg)}}
-@media(max-width:600px){.hero h1{font-size:22px}.banner{font-size:20px}#intro .tt{font-size:16px}#intro .ic{font-size:70px}.hdr h1{font-size:11px}}
+@media(max-width:600px){#btnRestart span{display:none}.hdr{padding-right:150px}.hero h1{font-size:22px}.banner{font-size:20px}#intro .tt{font-size:16px}#intro .ic{font-size:70px}.hdr h1{font-size:11px}}
 </style>
 <div class="streak" id="streak"></div>
 <script>
