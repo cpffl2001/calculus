@@ -126,7 +126,7 @@ function connect(){
       if(m.t < B.clearedAt) return;
       const old = B.teams[m.id];
       if(old && old.t > m.t) return;
-      B.teams[m.id] = Object.assign({}, old||{}, {name:m.team, color:m.color, st:m.st, scores:m.scores||[], done:!!m.done, t:m.t});
+      B.teams[m.id] = Object.assign({}, old||{}, {name:m.team, color:m.color, st:m.st, scores:m.scores||[], done:!!m.done, forfeit:!!m.forfeit, t:m.t});
       flashId = m.id; save(); render();
     }catch(err){}
   };
@@ -162,7 +162,7 @@ function render(){
   document.getElementById('empty').style.display = list.length?'none':'block';
   document.getElementById('rows').innerHTML = list.map((t,r)=>{
     const T=tot(t), pct=T/MAX;
-    const status = t.done ? (pct>=.7?'<div class="status saved">✓ DISCHARGED</div>':'<div class="status" style="color:#ff7777">✗ Von Failsworth wins</div>')
+    const status = t.forfeit ? '<div class="status" style="color:#ff7777">🏳 Ended early · Von Failsworth wins</div>' : t.done ? (pct>=.7?'<div class="status saved">✓ DISCHARGED</div>':'<div class="status" style="color:#ff7777">✗ Von Failsworth wins</div>')
                           : `<div class="status">In ${ST[Math.min(t.st,N-1)][0]} ${ST[Math.min(t.st,N-1)][1]}</div>`;
     const cells = ST.map((s,k)=>{
       const v=score(t,k), m=s[2];
@@ -308,7 +308,7 @@ const LB = (function(){
   function snap(){
     const list = Object.entries(B.teams).filter(([id])=>!B.hidden[id]).map(([id,t])=>({id,...t}));
     list.sort((a,b)=> tot(b)-tot(a) || (b.done-a.done) || (b.st-a.st) || a.t-b.t);
-    const m={}; list.forEach((t,r)=>{ m[t.id]={rank:r, total:tot(t), cleared:[...Array(N).keys()].filter(k=>score(t,k)!==null), done:t.done, name:t.name, st:t.st}; });
+    const m={}; list.forEach((t,r)=>{ m[t.id]={rank:r, total:tot(t), cleared:[...Array(N).keys()].filter(k=>score(t,k)!==null), done:t.done, forfeit:!!t.forfeit, name:t.name, st:t.st}; });
     return {order:list.map(t=>t.id), m, leader: list.length && tot(list[0])>0 ? list[0].id : null};
   }
   const nm = id => esc(B.teams[id] ? B.teams[id].name : '');
@@ -325,7 +325,7 @@ const LB = (function(){
       const id = now.order[i]; if(!id) return; tr.dataset.id=id;
       const t=B.teams[id], info=now.m[id];
       if(id===now.leader){ tr.classList.add('leader'); const n=tr.querySelector('.team'); if(n && !n.querySelector('.crown')) n.insertAdjacentHTML('afterbegin','<span class="crown">👑</span>'); }
-      if(t.done && info.total/MAX>=.7) tr.classList.add('saved');
+      if(t.done && !t.forfeit && info.total/MAX>=.7) tr.classList.add('saved');
       // hot streak: last two rooms cleared perfectly
       const c=info.cleared; if(c.length>=2 && c.slice(-2).every(k=>score(t,k)===ST[k][2]) && !t.done){ const n=tr.querySelector('.team'); n.insertAdjacentHTML('beforeend','<span class="tag fire">🔥 HOT</span>'); }
       if(!quiet && prev && prev.m[id] && info.rank < prev.m[id].rank){ tr.querySelector('.team').insertAdjacentHTML('beforeend',`<span class="tag up">▲ ${prev.m[id].rank-info.rank}</span>`); }
@@ -341,7 +341,7 @@ const LB = (function(){
     });
 
     // stats strip
-    const ids=now.order, saved=ids.filter(id=>B.teams[id].done && now.m[id].total/MAX>=.7).length;
+    const ids=now.order, saved=ids.filter(id=>B.teams[id].done && !B.teams[id].forfeit && now.m[id].total/MAX>=.7).length;
     document.getElementById('stTeams').innerHTML=`<b>${ids.length}</b> team${ids.length===1?'':'s'} in surgery`;
     document.getElementById('stSaved').innerHTML=`<b>${saved}</b> discharged Ms. Cindy`;
     document.getElementById('stLeader').innerHTML= now.leader ? `👑 leader: <b>${nm(now.leader)}</b> (${now.m[now.leader].total} pts)` : '';
@@ -361,8 +361,11 @@ const LB = (function(){
         if(a.total/MAX<.7 && b.total/MAX>=.7 && !b.done){ LB.tick(`💚 <b>${name}</b> reached the SAFE ZONE`); LB.S.safe(); }
         if(b.rank<a.rank && b.rank>0){ const passed = prev.order.filter(o=>prev.m[o].rank<a.rank && prev.m[o].rank>=b.rank && o!==id).map(nm); if(passed.length) { LB.tick(`⬆ <b>${name}</b> passed ${passed.join(', ')}`); LB.S.pass(); } }
         if(b.done && !a.done){
-          if(b.total/MAX>=.7){
-            const first = !firstDone && !prev.order.some(o=>prev.m[o].done && prev.m[o].total/MAX>=.7);
+          if(b.forfeit){
+            LB.tick(`🏳 <b>${name}</b> abandoned surgery! Von Failsworth wins`);
+            LB.banner('🏳 SURGERY ABANDONED 🏳', name, 'walked out of the OR. Von Failsworth wins', '#ff3366','lose');
+          } else if(b.total/MAX>=.7){
+            const first = !firstDone && !prev.order.some(o=>prev.m[o].done && !prev.m[o].forfeit && prev.m[o].total/MAX>=.7);
             firstDone=true;
             LB.tick(`🎉 <b>${name}</b> DISCHARGED Ms. Cindy with ${b.total} pts!`);
             LB.banner(first?'🏁 FIRST TO DISCHARGE! 🏁':'🎉 PATIENT SAVED! 🎉', name, `${b.total} / ${MAX} points`, '#5fff9d','win', ()=>LB.confetti());
