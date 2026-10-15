@@ -410,7 +410,9 @@ function showEnd(){
     <h1 style="color:var(--bad)">Von Failsworth Wins…</h1>
     <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She'll live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily.</p>
     <div class="score-badge">${sc} / ${MAX}</div>`;
-  $('endBox').innerHTML += `<p class="q" style="margin-top:24px">Show this screen to the Chief Surgeon.</p>`;
+  $('endBox').innerHTML += S.forfeit
+    ? `<div style="margin-top:28px"><button class="btn big" onclick="backToMain()">🏠 Back to Main Screen</button></div>`
+    : `<p class="q" style="margin-top:24px">Show this screen to the Chief Surgeon.</p>`;
   if(saved) confetti();
 }
 function endGameAsk(){ document.getElementById('endModal').classList.add('on'); AR.sfx.wrong(); }
@@ -418,6 +420,10 @@ function endGameCancel(){ document.getElementById('endModal').classList.remove('
 function endGameConfirm(){
   document.getElementById('endModal').classList.remove('on');
   S.forfeit = true; S.done = true; save(); broadcast(); showEnd();
+}
+function backToMain(){
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  location.reload();
 }
 function confetti(){
   for(let k=0;k<120;k++){ const c=document.createElement('div');
