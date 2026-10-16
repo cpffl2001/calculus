@@ -641,7 +641,7 @@ const AR = (function(){
 (function(){
   // title screen flourish
   const hero=document.querySelector('.hero');
-  if(hero && !hero.querySelector('.press')){ const p=document.createElement('div'); p.className='press'; p.textContent='▶ PRESS START TO SCRUB IN ◀'; hero.appendChild(p); }
+  if(hero && !hero.querySelector('.press')){ const p=document.createElement('div'); p.className='press'; p.textContent='▶ PRESS SCRUB IN TO BEGIN ◀'; hero.appendChild(p); }
   AR.syncBtns();
 
   let liveLock=false;
