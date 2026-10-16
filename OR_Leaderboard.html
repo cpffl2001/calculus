@@ -90,7 +90,7 @@ td:last-child{border-radius:0 10px 10px 0}
 <script>
 const RELAY="https://ntfy.sh/";
 function topicFor(code){ return "cpffl2001-calcor-" + String(code).toLowerCase().replace(/[^a-z0-9]/g,""); }
-const ST=[["🩸","Blood Loss",6],["💊","Pharmacy",3],["🦠","Infection",4],["😴","Anesthesia",4],["⚡","Defib",3],["💨","Oxygen",3]];
+const ST=[["🩸","Blood Loss",6],["💊","Pharmacy",5],["🦠","Infection",5],["😴","Anesthesia",6],["⚡","Defib",5],["💨","Oxygen",6]];
 const MAX=ST.reduce((a,s)=>a+s[2],0), N=ST.length;
 const KEY="calcOR_board_v2";
 let B={code:"",teams:{},hidden:{},clearedAt:0};
@@ -102,7 +102,7 @@ let es=null, flashId=null, padFor=null;
 document.getElementById('headRow').innerHTML = `<th>#</th><th class="l">Surgical Team</th>` +
   ST.map(s=>`<th>${s[0]}<br>${s[1]}</th>`).join('') + `<th>Points</th><th>Ms. Cindy's Stability</th><th></th>`;
 document.getElementById('legend').textContent =
-  `Blood Loss is worth 6, Infection and Anesthesia 4, the rest 3 (${MAX} total). 70% stability = ${Math.ceil(MAX*.7)} points to save Ms. Cindy. Click any cell to override a score.`;
+  `Blood Loss, Anesthesia and Oxygen are worth 6, the rest 5 (${MAX} total). 70% stability = ${Math.ceil(MAX*.7)} points to save Ms. Cindy. Click any cell to override a score.`;
 
 // ---------- live connection ----------
 function setCode(){
