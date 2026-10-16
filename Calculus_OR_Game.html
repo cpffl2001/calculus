@@ -412,7 +412,8 @@ function showEnd(){
     <div class="score-badge">${sc} / ${MAX}</div>`;
   $('endBox').innerHTML += S.forfeit
     ? `<div style="margin-top:28px"><button class="btn big" onclick="backToMain()">🏠 Back to Main Screen</button></div>`
-    : `<p class="q" style="margin-top:24px">Show this screen to the Chief Surgeon.</p>`;
+    : `<p class="q" style="margin-top:24px">Show this screen to the Chief Surgeon.</p>
+       <div style="margin-top:22px"><button class="btn big" onclick="startOver()">🔄 Start Over</button></div>`;
   if(saved) confetti();
 }
 function endGameAsk(){ document.getElementById('endModal').classList.add('on'); AR.sfx.wrong(); }
@@ -424,6 +425,9 @@ function endGameConfirm(){
 function backToMain(){
   try{ localStorage.removeItem(KEY); }catch(e){}
   location.reload();
+}
+function startOver(){
+  if(confirm("Start a new game on this device? Make sure the Chief Surgeon has seen your score first.")) backToMain();
 }
 function confetti(){
   for(let k=0;k<120;k++){ const c=document.createElement('div');
@@ -496,6 +500,8 @@ if(S.team){ enterGame(); }
 #sndBtns #btnEnd{display:none;width:auto;background:#a8281b;border-color:#fff;border-radius:21px;padding:0 14px;font-family:'Press Start 2P',monospace;font-size:10px;color:#fff;align-items:center;gap:6px}
 #sndBtns #btnEnd:hover{background:#d63a2a}
 body.ingame #sndBtns #btnEnd{display:flex}
+#sndBtns #btnBeat{display:none}
+body.ingame #sndBtns #btnBeat{display:block}
 #endModal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;display:none;align-items:center;justify-content:center;padding:16px}
 #endModal.on{display:flex}
 #endModal .box{background:#1a0008;border:4px solid #ff3355;border-radius:14px;max-width:520px;padding:26px 24px;text-align:center;color:#fff;animation:popin .3s ease-out;box-shadow:0 0 40px rgba(255,50,80,.5)}
@@ -627,7 +633,8 @@ const AR = (function(){
 
   return { sfx, popAt, banner, burst, taunt, setStreak, intro, closeIntro, flashEl, beatLoop, syncBtns,
     toggleSound(){ pref.snd=!pref.snd; savePref(); syncBtns(); if(pref.snd) sfx.click(); },
-    toggleBeat(){ pref.beat=!pref.beat; savePref(); syncBtns(); beatLoop(); } };
+    toggleBeat(){ pref.beat=!pref.beat; if(pref.beat && !pref.snd) pref.snd=true; savePref(); syncBtns();
+      if(pref.beat){ sfx.beep(); setTimeout(sfx.beep,350); } else sfx.click(); beatLoop(); } };
 })();
 
 // ---------- hook into game ----------
