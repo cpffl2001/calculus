@@ -162,9 +162,9 @@ function topicFor(code){ return "cpffl2001-calcor-" + String(code).toLowerCase()
 const STATIONS = [
  { title:"Vitals Check: Blood Loss", short:"Blood Loss", icon:"🩸", type:"Riemann Sums",
    story:"Ms. Cindy is rolled into OR 3 and the first incision nicks a vessel! The surgeon clamps it, and the rate of blood loss slows down every minute. Before she can operate, she needs an <b>estimate</b> of how much blood was lost in the first 4 minutes.",
-   fnTex:"B(t) = 50 - 2t^2", info:"mL/min, \\(t\\) in minutes", interval:"\\(0 \\le t \\le 4\\) &nbsp;·&nbsp; \\(\\Delta t = 1\\) &nbsp;·&nbsp; 4 subintervals",
+   fnTex:"b(t) = 50 - 2t^2", info:"mL/min, \\(t\\) in minutes", interval:"\\(0 \\le t \\le 4\\) &nbsp;·&nbsp; \\(\\Delta t = 1\\) &nbsp;·&nbsp; 4 subintervals",
    parts:[
-    {type:"table", label:"Vital Signs Table", q:"Fill in the table by plugging each time into \\(B(t)\\).", ts:[0,1,2,3,4], vals:[50,48,42,32,18], rowLabel:"\\(B(t)\\)"},
+    {type:"table", label:"Vital Signs Table", q:"Fill in the table by plugging each time into \\(b(t)\\).", ts:[0,1,2,3,4], vals:[50,48,42,32,18], rowLabel:"\\(b(t)\\)"},
     {type:"mc", label:"Read the Monitor", q:"On \\(0 \\le t \\le 4\\), the rate of blood loss is…", opts:["Decreasing ↘","Increasing ↗"], fixed:true},
     {type:"num", label:"Left-Hand Sum", q:"Compute the <b>left-hand</b> Riemann sum (mL).", ans:172},
     {type:"num", label:"Right-Hand Sum", q:"Compute the <b>right-hand</b> Riemann sum (mL).", ans:140},
