@@ -686,6 +686,8 @@ const AR = (function(){
   const _render = renderStation;
   renderStation = function(){
     _render();
+    const toTop=()=>window.scrollTo({top:0,left:0,behavior:'instant'});
+    toTop(); requestAnimationFrame(toTop); setTimeout(toTop,300);
     S.intro = S.intro||{};
     const i=S.st;
     if(!S.intro[i]){ S.intro[i]=true; save(); AR.intro(i, STATIONS[i]); }
