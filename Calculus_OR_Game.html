@@ -192,9 +192,9 @@ const STATIONS = [
 
  { title:"Anesthesia Wear-Off", short:"Anesthesia", icon:"😴", type:"FTC Application",
    story:"Surgery is done! Ms. Cindy had <b>60 mg</b> of anesthetic in her bloodstream at hour 1. Her body is now <b>eliminating</b> it at the rate below. How much anesthetic is still in her bloodstream at hour 5?",
-   fnTex:"A(t) = \\frac{24}{t}", info:"mg per hour being removed, \\(t\\) in hours", interval:"from \\(t = 1\\) to \\(t = 5\\) &nbsp;·&nbsp; starting amount: 60 mg",
+   fnTex:"a(t) = \\frac{24}{t}", info:"mg per hour being removed, \\(t\\) in hours", interval:"from \\(t = 1\\) to \\(t = 5\\) &nbsp;·&nbsp; starting amount: 60 mg",
    parts:[
-    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative of \\(\\frac{24}{t}\\)?", opts:["\\(24\\ln|t|\\)","\\(-\\frac{24}{t^2}\\)","\\(12t^2\\)","\\(\\ln|24t|\\)"]},
+    {type:"mc", label:"Find A(t)", q:"Which is an antiderivative \\(A(t)\\) of \\(a(t) = \\frac{24}{t}\\)?", opts:["\\(24\\ln|t|\\)","\\(-\\frac{24}{t^2}\\)","\\(12t^2\\)","\\(\\ln|24t|\\)"]},
     {type:"num", label:"Amount Eliminated", q:"Compute \\(\\displaystyle\\int_1^5 \\frac{24}{t}\\,dt\\) (mg). Round to 2 decimals.", ans:38.63},
     {type:"mc", label:"Add or Subtract?", q:"To find what is <b>left</b> in her bloodstream, you should…", opts:["Subtract it from 60 mg","Add it to 60 mg"], fixed:true},
     {type:"num", label:"Anesthetic Remaining", q:"How many mg are still in her bloodstream at hour 5?", ans:21.37}
@@ -211,9 +211,9 @@ const STATIONS = [
 
  { title:"Oxygen Recovery", short:"Oxygen", icon:"🫁", type:"FTC Application",
    story:"Her heart is beating again! In recovery, her oxygen reserve starts at <b>15 liters</b>. Oxygen is pumped in at the rate below. How much oxygen is in her reserve after 4 minutes?",
-   fnTex:"O(t) = 6\\sqrt{t}", info:"liters per minute being added, \\(t\\) in minutes", interval:"from \\(t = 0\\) to \\(t = 4\\) &nbsp;·&nbsp; starting amount: 15 L",
+   fnTex:"o(t) = 6\\sqrt{t}", info:"liters per minute being added, \\(t\\) in minutes", interval:"from \\(t = 0\\) to \\(t = 4\\) &nbsp;·&nbsp; starting amount: 15 L",
    parts:[
-    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative of \\(6\\sqrt{t}\\)?", opts:["\\(4t^{3/2}\\)","\\(9t^{3/2}\\)","\\(3t^{-1/2}\\)","\\(6t^{3/2}\\)"]},
+    {type:"mc", label:"Find O(t)", q:"Which is an antiderivative \\(O(t)\\) of \\(o(t) = 6\\sqrt{t}\\)?", opts:["\\(4t^{3/2}\\)","\\(9t^{3/2}\\)","\\(3t^{-1/2}\\)","\\(6t^{3/2}\\)"]},
     {type:"num", label:"Oxygen Added", q:"Compute \\(\\displaystyle\\int_0^4 6\\sqrt{t}\\,dt\\) (liters).", ans:32},
     {type:"num", label:"Total Reserve", q:"How many liters are in her oxygen reserve at \\(t = 4\\)?", ans:47}
    ], code:"BREATHE" }
