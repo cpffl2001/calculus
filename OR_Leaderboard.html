@@ -90,7 +90,7 @@ td:last-child{border-radius:0 10px 10px 0}
 <script>
 const RELAY="https://ntfy.sh/";
 function topicFor(code){ return "cpffl2001-calcor-" + String(code).toLowerCase().replace(/[^a-z0-9]/g,""); }
-const ST=[["🩸","Blood Loss",6],["💊","Pharmacy",3],["🦠","Infection",4],["😴","Anesthesia",4],["⚡","Defib",3],["🫁","Oxygen",3]];
+const ST=[["🩸","Blood Loss",6],["💊","Pharmacy",3],["🦠","Infection",4],["😴","Anesthesia",4],["⚡","Defib",3],["💨","Oxygen",3]];
 const MAX=ST.reduce((a,s)=>a+s[2],0), N=ST.length;
 const KEY="calcOR_board_v2";
 let B={code:"",teams:{},hidden:{},clearedAt:0};
