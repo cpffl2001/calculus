@@ -102,8 +102,8 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
   <div class="wrap">
     <div class="card story">
       <h2>⚠️ Code Blue in OR 3</h2>
-      <p>Professor <b>Diabolus Von Failsworth III</b> is back. After his defeat in the ER, he slipped <b>The Accumulator</b> into Ms. Cindy's coffee. It's a toxin that makes every vital sign <i>pile up</i> over time.</p>
-      <p style="margin-top:10px">Your surgical team has six procedures to get through. First you'll <b>estimate</b> her blood loss with Riemann sums. Then you'll use <b>antiderivatives</b> and the <b>Fundamental Theorem of Calculus</b> to dose her medicine, fight the infection, restart her heart, and bring her oxygen back.</p>
+      <p>Professor <b>Diabolus Von Failsworth III</b> is back. After his defeat in the ER, he slipped <b>The Accumulator</b> into Ms. Cindy's Bill Miller sweet tea. It's a toxin that makes every vital sign <i>pile up</i> over time. (He also unplugged the break-room microwave. He's a monster.)</p>
+      <p style="margin-top:10px">Your surgical team has six procedures to get through. First you'll <b>estimate</b> her blood loss with Riemann sums. Then you'll find <b>antiderivatives</b> for her medicine. After that, four <b>Fundamental Theorem of Calculus</b> procedures to fight the infection, wake her up, restart her heart, and bring her oxygen back. Each one is sneakier than the last, and Von Failsworth made sure the lower limit is <b>never</b> zero.</p>
       <p style="margin-top:10px">Every correct answer raises Ms. Cindy's <b>Stability</b>. Reach <b>70%</b> by the end and she walks out of the hospital. Fall short and Von Failsworth takes over your class. Forever.</p>
     </div>
     <div class="card">
@@ -161,7 +161,7 @@ function topicFor(code){ return "cpffl2001-calcor-" + String(code).toLowerCase()
 // part types: table | mc | num
 const STATIONS = [
  { title:"Vitals Check: Blood Loss", short:"Blood Loss", icon:"🩸", type:"Riemann Sums",
-   story:"Ms. Cindy is rolled into OR 3 and the first incision nicks a vessel! The surgeon clamps it, and the rate of blood loss slows down every minute. Before she can operate, she needs an <b>estimate</b> of how much blood was lost in the first 4 minutes.",
+   story:"Ms. Cindy is rolled into OR 3. The intern, who is also live-streaming this, nicks a vessel with the very first incision. The surgeon clamps it and the bleeding slows down every minute. Before anyone can operate, we need an <b>estimate</b> of how much blood she lost in the first 4 minutes. (The intern has been reassigned to holding the snacks.)",
    fnTex:"b(t) = 50 - 2t^2", info:"mL/min, \\(t\\) in minutes", interval:"\\(0 \\le t \\le 4\\) &nbsp;·&nbsp; \\(\\Delta t = 1\\) &nbsp;·&nbsp; 4 subintervals",
    parts:[
     {type:"table", label:"Vital Signs Table", q:"Fill in the table by plugging each time into \\(b(t)\\).", ts:[0,1,2,3,4], vals:[50,48,42,32,18], rowLabel:"\\(b(t)\\)"},
@@ -173,49 +173,59 @@ const STATIONS = [
    ], code:null },
 
  { title:"Pharmacy: Dosage Formulas", short:"Pharmacy", icon:"💊", type:"Antiderivatives",
-   story:"The hospital pharmacist knows the <b>rate</b> each medicine enters Ms. Cindy's body, but the IV pumps need the <b>total-amount formula</b>. Von Failsworth scrambled the labels. Find the antiderivative for each prescription.",
+   story:"The pharmacist knows the <b>rate</b> each medicine enters Ms. Cindy's body, but the IV pumps need the <b>total-amount formula</b>. Von Failsworth swapped every label in the pharmacy and replaced the good pens with the ones that don't click. Find the antiderivative for each prescription. <b>Don't forget the +C.</b> He's counting on you to forget the +C.",
    parts:[
     {type:"mc", label:"Prescription A", q:"\\(\\displaystyle\\int (6t^2 + 4t)\\,dt =\\)", opts:["\\(2t^3+2t^2+C\\)","\\(12t+4+C\\)","\\(6t^3+4t^2+C\\)","\\(2t^3+4t^2+C\\)"]},
     {type:"mc", label:"Prescription B", q:"\\(\\displaystyle\\int \\left(8t^3 + \\frac{1}{t}\\right)dt =\\)", opts:["\\(2t^4+\\ln|t|+C\\)","\\(2t^4-\\frac{1}{t^2}+C\\)","\\(24t^2-\\frac{1}{t^2}+C\\)","\\(8t^4+\\ln|t|+C\\)"]},
-    {type:"mc", label:"Prescription C", q:"\\(\\displaystyle\\int 12e^{0.2t}\\,dt =\\)", opts:["\\(60e^{0.2t}+C\\)","\\(2.4e^{0.2t}+C\\)","\\(12e^{0.2t}+C\\)","\\(60e^{1.2t}+C\\)"]}
+    {type:"mc", label:"Prescription C", q:"\\(\\displaystyle\\int 12e^{0.2t}\\,dt =\\)", opts:["\\(60e^{0.2t}+C\\)","\\(2.4e^{0.2t}+C\\)","\\(12e^{0.2t}+C\\)","\\(60e^{1.2t}+C\\)"]},
+    {type:"mc", label:"Prescription D", q:"\\(\\displaystyle\\int \\left(3\\sqrt{t} - \\frac{4}{t^2}\\right)dt =\\) &nbsp;<span style=\"font-size:14px;color:#666\">(rewrite with exponents first!)</span>", opts:["\\(2t^{3/2}+\\frac{4}{t}+C\\)","\\(2t^{3/2}-\\frac{4}{t}+C\\)","\\(\\frac{3}{2}t^{-1/2}+\\frac{8}{t^3}+C\\)","\\(\\frac{9}{2}t^{3/2}+\\frac{4}{t}+C\\)"]},
+    {type:"mc", label:"Prescription E", q:"\\(\\displaystyle\\int \\big(10\\cos(2t) + 5\\big)\\,dt =\\)", opts:["\\(5\\sin(2t)+5t+C\\)","\\(-5\\sin(2t)+5t+C\\)","\\(20\\sin(2t)+5t+C\\)","\\(5\\sin(2t)+C\\)"]}
    ], code:"PILLS" },
 
- { title:"Infection Culture", short:"Infection", icon:"🦠", type:"FTC Part I",
-   story:"The lab finds The Accumulator is feeding a bacterial infection. Bacteria are being added at the rate below. Use the Fundamental Theorem of Calculus to find <b>exactly</b> how many bacteria were added in the first 4 hours.",
-   fnTex:"f(t) = 4e^{0.5t}", info:"million bacteria per hour", interval:"\\(\\displaystyle\\int_0^4 4e^{0.5t}\\,dt = F(4) - F(0)\\)",
+ { title:"Infection Culture", short:"Infection", icon:"🦠", type:"FTC · Net Change",
+   story:"The lab finds The Accumulator is feeding a bacterial infection. Von Failsworth named the colony \"Kevin.\" The lab didn't start watching Kevin until <b>hour 2</b>, and by then there were already <b>40 million</b> bacteria. Kevin grows at the rate below. Use the Fundamental Theorem of Calculus to find how big Kevin is at <b>hour 6</b>. Careful: the lower limit is <b>not</b> zero this time.",
+   fnTex:"f(t) = 3t^2 + 2e^{0.5t}", info:"million bacteria per hour", interval:"\\(\\displaystyle\\int_2^6 f(t)\\,dt = F(6) - F(2)\\) &nbsp;·&nbsp; 40 million at \\(t = 2\\)",
    parts:[
-    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative \\(F(t)\\) of \\(4e^{0.5t}\\)?", opts:["\\(8e^{0.5t}\\)","\\(2e^{0.5t}\\)","\\(4e^{0.5t}\\)","\\(8e^{1.5t}\\)"]},
-    {type:"num", label:"Evaluate F(4)", q:"Compute \\(F(4)\\). Round to 2 decimals.", ans:59.11},
-    {type:"num", label:"Evaluate F(0)", q:"Compute \\(F(0)\\).", ans:8},
-    {type:"num", label:"Total Bacteria Added", q:"Compute \\(F(4) - F(0)\\) (million bacteria).", ans:51.11}
+    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative \\(F(t)\\) of \\(f(t) = 3t^2 + 2e^{0.5t}\\)?", opts:["\\(t^3+4e^{0.5t}\\)","\\(t^3+e^{0.5t}\\)","\\(6t+e^{0.5t}\\)","\\(3t^3+4e^{0.5t}\\)"]},
+    {type:"num", label:"Evaluate F(6)", q:"Compute \\(F(6)\\). Round to 2 decimals.", ans:296.34},
+    {type:"num", label:"Evaluate F(2)", q:"Compute \\(F(2)\\). Round to 2 decimals.", ans:18.87},
+    {type:"num", label:"Bacteria Added", q:"Compute \\(F(6) - F(2)\\): how many million bacteria were added from hour 2 to hour 6?", ans:277.47},
+    {type:"num", label:"How Big Is Kevin?", q:"Kevin started with 40 million at hour 2. How many million bacteria are there at <b>hour 6</b>?", ans:317.47}
    ], code:"PETRI" },
 
- { title:"Anesthesia Wear-Off", short:"Anesthesia", icon:"😴", type:"FTC Application",
-   story:"Surgery is done! Ms. Cindy had <b>60 mg</b> of anesthetic in her bloodstream at hour 1. Her body is now <b>eliminating</b> it at the rate below. How much anesthetic is still in her bloodstream at hour 5?",
-   fnTex:"a(t) = \\frac{24}{t}", info:"mg per hour being removed, \\(t\\) in hours", interval:"from \\(t = 1\\) to \\(t = 5\\) &nbsp;·&nbsp; starting amount: 60 mg",
+ { title:"Anesthesia Wear-Off", short:"Anesthesia", icon:"😴", type:"FTC · Amount Remaining",
+   story:"Surgery is done! At <b>hour 2</b> Ms. Cindy has <b>80 mg</b> of anesthetic in her bloodstream and is singing Selena songs to the ceiling tiles. Her body eliminates the anesthetic at the rate below. She wakes up for real once she is under <b>50 mg</b>. Is she awake by <b>hour 6</b>, or does she keep singing?",
+   fnTex:"a(t) = \\frac{24}{t} + 2", info:"mg per hour being <b>removed</b>, \\(t\\) in hours", interval:"from \\(t = 2\\) to \\(t = 6\\) &nbsp;·&nbsp; 80 mg at \\(t = 2\\)",
    parts:[
-    {type:"mc", label:"Find A(t)", q:"Which is an antiderivative \\(A(t)\\) of \\(a(t) = \\frac{24}{t}\\)?", opts:["\\(24\\ln|t|\\)","\\(-\\frac{24}{t^2}\\)","\\(12t^2\\)","\\(\\ln|24t|\\)"]},
-    {type:"num", label:"Amount Eliminated", q:"Compute \\(\\displaystyle\\int_1^5 \\frac{24}{t}\\,dt\\) (mg). Round to 2 decimals.", ans:38.63},
-    {type:"mc", label:"Add or Subtract?", q:"To find what is <b>left</b> in her bloodstream, you should…", opts:["Subtract it from 60 mg","Add it to 60 mg"], fixed:true},
-    {type:"num", label:"Anesthetic Remaining", q:"How many mg are still in her bloodstream at hour 5?", ans:21.37}
+    {type:"mc", label:"Find A(t)", q:"Which is an antiderivative \\(A(t)\\) of \\(a(t) = \\frac{24}{t} + 2\\)?", opts:["\\(24\\ln|t| + 2t\\)","\\(-\\frac{24}{t^2}\\)","\\(24\\ln|t| + 2\\)","\\(12t^2 + 2t\\)"]},
+    {type:"num", label:"Evaluate A(6)", q:"Compute \\(A(6)\\). Round to 2 decimals.", ans:55.00},
+    {type:"num", label:"Evaluate A(2)", q:"Compute \\(A(2)\\). Round to 2 decimals.", ans:20.64},
+    {type:"num", label:"Amount Eliminated", q:"Compute \\(\\displaystyle\\int_2^6 a(t)\\,dt\\): how many mg were removed? Round to 2 decimals.", ans:34.37},
+    {type:"num", label:"Anesthetic Remaining", q:"How many mg are still in her bloodstream at hour 6?", ans:45.63},
+    {type:"mc", label:"Awake Yet?", q:"She wakes up below 50 mg. At hour 6, Ms. Cindy is…", opts:["Awake (and asking if this is on the test)","Still singing Selena to the ceiling"], fixed:true}
    ], code:"SLEEP" },
 
- { title:"Defibrillator", short:"Defib", icon:"⚡", type:"Find C",
-   story:"FLATLINE! Von Failsworth's toxin stopped her heart. The defibrillator charges at the rate below, and it starts completely empty: \\(E(0) = 0\\). Find the energy formula \\(E(t)\\), then how much energy is stored after 3 seconds. (RADIANS!)",
-   fnTex:"E'(t) = 6\\sin(0.5t)", info:"joules per second &nbsp;·&nbsp; \\(E(0) = 0\\)", interval:"Find \\(E(t)\\), then \\(E(3)\\)",
+ { title:"Defibrillator", short:"Defib", icon:"⚡", type:"FTC · Initial Value",
+   story:"FLATLINE! Von Failsworth's toxin stopped her heart. A nurse tripped over the cord, so the defibrillator already had <b>5 joules</b> of charge at \\(t = 1\\) second. It keeps charging at the rate below. The paddles need to be ready at \\(t = 4\\) seconds. How much energy will they have? (RADIANS! If you get barely more than 5 joules, your calculator is in degrees and Von Failsworth is laughing at you.)",
+   fnTex:"E'(t) = 6\\sin(0.5t)", info:"joules per second &nbsp;·&nbsp; \\(E(1) = 5\\)", interval:"\\(E(4) = E(1) + \\displaystyle\\int_1^4 E'(t)\\,dt\\)",
    parts:[
-    {type:"mc", label:"General Antiderivative", q:"\\(\\displaystyle\\int 6\\sin(0.5t)\\,dt =\\)", opts:["\\(-12\\cos(0.5t)+C\\)","\\(12\\cos(0.5t)+C\\)","\\(-3\\cos(0.5t)+C\\)","\\(-6\\cos(0.5t)+C\\)"]},
-    {type:"num", label:"Solve for C", q:"Use \\(E(0) = 0\\) to find the value of \\(C\\).", ans:12},
-    {type:"num", label:"Charge the Paddles", q:"Compute \\(E(3)\\) (joules). Round to 2 decimals.", ans:11.15}
+    {type:"mc", label:"Antiderivative", q:"Which is an antiderivative of \\(6\\sin(0.5t)\\)?", opts:["\\(-12\\cos(0.5t)\\)","\\(12\\cos(0.5t)\\)","\\(-3\\cos(0.5t)\\)","\\(-6\\cos(0.5t)\\)"]},
+    {type:"num", label:"Upper Limit", q:"Evaluate your antiderivative at \\(t = 4\\). Round to 2 decimals.", ans:4.99},
+    {type:"num", label:"Lower Limit", q:"Evaluate your antiderivative at \\(t = 1\\). Round to 2 decimals. (Watch the sign!)", ans:-10.53},
+    {type:"num", label:"Energy Added", q:"Compute \\(\\displaystyle\\int_1^4 6\\sin(0.5t)\\,dt\\) (joules). Round to 2 decimals.", ans:15.52},
+    {type:"num", label:"Charge the Paddles", q:"Compute \\(E(4)\\) (joules). Round to 2 decimals. CLEAR!", ans:20.52}
    ], code:"SPARK" },
 
- { title:"Oxygen Recovery", short:"Oxygen", icon:"💨", type:"FTC Application",
-   story:"Her heart is beating again! In recovery, her oxygen reserve starts at <b>15 liters</b>. Oxygen is pumped in at the rate below. How much oxygen is in her reserve after 4 minutes?",
-   fnTex:"o(t) = 6\\sqrt{t}", info:"liters per minute being added, \\(t\\) in minutes", interval:"from \\(t = 0\\) to \\(t = 4\\) &nbsp;·&nbsp; starting amount: 15 L",
+ { title:"Oxygen Recovery", short:"Oxygen", icon:"💨", type:"FTC · Average Rate",
+   story:"Her heart is beating again! She immediately asks for her phone. In recovery, her oxygen reserve is <b>15 liters</b> at \\(t = 1\\) minute. Oxygen is pumped in at the rate below. Find her reserve at \\(t = 4\\) minutes, then the <b>average</b> pumping rate, so the Chief can write it on the chart and finally go to lunch.",
+   fnTex:"o(t) = 6\\sqrt{t} + \\frac{8}{t^2}", info:"liters per minute being added, \\(t\\) in minutes", interval:"from \\(t = 1\\) to \\(t = 4\\) &nbsp;·&nbsp; 15 L at \\(t = 1\\)",
    parts:[
-    {type:"mc", label:"Find O(t)", q:"Which is an antiderivative \\(O(t)\\) of \\(o(t) = 6\\sqrt{t}\\)?", opts:["\\(4t^{3/2}\\)","\\(9t^{3/2}\\)","\\(3t^{-1/2}\\)","\\(6t^{3/2}\\)"]},
-    {type:"num", label:"Oxygen Added", q:"Compute \\(\\displaystyle\\int_0^4 6\\sqrt{t}\\,dt\\) (liters).", ans:32},
-    {type:"num", label:"Total Reserve", q:"How many liters are in her oxygen reserve at \\(t = 4\\)?", ans:47}
+    {type:"mc", label:"Find O(t)", q:"Which is an antiderivative \\(O(t)\\) of \\(o(t) = 6\\sqrt{t} + \\frac{8}{t^2}\\)?", opts:["\\(4t^{3/2} - \\frac{8}{t}\\)","\\(4t^{3/2} + \\frac{8}{t}\\)","\\(9t^{3/2} - \\frac{8}{t}\\)","\\(3t^{-1/2} - \\frac{16}{t^3}\\)"]},
+    {type:"num", label:"Evaluate O(4)", q:"Compute \\(O(4)\\).", ans:30},
+    {type:"num", label:"Evaluate O(1)", q:"Compute \\(O(1)\\). (Yes, it can be negative.)", ans:-4},
+    {type:"num", label:"Oxygen Added", q:"Compute \\(\\displaystyle\\int_1^4 o(t)\\,dt\\) (liters).", ans:34},
+    {type:"num", label:"Total Reserve", q:"How many liters are in her oxygen reserve at \\(t = 4\\)?", ans:49},
+    {type:"num", label:"Average Rate", q:"Find the <b>average rate</b> oxygen was pumped in from \\(t = 1\\) to \\(t = 4\\) (L/min). Round to 2 decimals.", ans:11.33}
    ], code:"BREATHE" }
 ];
 const FINAL_CODE = "DISCHARGE";
@@ -224,7 +234,7 @@ const PASS = 0.70;
 const COLORS = ["#0b6e69","#c0392b","#2c5aa0","#7d3c98","#d35400","#1e8449","#b7950b","#c2185b","#34495e","#00838f"];
 
 // ===================== STATE =====================
-const KEY = "calcOR_state_v2";
+const KEY = "calcOR_state_v3";
 let S = load() || { id:Math.random().toString(36).slice(2,10), team:"", cls:"", color:COLORS[0], st:0, parts:{}, scores:[], done:false };
 function load(){ try{ return JSON.parse(localStorage.getItem(KEY)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
@@ -398,23 +408,25 @@ function showEnd(){
   $('endBox').innerHTML = S.forfeit ? `
     <div style="font-size:70px">🏳️</div>
     <h1 style="color:var(--bad)">Surgery Abandoned!</h1>
-    <p class="q">Team <b>${S.team}</b> walked out of the operating room. Ms. Cindy is lost, and Professor Diabolus Von Failsworth III takes over your class. Pop quizzes. Daily.</p>
+    <p class="q">Team <b>${S.team}</b> walked out of the operating room. Ms. Cindy is lost, and Professor Diabolus Von Failsworth III takes over your class. Pop quizzes. Daily. No partial credit. No calculators. No mercy.</p>
     <div class="score-badge">${sc} / ${MAX}</div>`
   : saved ? `
-    <div style="font-size:70px">🎉</div>
-    <h1 style="color:var(--green)">Ms. Cindy is DISCHARGED!</h1>
+    <div style="font-size:70px" id="endIcon">🎉</div>
+    <h1 style="color:var(--green)" id="endHead">Ms. Cindy is DISCHARGED!</h1>
     <p class="q">Team <b>${S.team}</b> neutralized The Accumulator. Von Failsworth has been escorted out by hospital security, still muttering about "upper and lower sums."</p>
+    <p class="q" style="margin-top:10px">Ms. Cindy thanks the staff, grabs a free pudding cup, and strolls out the front doors into the beautiful San Antonio sunshine. She takes one confident step off the curb…</p>
+    <div id="twist" class="q" style="display:none;margin-top:14px;font-size:19px;line-height:1.55"></div>
     <div class="score-badge">${sc} / ${MAX} &nbsp;·&nbsp; ${(pct*100).toFixed(0)}% stability</div>`
   : `
     <div style="font-size:70px">🦹</div>
     <h1 style="color:var(--bad)">Von Failsworth Wins…</h1>
-    <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She'll live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily.</p>
+    <p class="q">Ms. Cindy only reached <b>${(pct*100).toFixed(0)}%</b> stability. She'll live, but Professor Diabolus Von Failsworth III will be teaching your class for the rest of the semester. Pop quizzes. Daily. Printed in Comic Sans.</p>
     <div class="score-badge">${sc} / ${MAX}</div>`;
   $('endBox').innerHTML += S.forfeit
     ? `<div style="margin-top:28px"><button class="btn big" onclick="backToMain()">🏠 Back to Main Screen</button></div>`
     : `<p class="q" style="margin-top:24px">Show this screen to the Chief Surgeon.</p>
        <div style="margin-top:22px"><button class="btn big" onclick="startOver()">🔄 Start Over</button></div>`;
-  if(saved) confetti();
+  if(saved){ confetti(); setTimeout(busGag, 3200); }
 }
 function endGameAsk(){ document.getElementById('endModal').classList.add('on'); AR.sfx.wrong(); }
 function endGameCancel(){ document.getElementById('endModal').classList.remove('on'); }
@@ -425,6 +437,22 @@ function endGameConfirm(){
 function backToMain(){
   try{ localStorage.removeItem(KEY); }catch(e){}
   location.reload();
+}
+function busGag(){
+  const b=document.createElement('div'); b.id='bus';
+  b.innerHTML='<span class="bz">🚌</span><span class="bl">UTSA ROADRUNNER EXPRESS</span>';
+  document.body.appendChild(b);
+  try{ AR.sfx.honk(); }catch(e){}
+  requestAnimationFrame(()=>requestAnimationFrame(()=>b.classList.add('go')));
+  setTimeout(()=>{
+    try{ AR.sfx.shock(); }catch(e){}
+    const f=document.createElement('div'); f.className='flashwhite'; document.body.appendChild(f); setTimeout(()=>f.remove(),700);
+    const ic=$('endIcon'), hd=$('endHead'), tw=$('twist');
+    if(ic) ic.textContent='🚑';
+    if(hd){ hd.textContent='…and then THIS happened.'; hd.style.color='var(--bad)'; }
+    if(tw){ tw.style.display='block'; tw.innerHTML='<b>WHAM!</b> Ms. Cindy stepped directly in front of the <b>UTSA Roadrunner Express</b>. 🚌💥<br>She\'s fine! Mostly. The driver says it is the first time all semester the bus showed up on time.<br>Ms. Cindy is being wheeled right back into the ER as we speak, still holding her pudding cup.<br>Witnesses report a man in a purple cape at the bus stop, laughing. <i>Sequel incoming…</i>'; }
+  },1500);
+  setTimeout(()=>b.remove(),3400);
 }
 function startOver(){
   if(confirm("Start a new game on this device? Make sure the Chief Surgeon has seen your score first.")) backToMain();
@@ -502,6 +530,10 @@ if(S.team){ enterGame(); }
 body.ingame #sndBtns #btnEnd{display:flex}
 #sndBtns #btnBeat{display:none}
 body.ingame #sndBtns #btnBeat{display:block}
+#bus{position:fixed;top:38%;left:100%;z-index:97;display:flex;align-items:center;gap:6px;pointer-events:none;transition:transform 2.6s cubic-bezier(.5,0,.9,1);white-space:nowrap}
+#bus.go{transform:translateX(calc(-100vw - 100%))}
+#bus .bz{font-size:150px;line-height:1}
+#bus .bl{font-family:'Press Start 2P',monospace;font-size:14px;background:#f15a22;color:#fff;border:3px solid #0c2340;padding:8px 10px;border-radius:6px}
 #endModal{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:95;display:none;align-items:center;justify-content:center;padding:16px}
 #endModal.on{display:flex}
 #endModal .box{background:#1a0008;border:4px solid #ff3355;border-radius:14px;max-width:520px;padding:26px 24px;text-align:center;color:#fff;animation:popin .3s ease-out;box-shadow:0 0 40px rgba(255,50,80,.5)}
@@ -576,6 +608,7 @@ const AR = (function(){
     whoosh(){ noise(.25,.06); tone(200,.25,'sine',.05,0,900); },
     win(){ const m=[[N.C5,.15],[N.C5,.15],[N.C5,.15],[N.C5,.45],[N.G4*1.0,.45],[N.A5/2*1.0,.45],[N.C5,.3],[N.A5/2,.15],[N.C5,.8]];
            let t=0; m.forEach(([f,d])=>{tone(f,d,'square',.07,t); tone(f/2,d,'triangle',.05,t); t+=d;}); },
+    honk(){ [[0,.22],[.3,.45]].forEach(([w,d])=>{ tone(330,d,'sawtooth',.09,w); tone(415,d,'sawtooth',.07,w); }); },
     lose(){ [[392,.4],[370,.4],[349,.4],[330,1.2]].reduce((t,[f,d])=>{tone(f,d,'sawtooth',.07,t,f*.97);return t+d;},0); }
   };
 
@@ -596,7 +629,7 @@ const AR = (function(){
       requestAnimationFrame(()=>{ c.style.transform=`translate(${Math.cos(ang)*dist}px,${Math.sin(ang)*dist}px) rotate(${Math.random()*360}deg)`; c.style.opacity='0'; });
       setTimeout(()=>c.remove(),1000); }
   }
-  const TAUNTS = ["Mwahaha! Another one for ME!","Did you forget the +C? I love it when you forget the +C.","Your calculator is in DEGREES, isn't it?","Ms. Cindy's class will be MINE!","Left sum, right sum… WRONG sum!","Ooh, so close. Not really."];
+  const TAUNTS = ["Mwahaha! Another one for ME!","Did you forget the +C? I love it when you forget the +C.","Your calculator is in DEGREES, isn't it?","Ms. Cindy's class will be MINE!","Left sum, right sum… WRONG sum!","Ooh, so close. Not really.","F(a) isn't zero, genius. Mwahaha!","I put the lower limit there just to watch you suffer.","Kevin the bacteria thanks you for your service.","Subtract the WHOLE F(a). Parentheses, people!"];
   let tTimer=null;
   function taunt(){
     const t=document.getElementById('taunt');
