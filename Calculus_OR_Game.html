@@ -118,7 +118,7 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
         <li><b>One attempt</b> per answer. Once you submit, it's locked.</li>
         <li>Show <b>all work on your paper</b>. The game tells you right or wrong, never how.</li>
         <li>Round to <b>2 decimal places</b>. Calculators in <b>RADIAN</b> mode.</li>
-        <li>After each procedure, <b>call the Chief Surgeon over</b> to check your paper and get the code for the next room.</li>
+        <li>At the end of each procedure, <b>one Fellowship member</b> brings your work to the <b>Chief Surgeon (Cindy)</b> at the front of the room. <b>ALL steps must be shown, with units.</b> If there are any questions, you will be sent back to your Fellowship to write everything out properly.</li>
       </ul>
       <div class="err" id="startErr"></div>
       <button class="btn big" style="margin-top:8px" onclick="startGame()">Scrub In →</button>
@@ -356,7 +356,7 @@ function finishStation(){
     <div class="bigicon">🙋</div>
     <h2>Procedure ${i+1} complete!</h2>
     <div class="score-badge">${sc} / ${n}</div>
-    <p class="q"><b>Call the Chief Surgeon over.</b> Show your paper to get the code for the next room.</p>
+    <p class="q"><b>Send one Fellowship member</b> to the Chief Surgeon (Cindy) at the front with your work. <b>ALL steps shown, with units.</b> If anything is missing, you'll be sent back to your Fellowship to write it out properly. Once approved, you'll get the code for the next room.</p>
     <input class="code" id="codeIn" placeholder="CODE"> <button class="btn" onclick="tryCode()">${last?'Discharge Patient':'Next Procedure →'}</button>
     <div class="err" id="codeErr"></div></div>`;
 }
