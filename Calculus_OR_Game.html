@@ -135,7 +135,7 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
   <canvas id="ekg"></canvas>
   <div class="vbar">
     <span>❤️ HR <b id="vHR">--</b></span>
-    <span>🫁 SpO₂ <b id="vO2">--</b></span>
+    <span>💨 SpO₂ <b id="vO2">--</b></span>
     <span>Stability</span>
     <div class="meter"><i id="meter"></i><span class="mark"></span></div>
     <b id="vStab">0%</b>
@@ -209,7 +209,7 @@ const STATIONS = [
     {type:"num", label:"Charge the Paddles", q:"Compute \\(E(3)\\) (joules). Round to 2 decimals.", ans:11.15}
    ], code:"SPARK" },
 
- { title:"Oxygen Recovery", short:"Oxygen", icon:"🫁", type:"FTC Application",
+ { title:"Oxygen Recovery", short:"Oxygen", icon:"💨", type:"FTC Application",
    story:"Her heart is beating again! In recovery, her oxygen reserve starts at <b>15 liters</b>. Oxygen is pumped in at the rate below. How much oxygen is in her reserve after 4 minutes?",
    fnTex:"o(t) = 6\\sqrt{t}", info:"liters per minute being added, \\(t\\) in minutes", interval:"from \\(t = 0\\) to \\(t = 4\\) &nbsp;·&nbsp; starting amount: 15 L",
    parts:[
