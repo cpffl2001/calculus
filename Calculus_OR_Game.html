@@ -103,7 +103,7 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
     <div class="card story">
       <h2>⚠️ Code Blue in OR 3</h2>
       <p>Professor <b>Diabolus Von Failsworth III</b> is back. After his defeat in the ER, he slipped <b>The Accumulator</b> into Ms. Cindy's Bill Miller sweet tea. It's a toxin that makes every vital sign <i>pile up</i> over time. (He also unplugged the break-room microwave. He's a monster.)</p>
-      <p style="margin-top:10px">Your surgical team has <b>ten</b> procedures to get through. First you'll <b>estimate</b> her blood loss with Riemann sums. Then you'll use <b>antiderivatives</b> and the <b>Fundamental Theorem of Calculus</b> to dose her medicine, fight the infection, restart her heart, and bring her oxygen back. And just when you think she's ready to go home, Von Failsworth throws <b>four more complications</b> at you. Those last ones are sneakier, and he made sure the lower limit is <b>never</b> zero.</p>
+      <p style="margin-top:10px">Your surgical team has <b>ten</b> procedures to get through. First you'll <b>estimate</b> her blood loss with Riemann sums. Then you'll use <b>antiderivatives</b> and the <b>Fundamental Theorem of Calculus</b> to dose her medicine, fight the infection, restart her heart, and bring her oxygen back. And just when you think she's ready to go home, Von Failsworth throws <b>four more complications</b> at you. Those last ones are sneakier.</p>
       <p style="margin-top:10px">Every correct answer raises Ms. Cindy's <b>Stability</b>. Reach <b>70%</b> by the end and she walks out of the hospital. Fall short and Von Failsworth takes over your class. Forever.</p>
     </div>
     <div class="card">
@@ -117,7 +117,7 @@ table.vt input.no{background:var(--bad-l);border-color:var(--bad)}
       <ul style="margin-left:22px;line-height:1.6;font-size:16px">
         <li><b>One attempt</b> per answer. Once you submit, it's locked.</li>
         <li>Show <b>all work on your paper</b>. The game tells you right or wrong, never how.</li>
-        <li>Round to <b>2 decimal places</b>. Calculators in <b>RADIAN</b> mode.</li>
+        <li>Round to <b>2 decimal places</b>.</li>
         <li>At the end of each procedure, <b>one Fellowship member</b> brings your work to the <b>Chief Surgeon (Cindy)</b> at the front of the room. <b>ALL steps must be shown, with units.</b> If there are any questions, you will be sent back to your Fellowship to write everything out properly. <b>Even if you got a problem wrong in the game, you must CORRECT it on your paper</b> before you bring it forward, and point out the error that was made.</li>
       </ul>
       <div class="err" id="startErr"></div>
@@ -201,7 +201,7 @@ const STATIONS = [
    ], code:"SLEEP" },
 
  { title:"Defibrillator", short:"Defib", icon:"⚡", type:"Find C",
-   story:"FLATLINE! Von Failsworth's toxin stopped her heart. The defibrillator charges at the rate below, and it starts completely empty: \\(E(0) = 0\\). Find the energy formula \\(E(t)\\), then how much energy is stored after 3 seconds. (RADIANS!)",
+   story:"FLATLINE! Von Failsworth's toxin stopped her heart. The defibrillator charges at the rate below, and it starts completely empty: \\(E(0) = 0\\). Find the energy formula \\(E(t)\\), then how much energy is stored after 3 seconds.",
    fnTex:"E'(t) = 6\\sin(0.5t)", info:"joules per second &nbsp;·&nbsp; \\(E(0) = 0\\)", interval:"Find \\(E(t)\\), then \\(E(3)\\)",
    parts:[
     {type:"mc", label:"General Antiderivative", q:"\\(\\displaystyle\\int 6\\sin(0.5t)\\,dt =\\)", opts:["\\(-12\\cos(0.5t)+C\\)","\\(12\\cos(0.5t)+C\\)","\\(-3\\cos(0.5t)+C\\)","\\(-6\\cos(0.5t)+C\\)"]},
@@ -218,19 +218,19 @@ const STATIONS = [
     {type:"num", label:"Total Reserve", q:"How many liters are in her oxygen reserve at \\(t = 4\\)?", ans:47}
    ], code:"BREATHE" },
  { title:"Fever Spike", short:"Fever", icon:"🌡️", type:"FTC · Net Change (negative!)",
-   story:"Just when the Chief starts packing up, Ms. Cindy spikes a fever. Von Failsworth swapped her ice packs with frozen burritos. At hour 1 her temperature is <b>102.5°F</b>. The burritos thaw out and her temperature starts dropping at the rate below. A fever breaks once she is below <b>100.4°F</b>. Has it broken by hour 6? (Careful: a rate that is <b>dropping</b> is negative, and so is the change it causes.)",
+   story:"Just when the Chief starts packing up, Ms. Cindy spikes a fever. Von Failsworth swapped her ice packs with frozen burritos. At hour 1 her temperature is <b>102.5°F</b>. The burritos thaw out and her temperature starts dropping at the rate below. A fever breaks once she is below <b>100.4°F</b>. Has it broken by hour 6?",
    fnTex:"f(t) = -0.9e^{-0.2t}", info:"°F per hour (how fast her temperature changes), \\(t\\) in hours", interval:"temperature at hour 6 \\(= 102.5 + \\displaystyle\\int_1^6 f(t)\\,dt\\) &nbsp;·&nbsp; 102.5°F at \\(t = 1\\)",
    parts:[
     {type:"mc", label:"Find F(t)", q:"Which is an antiderivative \\(F(t)\\) of \\(f(t) = -0.9e^{-0.2t}\\)?", opts:["\\(4.5e^{-0.2t}\\)","\\(-4.5e^{-0.2t}\\)","\\(0.18e^{-0.2t}\\)","\\(-0.9e^{-0.2t}\\)"]},
     {type:"num", label:"Evaluate F(6)", q:"Compute \\(F(6)\\). Round to 2 decimals.", ans:1.36},
     {type:"num", label:"Evaluate F(1)", q:"Compute \\(F(1)\\). Round to 2 decimals.", ans:3.68},
-    {type:"num", label:"Change in Temperature", q:"Compute \\(\\displaystyle\\int_1^6 f(t)\\,dt\\) (°F). Round to 2 decimals. (Should this be positive or negative?)", ans:-2.33},
+    {type:"num", label:"Change in Temperature", q:"Compute \\(\\displaystyle\\int_1^6 f(t)\\,dt\\) (°F). Round to 2 decimals.", ans:-2.33},
     {type:"num", label:"Temperature at Hour 6", q:"What is her temperature at hour 6 (°F)? Round to 2 decimals.", ans:100.17},
     {type:"mc", label:"Fever Broken?", q:"A fever breaks below 100.4°F. At hour 6, Ms. Cindy's fever is…", opts:["Broken. Somebody eat those burritos.","Still going. Get more burritos."], fixed:true}
    ], code:"CHILL" },
 
  { title:"Pudding Cup Crisis", short:"Pudding", icon:"🍮", type:"FTC · Rate In − Rate Out",
-   story:"Ms. Cindy has been sneaking pudding cups from the cafeteria cart. Her blood sugar is <b>110 mg/dL</b> at hour 1. Sugar from the pudding enters her blood at rate \\(p(t)\\), and insulin removes it at rate \\(r(t)\\). If her sugar is above <b>140 mg/dL</b> at hour 4, the Chief confiscates every pudding cup on the floor. Two integrals this time: one for sugar <b>in</b>, one for sugar <b>out</b>.",
+   story:"Ms. Cindy has been sneaking pudding cups from the cafeteria cart. Her blood sugar is <b>110 mg/dL</b> at hour 1. Sugar from the pudding enters her blood at rate \\(p(t)\\), and insulin removes it at rate \\(r(t)\\). If her sugar is above <b>140 mg/dL</b> at hour 4, the Chief confiscates every pudding cup on the floor.",
    fnTex:"p(t) = 18\\sqrt{t} \\qquad r(t) = \\frac{12}{t}", info:"mg/dL per hour, \\(t\\) in hours", interval:"from \\(t = 1\\) to \\(t = 4\\) &nbsp;·&nbsp; 110 mg/dL at \\(t = 1\\)",
    parts:[
     {type:"mc", label:"Find P(t)", q:"Which is an antiderivative \\(P(t)\\) of \\(p(t) = 18\\sqrt{t}\\)?", opts:["\\(12t^{3/2}\\)","\\(27t^{3/2}\\)","\\(9t^{-1/2}\\)","\\(18t^{3/2}\\)"]},
@@ -242,21 +242,21 @@ const STATIONS = [
    ], code:"PUDDING" },
 
  { title:"Heart Monitor Average", short:"Avg HR", icon:"📈", type:"FTC · Average Value",
-   story:"The Chief needs Ms. Cindy's <b>average heart rate</b> from hour 2 to hour 8 for the discharge paperwork. Von Failsworth \"accidentally\" spilled his Big Red on the printout, so you'll have to compute it yourself. Her heart rate follows the formula below. (RADIANS! A suspiciously normal-looking answer of about 72 means your calculator is in degrees.)",
-   fnTex:"h(t) = 72 + 6\\cos(0.5t)", info:"beats per minute, \\(t\\) in hours", interval:"average value \\(= \\dfrac{1}{8-2}\\displaystyle\\int_2^8 h(t)\\,dt\\)",
+   story:"The Chief needs Ms. Cindy's <b>average heart rate</b> from minute 2 to minute 8 of her stress test for the discharge paperwork. Von Failsworth \"accidentally\" spilled his Big Red on the printout, so you'll have to compute it yourself. Her heart rate follows the formula below.",
+   fnTex:"h(t) = 72 + 6\\cos(0.5t)", info:"beats per minute, \\(t\\) in minutes", interval:"average value \\(= \\dfrac{1}{8-2}\\displaystyle\\int_2^8 h(t)\\,dt\\)",
    parts:[
     {type:"mc", label:"Find H(t)", q:"Which is an antiderivative \\(H(t)\\) of \\(h(t) = 72 + 6\\cos(0.5t)\\)?", opts:["\\(72t + 12\\sin(0.5t)\\)","\\(72t + 3\\sin(0.5t)\\)","\\(72t - 12\\sin(0.5t)\\)","\\(72 + 12\\sin(0.5t)\\)"]},
     {type:"num", label:"Evaluate H(8)", q:"Compute \\(H(8)\\). Round to 2 decimals.", ans:566.92},
     {type:"num", label:"Evaluate H(2)", q:"Compute \\(H(2)\\). Round to 2 decimals.", ans:154.10},
-    {type:"num", label:"Total Beats Integral", q:"Compute \\(\\displaystyle\\int_2^8 h(t)\\,dt\\). Round to 2 decimals.", ans:412.82},
-    {type:"num", label:"Average Heart Rate", q:"Compute her <b>average</b> heart rate from hour 2 to hour 8 (bpm). Round to 2 decimals.", ans:68.80}
+    {type:"num", label:"Total Heartbeats", q:"Compute \\(\\displaystyle\\int_2^8 h(t)\\,dt\\): the total number of heartbeats from minute 2 to minute 8. Round to 2 decimals.", ans:412.82},
+    {type:"num", label:"Average Heart Rate", q:"Compute her <b>average</b> heart rate from minute 2 to minute 8 (beats per minute). Round to 2 decimals.", ans:68.80}
    ], code:"PULSE" },
 
  { title:"Wheelchair Escape", short:"Wheelchair", icon:"♿", type:"FTC · Position from Velocity",
-   story:"Ms. Cindy is cleared to leave! An overly enthusiastic intern insists on pushing her wheelchair down the hallway to the front doors. At \\(t = 1\\) second she is already <b>16 feet</b> from her room. The intern pushes at the velocity below. The front doors are <b>50 feet</b> from her room. Where is she at \\(t = 3\\) seconds? (Watch out: your antiderivative is <b>negative</b> at \\(t = 1\\).)",
+   story:"Ms. Cindy is cleared to leave! An overly enthusiastic intern insists on pushing her wheelchair down the hallway to the front doors. At \\(t = 1\\) second she is already <b>16 feet</b> from her room. The intern pushes at the velocity below. The front doors are <b>50 feet</b> from her room. Where is she at \\(t = 3\\) seconds?",
    fnTex:"v(t) = 3t^2 + \\frac{12}{t^2}", info:"feet per second, \\(t\\) in seconds", interval:"from \\(t = 1\\) to \\(t = 3\\) &nbsp;·&nbsp; 16 ft from her room at \\(t = 1\\)",
    parts:[
-    {type:"mc", label:"Find V(t)", q:"Which is an antiderivative \\(V(t)\\) of \\(v(t) = 3t^2 + \\frac{12}{t^2}\\)? &nbsp;(Rewrite \\(\\frac{12}{t^2}\\) as \\(12t^{-2}\\) first.)", opts:["\\(t^3 - \\frac{12}{t}\\)","\\(t^3 + \\frac{12}{t}\\)","\\(t^3 - \\frac{24}{t^3}\\)","\\(6t - \\frac{24}{t^3}\\)"]},
+    {type:"mc", label:"Find V(t)", q:"Which is an antiderivative \\(V(t)\\) of \\(v(t) = 3t^2 + \\frac{12}{t^2}\\)?", opts:["\\(t^3 - \\frac{12}{t}\\)","\\(t^3 + \\frac{12}{t}\\)","\\(t^3 - \\frac{24}{t^3}\\)","\\(6t - \\frac{24}{t^3}\\)"]},
     {type:"num", label:"Evaluate V(3)", q:"Compute \\(V(3)\\).", ans:23},
     {type:"num", label:"Evaluate V(1)", q:"Compute \\(V(1)\\).", ans:-11},
     {type:"num", label:"Distance Rolled", q:"Compute \\(\\displaystyle\\int_1^3 v(t)\\,dt\\) (feet).", ans:34},
@@ -665,7 +665,7 @@ const AR = (function(){
       requestAnimationFrame(()=>{ c.style.transform=`translate(${Math.cos(ang)*dist}px,${Math.sin(ang)*dist}px) rotate(${Math.random()*360}deg)`; c.style.opacity='0'; });
       setTimeout(()=>c.remove(),1000); }
   }
-  const TAUNTS = ["Mwahaha! Another one for ME!","Did you forget the +C? I love it when you forget the +C.","Your calculator is in DEGREES, isn't it?","Ms. Cindy's class will be MINE!","Left sum, right sum… WRONG sum!","Ooh, so close. Not really.","F(a) isn't zero, genius. Mwahaha!","I put the lower limit there just to watch you suffer.","Frozen burritos are a legitimate medical device. Look it up.","Subtract the WHOLE F(a). Parentheses, people!"];
+  const TAUNTS = ["Mwahaha! Another one for ME!","Ms. Cindy's class will be MINE!","Left sum, right sum… WRONG sum!","Ooh, so close. Not really.","I put the lower limit there just to watch you suffer.","Frozen burritos are a legitimate medical device. Look it up."];
   let tTimer=null;
   function taunt(){
     const t=document.getElementById('taunt');
