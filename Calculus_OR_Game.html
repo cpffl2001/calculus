@@ -396,7 +396,7 @@ function restoreParts(){
 function finishStation(){
   const i = S.st, p = cur(), n = STATIONS[i].parts.length;
   const sc = Object.keys(p).filter(k=>!isNaN(k) && p[k].ok).length;
-  if(S.scores[i] !== sc){ S.scores[i] = sc; save(); broadcast(); }
+  if(S.scores[i] !== sc){ S.scores[i] = sc; save(); }  // score is sent when the team enters the next code (saves relay quota)
   const last = i===STATIONS.length-1;
   $('chiefBox').innerHTML = `<div class="card chief">
     <div class="bigicon">🙋</div>
