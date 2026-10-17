@@ -219,13 +219,13 @@ const STATIONS = [
    ], code:"BREATHE" },
  { title:"Fever Spike", short:"Fever", icon:"🌡️", type:"FTC · Net Change (negative!)",
    story:"Just when the Chief starts packing up, Ms. Cindy spikes a fever. Von Failsworth swapped her ice packs with frozen burritos. At hour 1 her temperature is <b>102.5°F</b>. The burritos thaw out and her temperature starts dropping at the rate below. A fever breaks once she is below <b>100.4°F</b>. Has it broken by hour 6? (Careful: a rate that is <b>dropping</b> is negative, and so is the change it causes.)",
-   fnTex:"T'(t) = -0.9e^{-0.2t}", info:"°F per hour, \\(t\\) in hours &nbsp;·&nbsp; \\(T(1) = 102.5\\)", interval:"\\(T(6) = T(1) + \\displaystyle\\int_1^6 T'(t)\\,dt\\)",
+   fnTex:"f(t) = -0.9e^{-0.2t}", info:"°F per hour (how fast her temperature changes), \\(t\\) in hours", interval:"temperature at hour 6 \\(= 102.5 + \\displaystyle\\int_1^6 f(t)\\,dt\\) &nbsp;·&nbsp; 102.5°F at \\(t = 1\\)",
    parts:[
-    {type:"mc", label:"Find the Antiderivative", q:"Which is an antiderivative of \\(-0.9e^{-0.2t}\\)?", opts:["\\(4.5e^{-0.2t}\\)","\\(-4.5e^{-0.2t}\\)","\\(0.18e^{-0.2t}\\)","\\(-0.9e^{-0.2t}\\)"]},
-    {type:"num", label:"Upper Limit", q:"Evaluate your antiderivative at \\(t = 6\\). Round to 2 decimals.", ans:1.36},
-    {type:"num", label:"Lower Limit", q:"Evaluate your antiderivative at \\(t = 1\\). Round to 2 decimals.", ans:3.68},
-    {type:"num", label:"Change in Temperature", q:"Compute \\(\\displaystyle\\int_1^6 T'(t)\\,dt\\) (°F). Round to 2 decimals. (Should this be positive or negative?)", ans:-2.33},
-    {type:"num", label:"Temperature at Hour 6", q:"Compute \\(T(6)\\) (°F). Round to 2 decimals.", ans:100.17},
+    {type:"mc", label:"Find F(t)", q:"Which is an antiderivative \\(F(t)\\) of \\(f(t) = -0.9e^{-0.2t}\\)?", opts:["\\(4.5e^{-0.2t}\\)","\\(-4.5e^{-0.2t}\\)","\\(0.18e^{-0.2t}\\)","\\(-0.9e^{-0.2t}\\)"]},
+    {type:"num", label:"Evaluate F(6)", q:"Compute \\(F(6)\\). Round to 2 decimals.", ans:1.36},
+    {type:"num", label:"Evaluate F(1)", q:"Compute \\(F(1)\\). Round to 2 decimals.", ans:3.68},
+    {type:"num", label:"Change in Temperature", q:"Compute \\(\\displaystyle\\int_1^6 f(t)\\,dt\\) (°F). Round to 2 decimals. (Should this be positive or negative?)", ans:-2.33},
+    {type:"num", label:"Temperature at Hour 6", q:"What is her temperature at hour 6 (°F)? Round to 2 decimals.", ans:100.17},
     {type:"mc", label:"Fever Broken?", q:"A fever breaks below 100.4°F. At hour 6, Ms. Cindy's fever is…", opts:["Broken. Somebody eat those burritos.","Still going. Get more burritos."], fixed:true}
    ], code:"CHILL" },
 
