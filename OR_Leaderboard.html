@@ -33,7 +33,7 @@ td:last-child{border-radius:0 10px 10px 0}
 .team{text-align:left;font-weight:bold;font-size:22px}
 .team .dot{display:inline-block;width:14px;height:14px;border-radius:50%;margin-right:8px;vertical-align:middle}
 .cell{width:84px;cursor:pointer;user-select:none}
-.cell span{display:inline-block;min-width:56px;padding:4px 0;border-radius:6px;background:#1b3a37;color:#4d7470;font-size:18px}
+.cell span{display:inline-block;min-width:44px;padding:4px 0;border-radius:6px;background:#1b3a37;color:#4d7470;font-size:18px}
 .cell span.now{background:#0b6e69;color:#fff;animation:pul 1.4s infinite}
 @keyframes pul{50%{opacity:.55}}
 .cell span.s{background:#13532f;color:#5dff9d;font-weight:bold}
@@ -59,6 +59,7 @@ td:last-child{border-radius:0 10px 10px 0}
 .pad button:hover{background:#0b6e69}
 .flashrow td{animation:fl 1.2s}
 @keyframes fl{0%{background:#1d6b5c}100%{background:#0f2826}}
+th small{font-size:11px;color:#5fa59d;text-transform:none;letter-spacing:0}
 </style>
 </head>
 <body>
@@ -90,7 +91,7 @@ td:last-child{border-radius:0 10px 10px 0}
 <script>
 const RELAY="https://ntfy.sh/";
 function topicFor(code){ return "cpffl2001-calcor-" + String(code).toLowerCase().replace(/[^a-z0-9]/g,""); }
-const ST=[["🩸","Blood Loss",6],["💊","Pharmacy",5],["🦠","Infection",5],["😴","Anesthesia",6],["⚡","Defib",5],["💨","Oxygen",6]];
+const ST=[["🩸","Blood Loss",6],["💊","Pharmacy",3],["🦠","Infection",4],["😴","Anesthesia",4],["⚡","Defib",3],["💨","Oxygen",3],["🌡️","Fever",6],["🍮","Pudding",6],["📈","Avg HR",5],["♿","Wheelchair",6]];
 const MAX=ST.reduce((a,s)=>a+s[2],0), N=ST.length;
 const KEY="calcOR_board_v2";
 let B={code:"",teams:{},hidden:{},clearedAt:0};
@@ -100,9 +101,9 @@ let es=null, flashId=null, padFor=null;
 
 // ---------- header ----------
 document.getElementById('headRow').innerHTML = `<th>#</th><th class="l">Surgical Team</th>` +
-  ST.map(s=>`<th>${s[0]}<br>${s[1]}</th>`).join('') + `<th>Points</th><th>Ms. Cindy's Stability</th><th></th>`;
+  ST.map(s=>`<th>${s[0]}<br>${s[1]}<br><small>${s[2]} pts</small></th>`).join('') + `<th>Points</th><th>Ms. Cindy's Stability</th><th></th>`;
 document.getElementById('legend').textContent =
-  `Blood Loss, Anesthesia and Oxygen are worth 6, the rest 5 (${MAX} total). 70% stability = ${Math.ceil(MAX*.7)} points to save Ms. Cindy. Click any cell to override a score.`;
+  `Points per room are shown under each icon (${MAX} total). 70% stability = ${Math.ceil(MAX*.7)} points to save Ms. Cindy. Click any cell to override a score.`;
 
 // ---------- live connection ----------
 function setCode(){
