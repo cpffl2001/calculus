@@ -97,7 +97,7 @@ const KEY="calcOR_board_v2";
 let B={code:"",teams:{},hidden:{},clearedAt:0};
 try{ B=Object.assign(B, JSON.parse(localStorage.getItem(KEY))||{}); }catch(e){}
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(B))}catch(e){} }
-let es=null, flashId=null, padFor=null;
+let es=null, flashId=null, padFor=null, retryT=null, retryMs=3000;
 
 // ---------- header ----------
 document.getElementById('headRow').innerHTML = `<th>#</th><th class="l">Surgical Team</th>` +
@@ -114,11 +114,12 @@ function setCode(){
 function connect(){
   document.getElementById('codeShow').textContent = B.code || '—';
   if(es){ es.close(); es=null; }
+  clearTimeout(retryT);
   if(!B.code) return;
   const since = Math.max(Math.floor(B.clearedAt/1000), Math.floor(Date.now()/1000) - 12*3600);
   es = new EventSource(RELAY + topicFor(B.code) + "/sse?since=" + since);
-  es.onopen = ()=>setLive(true);
-  es.onerror = ()=>setLive(false);
+  es.onopen = ()=>{ retryMs=3000; setLive(true); };
+  es.onerror = ()=>{ setLive(false); if(es && es.readyState===2){ clearTimeout(retryT); retryT=setTimeout(connect, retryMs); retryMs=Math.min(retryMs*2, 30000); } };
   es.onmessage = (e)=>{
     try{
       const env = JSON.parse(e.data); if(env.event && env.event!=='message') return;
@@ -132,7 +133,15 @@ function connect(){
     }catch(err){}
   };
 }
-function setLive(on){ const l=document.getElementById('live'); l.classList.toggle('on',on); l.textContent = on ? '● Live' : '● Reconnecting…'; }
+function setLive(on){ const l=document.getElementById('live'); l.classList.toggle('on',on===true); l.textContent = on===true ? '● Live' : on==='limit' ? '● Relay daily limit hit (type scores by hand)' : '● Reconnecting…'; l.title = on==='limit' ? 'The free relay (ntfy.sh) refused updates from this network for now. Click a cell to enter scores.' : ''; }
+// watchdog: every 30 s check the relay; reconnect a dropped feed and report a daily-limit refusal
+setInterval(()=>{
+  if(!B.code) return;
+  fetch(RELAY + topicFor(B.code) + "/json?poll=1&since=1s").then(r=>{
+    if(r.status===429) setLive('limit');
+    else if(r.ok && (!es || es.readyState===2)) connect();
+  }).catch(()=>{});
+}, 30000);
 
 // ---------- manual fallback ----------
 function addManual(){
