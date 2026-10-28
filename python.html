@@ -88,17 +88,17 @@
 <script id="starter" type="text/plain">import numpy as np
 import matplotlib.pyplot as plt
 
-# Differential equation: dy/dx = -0.06006*(y-68)
+# Enter your differential equation below
 dy = lambda x, y: -0.06006*(y-68)
 
-# Analytical solution: y = 68 + 27e^(-0.06006x)
+# Enter your analytical solution
 f = lambda x: 68 + 27 * np.exp(-0.06006 * x)
 
-# Setup
+# Setup: Change the initial values (xi = starting value, xf = ending value), h is the gap size
 xi, xf, h = 0, 8, 1
 x_eval = np.arange(xi, xf + h, h)
 
-# Euler's Method
+# Initial condition: starting x and y values
 x_euler, y_euler = [0], [95]
 for x in x_eval[:-1]:
     y_euler.append(y_euler[-1] + dy(x, y_euler[-1]) * h)
