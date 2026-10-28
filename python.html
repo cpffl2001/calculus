@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Python Lab</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --text: #1d1d1f; --muted: #5c5c66;
+    --border: #d6d6dc; --accent: #0c2340; --accent-text: #ffffff;
+    --accent2: #f15a22; --code-bg: #f1f1ee; --error: #b00020;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #141417; --panel: #1e1e23; --text: #ececf1; --muted: #a8a8b3;
+      --border: #3a3a44; --accent: #f15a22; --accent-text: #141417;
+      --accent2: #f15a22; --code-bg: #26262c; --error: #ff7a8a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; margin-bottom: 16px;
+  }
+  label { font-weight: 600; display: block; margin-bottom: 8px; }
+  textarea {
+    width: 100%; min-height: 380px; resize: vertical;
+    font: 14px/1.45 ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--code-bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px;
+    tab-size: 4; white-space: pre; overflow: auto;
+  }
+  .buttons { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+  button {
+    font: inherit; font-weight: 600; padding: 10px 18px; border-radius: 8px;
+    border: 1px solid var(--accent); cursor: pointer;
+  }
+  #run { background: var(--accent); color: var(--accent-text); }
+  .secondary { background: transparent; color: var(--text); border-color: var(--border); }
+  button:disabled { opacity: .55; cursor: wait; }
+  button:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent2); outline-offset: 2px; }
+  #status { color: var(--muted); font-size: .95rem; }
+  h2 { font-size: 1.1rem; margin: 0 0 8px; }
+  pre#output {
+    margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px;
+    font: 14px/1.45 ui-monospace, Consolas, monospace; overflow-x: auto; min-height: 2.5em;
+  }
+  pre#output.error { color: var(--error); }
+  #plots img { max-width: 100%; height: auto; display: block; margin: 8px auto 0; background: #fff; border-radius: 6px; }
+  .hint { color: var(--muted); font-size: .9rem; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Python Lab</h1>
+  <p class="sub">Type or paste Python code below and press <strong>Run</strong>. Printed results show under Output, and any matplotlib graphs show under Graph. Libraries like numpy, matplotlib, pandas, scipy, and sympy load automatically. Nothing to install.</p>
+
+  <div class="panel">
+    <label for="code">Python code</label>
+    <textarea id="code" spellcheck="false"></textarea>
+    <div class="buttons">
+      <button id="run" disabled>Loading Python…</button>
+      <button id="reset" class="secondary" type="button">Reset example</button>
+      <button id="clear" class="secondary" type="button">Clear code</button>
+      <span id="status" role="status" aria-live="polite">Starting Python in your browser (first load takes ~10–20 seconds)…</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Output</h2>
+    <pre id="output" aria-live="polite"></pre>
+  </div>
+
+  <div class="panel">
+    <h2>Graph</h2>
+    <div id="plots"><p class="hint">Graphs will appear here after you run code that uses matplotlib.</p></div>
+  </div>
+</main>
+
+<!-- Starting example: replace everything between these two script tags to change it -->
+<script id="starter" type="text/plain">import numpy as np
+import matplotlib.pyplot as plt
+
+# Differential equation: dy/dx = -0.06006*(y-68)
+dy = lambda x, y: -0.06006*(y-68)
+
+# Analytical solution: y = 68 + 27e^(-0.06006x)
+f = lambda x: 68 + 27 * np.exp(-0.06006 * x)
+
+# Setup
+xi, xf, h = 0, 8, 1
+x_eval = np.arange(xi, xf + h, h)
+
+# Euler's Method
+x_euler, y_euler = [0], [95]
+for x in x_eval[:-1]:
+    y_euler.append(y_euler[-1] + dy(x, y_euler[-1]) * h)
+    x_euler.append(x + h)
+
+# Print table
+print(f"{'Hours':<10} {'Euler':<15} {'Exact':<10}")
+print("-" * 35)
+for i, x in enumerate(x_eval):
+    print(f"{x:<10.0f} {y_euler[i]:<15.1f} {f(x):<10.1f}")
+
+# Plot
+plt.plot(x_euler, y_euler, 'ro--', label='Euler')
+plt.plot(x_eval, f(x_eval), 'g-', label='Analytical')
+plt.legend()
+plt.xlabel('Hours')
+plt.ylabel('Temperature Fahrenheit')
+plt.title('Euler vs Analytical Solution - Temperature Dropping')
+plt.grid(True)
+plt.show()
+</script>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+  const codeBox = document.getElementById("code");
+  const runBtn = document.getElementById("run");
+  const resetBtn = document.getElementById("reset");
+  const clearBtn = document.getElementById("clear");
+  const statusEl = document.getElementById("status");
+  const output = document.getElementById("output");
+  const plots = document.getElementById("plots");
+  const starter = document.getElementById("starter").textContent;
+
+  codeBox.value = starter;
+  resetBtn.addEventListener("click", () => { codeBox.value = starter; });
+  clearBtn.addEventListener("click", () => { codeBox.value = ""; codeBox.focus(); });
+
+  // Tab key indents inside the code box (press Esc first to Tab out of the box)
+  let tabEscape = false;
+  codeBox.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { tabEscape = true; return; }
+    if (e.key === "Tab" && !e.shiftKey && !tabEscape) {
+      e.preventDefault();
+      const s = codeBox.selectionStart, end = codeBox.selectionEnd;
+      codeBox.value = codeBox.value.slice(0, s) + "    " + codeBox.value.slice(end);
+      codeBox.selectionStart = codeBox.selectionEnd = s + 4;
+    }
+    tabEscape = false;
+  });
+
+  const RUNNER = `
+import io, base64, builtins
+import js
+
+def _browser_input(prompt=""):
+    value = js.window.prompt(str(prompt))
+    if value is None:
+        value = ""
+    print(str(prompt) + value)
+    return value
+
+builtins.input = _browser_input
+
+def _run_student_code(code):
+    try:
+        import matplotlib
+        matplotlib.use("AGG")
+        import matplotlib.pyplot as plt
+        plt.close("all")
+        plt.show = lambda *a, **k: None
+    except ImportError:
+        plt = None
+    exec(code, {"__name__": "__main__"})
+    images = []
+    if plt is not None:
+        for num in plt.get_fignums():
+            buf = io.BytesIO()
+            plt.figure(num).savefig(buf, format="png", dpi=110, bbox_inches="tight")
+            images.append(base64.b64encode(buf.getvalue()).decode())
+        plt.close("all")
+    return images
+`;
+
+  let pyodide;
+  async function start() {
+    try {
+      pyodide = await loadPyodide();
+      await pyodide.loadPackage(["numpy", "matplotlib"]);  // preload the most common ones
+      await pyodide.runPythonAsync(RUNNER);
+      pyodide.setStdout({ batched: (s) => { output.textContent += s + "\n"; } });
+      pyodide.setStderr({ batched: (s) => { output.textContent += s + "\n"; } });
+      runBtn.disabled = false;
+      runBtn.textContent = "▶ Run";
+      statusEl.textContent = "Ready.";
+    } catch (err) {
+      statusEl.textContent = "Python failed to load. Check your internet connection and refresh.";
+      output.textContent = String(err);
+      output.classList.add("error");
+    }
+  }
+
+  runBtn.addEventListener("click", async () => {
+    runBtn.disabled = true;
+    output.textContent = "";
+    output.classList.remove("error");
+    plots.innerHTML = "";
+    try {
+      // Automatically load any libraries the code imports (pandas, scipy, sympy, ...)
+      statusEl.textContent = "Loading libraries…";
+      await pyodide.loadPackagesFromImports(codeBox.value);
+      statusEl.textContent = "Running…";
+      const run = pyodide.globals.get("_run_student_code");
+      const result = run(codeBox.value);
+      const images = result.toJs();
+      result.destroy(); run.destroy();
+      if (images.length === 0) {
+        plots.innerHTML = '<p class="hint">No graph was created.</p>';
+      }
+      images.forEach((b64, i) => {
+        const img = document.createElement("img");
+        img.src = "data:image/png;base64," + b64;
+        img.alt = "Graph " + (i + 1) + " produced by the Python code";
+        plots.appendChild(img);
+      });
+      statusEl.textContent = "Done.";
+    } catch (err) {
+      output.textContent += "\n" + String(err.message || err);
+      output.classList.add("error");
+      statusEl.textContent = "There was an error — see Output.";
+    } finally {
+      runBtn.disabled = false;
+    }
+  });
+
+  start();
+</script>
+</body>
+</html>
