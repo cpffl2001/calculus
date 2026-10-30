@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The +C Rescue</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Young+Serif&display=swap">
+<style>
+/* Layout: projector-first three-column table (Fellowship | turn stage | Fellowship), stacking on narrow screens */
+:root {
+  --bg: #f7f1ec;
+  --surface: #fffdfb;
+  --sunk: #efe6df;
+  --ink: #2a1a14;
+  --muted: #76655c;
+  --line: #ddcfc6;
+  --ember: #c9861f;
+  --ember-soft: #fbedd4;
+  --flame: #d4582a;
+  --flame-soft: #f9dfd2;
+  --inferno: #9e1f1f;
+  --inferno-soft: #f3d5d1;
+  --camp: #3e7b5a;
+  --camp-soft: #dcefe4;
+  --sky: #3a6e9a;
+  --sky-soft: #dbe8f3;
+  --good: #2f7a4f;
+  --bad: #b3261e;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --math: "Cambria Math", "STIX Two Math", Cambria, Georgia, serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1311; --surface: #261a17; --sunk: #1f1513; --ink: #f4e9e2; --muted: #b9a59a; --line: #45332d;
+    --ember: #f0b14e; --ember-soft: #3a2a14; --flame: #f07a4a; --flame-soft: #3d2017;
+    --inferno: #f06a5f; --inferno-soft: #3d1816; --camp: #6cc196; --camp-soft: #173226;
+    --sky: #7fb3e0; --sky-soft: #172a3b; --good: #6cc196; --bad: #ff8a80;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.45; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
+.wrap { max-width: 1400px; margin: 0 auto; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 2px solid var(--flame); padding-bottom: 12px; margin-bottom: 18px; }
+header.top h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 4vw, 42px); margin: 0; letter-spacing: -0.01em; }
+header.top h1 span { color: var(--flame); }
+header.top .tag { color: var(--muted); font-size: 15px; }
+header.top .spacer { flex: 1; }
+.clock { font-variant-numeric: tabular-nums; font-weight: 700; padding: 6px 12px; border-radius: 8px; background: var(--sunk); }
+.clock.low { color: var(--bad); }
+
+.btn { border: 2px solid var(--ink); background: var(--surface); padding: 9px 16px; border-radius: 10px; font-weight: 700; }
+.btn:hover { background: var(--sunk); }
+.btn.primary { background: var(--ink); color: var(--bg); }
+.btn.primary:hover { filter: brightness(1.15); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.small { padding: 5px 10px; font-size: 14px; border-width: 1.5px; }
+.btn.quiet { border-color: var(--line); color: var(--muted); }
+
+/* setup */
+.setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; }
+.fs-card { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
+.fs-card h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
+label.lbl { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
+input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--bg); }
+.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 7px 14px; font-weight: 700; color: var(--muted); }
+.seg button.on { background: var(--ink); color: var(--bg); }
+.seg button.on.burn { background: var(--inferno); color: #fff; }
+.seg button.on.safe { background: var(--camp); color: #fff; }
+.prow { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 8px; align-items: center; }
+.prow .num { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+@media (max-width: 520px) { .prow { grid-template-columns: 24px 1fr auto; } .prow .seg { grid-column: 2 / 3; grid-row: 2; justify-self: start; } }
+.preview { background: var(--sunk); border-radius: 10px; padding: 10px 12px; font-size: 15px; }
+.preview b { font-weight: 700; }
+.setup-foot { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
+.err { color: var(--bad); font-weight: 700; }
+.intro { max-width: 70ch; color: var(--muted); margin: 0 0 18px; }
+
+/* play */
+.table { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2.1fr) minmax(220px, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 1000px) { .table { grid-template-columns: 1fr 1fr; } .stage { grid-column: 1 / -1; order: -1; } }
+@media (max-width: 620px) { .table { grid-template-columns: 1fr; } }
+.team { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.team.active { border-color: var(--flame); box-shadow: 0 0 0 3px var(--flame-soft); }
+.team h3 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; overflow-wrap: anywhere; }
+.team .meta { font-size: 14px; color: var(--muted); margin: 2px 0 10px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; }
+.pill.rescue { background: var(--inferno-soft); color: var(--inferno); }
+.pill.defend { background: var(--camp-soft); color: var(--camp); }
+.pill.won { background: var(--camp); color: #fff; }
+.pill.lost { background: var(--inferno); color: #fff; }
+.zone-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--muted); margin: 10px 0 5px; }
+.plist { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { padding: 4px 10px; border-radius: 99px; font-size: 15px; font-weight: 700; border: 1.5px solid transparent; overflow-wrap: anywhere; }
+.chip.camp { background: var(--camp-soft); color: var(--camp); }
+.chip.fire { background: var(--inferno-soft); color: var(--inferno); }
+.chip.singed { background: var(--ember-soft); color: var(--ember); border-style: dashed; border-color: var(--ember); }
+.chip.done { opacity: .6; }
+.empty { color: var(--muted); font-size: 14px; font-style: italic; }
+.firebar { display: flex; gap: 4px; margin-top: 10px; }
+.firebar i { flex: 1; height: 8px; border-radius: 4px; background: var(--camp); }
+.firebar i.f { background: var(--inferno); }
+
+.stage { background: var(--surface); border: 2px solid var(--ink); border-radius: 16px; padding: 20px; min-width: 0; }
+.stage h2 { font-family: var(--display); font-weight: 400; font-size: clamp(24px, 3vw, 32px); margin: 0 0 4px; text-wrap: balance; }
+.stage .sub { color: var(--muted); margin: 0 0 16px; }
+.step-lbl { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 14px 0 6px; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice { border: 2px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 14px; font-weight: 700; }
+.choice.on { border-color: var(--ink); background: var(--ink); color: var(--bg); }
+.piles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.pile { border: 2px solid; border-radius: 12px; padding: 12px; text-align: left; background: var(--surface); display: grid; gap: 2px; }
+.pile .t { font-weight: 700; letter-spacing: .08em; }
+.pile .r { font-size: 14px; color: var(--muted); }
+.pile.EMBER { border-color: var(--ember); } .pile.EMBER .t { color: var(--ember); } .pile.EMBER.on { background: var(--ember-soft); box-shadow: 0 0 0 3px var(--ember); }
+.pile.FLAME { border-color: var(--flame); } .pile.FLAME .t { color: var(--flame); } .pile.FLAME.on { background: var(--flame-soft); box-shadow: 0 0 0 3px var(--flame); }
+.pile.INFERNO { border-color: var(--inferno); } .pile.INFERNO .t { color: var(--inferno); } .pile.INFERNO.on { background: var(--inferno-soft); box-shadow: 0 0 0 3px var(--inferno); }
+.pile:disabled { opacity: .35; }
+@media (max-width: 520px) { .piles { grid-template-columns: 1fr; } }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+
+.card { border-radius: 14px; border: 3px solid var(--tier); overflow: hidden; margin: 6px 0 14px; background: var(--surface); }
+.card .band { background: var(--tier); color: #fff; padding: 8px 14px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; }
+.card .body { padding: 22px 18px; text-align: center; }
+.card .q { font-family: var(--math); font-size: clamp(26px, 3.6vw, 40px); line-height: 1.3; }
+.card .q.long { font-size: clamp(20px, 2.6vw, 28px); }
+.card .g { font-family: var(--math); font-size: clamp(20px, 2.6vw, 28px); margin-top: 10px; }
+.card .g i { font-size: .75em; color: var(--muted); }
+.card .foot { background: var(--sunk); padding: 7px 14px; font-size: 14px; text-align: center; }
+.EMBERc { --tier: var(--ember); } .FLAMEc { --tier: var(--flame); } .INFERNOc { --tier: var(--inferno); }
+.timer { font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; font-family: var(--body); }
+.timer.out { color: var(--bad); }
+.steps4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 14px; margin-bottom: 14px; }
+.steps4 div { background: var(--sunk); border-radius: 8px; padding: 6px 8px; }
+@media (max-width: 620px) { .steps4 { grid-template-columns: 1fr 1fr; } }
+.answers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
+.ansbox { background: var(--sunk); border-radius: 12px; padding: 12px; }
+.ansbox input[type=text] { font-size: 22px; font-family: var(--math); }
+.check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-weight: 700; color: var(--inferno); }
+.check input { width: 20px; height: 20px; accent-color: var(--inferno); }
+.hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+.verdict { font-family: var(--display); font-size: clamp(26px, 3.4vw, 36px); margin: 0 0 6px; }
+.verdict.good { color: var(--good); } .verdict.bad { color: var(--bad); }
+.reveal { background: var(--sunk); border-radius: 12px; padding: 12px 14px; font-family: var(--math); font-size: 20px; }
+.moves { border: 2.5px dashed var(--flame); border-radius: 12px; padding: 12px 16px; margin-top: 14px; }
+.moves h4 { margin: 0 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--flame); }
+.moves ul { margin: 0; padding-left: 20px; font-size: 19px; }
+.moves li { margin: 3px 0; }
+.event { text-align: center; padding: 10px 0 4px; }
+.event .big { font-family: var(--display); font-size: clamp(32px, 4.4vw, 48px); }
+.event.flare .big { color: var(--inferno); } .event.bucket .big { color: var(--sky); }
+.event p { max-width: 52ch; margin: 8px auto; font-size: 19px; }
+
+.log { margin-top: 18px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.log summary { cursor: pointer; font-weight: 700; }
+.log ol { margin: 8px 0 0; padding-left: 22px; font-size: 15px; color: var(--muted); max-height: 260px; overflow: auto; }
+
+.modal-back { position: fixed; inset: 0; background: rgba(20,10,8,.55); display: grid; place-items: center; padding: 16px; z-index: 50; }
+.modal { background: var(--surface); border-radius: 16px; padding: 20px; max-width: 520px; width: 100%; border: 2px solid var(--ink); }
+.modal h3 { font-family: var(--display); font-weight: 400; margin: 0 0 4px; font-size: 24px; }
+.modal p { margin: 0 0 12px; color: var(--muted); }
+
+.over { text-align: center; }
+.over .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; margin: 18px 0; }
+.over .res div { background: var(--sunk); border-radius: 12px; padding: 16px; }
+.over .res h3 { font-family: var(--display); font-weight: 400; margin: 0 0 6px; font-size: 24px; }
+@media (prefers-reduced-motion: no-preference) { .verdict, .event .big { animation: pop .35s ease-out; } @keyframes pop { from { transform: scale(.9); opacity: .4; } to { transform: none; opacity: 1; } } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="modal-root"></div>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------ */
+/* CARDS: f'(x) and a point are given; students find C.                */
+/* C is the exact constant; the app accepts decimals or fractions.     */
+/* ------------------------------------------------------------------ */
+const CARDS = [
+  { id: 1,  tier: "EMBER", q: "f′(x) = 6x", g: "f(0) = 4", f: "f(x) = 3x² + 4", C: 4 },
+  { id: 2,  tier: "EMBER", q: "f′(x) = 4x<sup>3</sup>", g: "f(1) = 7", f: "f(x) = x⁴ + 6", C: 6 },
+  { id: 3,  tier: "EMBER", q: "f′(x) = 2x + 5", g: "f(1) = 10", f: "f(x) = x² + 5x + 4", C: 4 },
+  { id: 4,  tier: "EMBER", q: "f′(x) = 3x<sup>2</sup> − 4", g: "f(2) = 5", f: "f(x) = x³ − 4x + 5", C: 5 },
+  { id: 5,  tier: "EMBER", q: "f′(x) = 10", g: "f(3) = 26", f: "f(x) = 10x − 4", C: -4 },
+  { id: 6,  tier: "EMBER", q: "f′(x) = 8x<sup>3</sup> − 6x", g: "f(−1) = 3", f: "f(x) = 2x⁴ − 3x² + 4", C: 4 },
+  { id: 7,  tier: "EMBER", q: "f′(x) = x<sup>2</sup> + 1", g: "f(3) = 15", f: "f(x) = x³/3 + x + 3", C: 3 },
+  { id: 8,  tier: "EMBER", q: "f′(x) = 12x<sup>2</sup> − 2x + 1", g: "f(0) = −5", f: "f(x) = 4x³ − x² + x − 5", C: -5 },
+  { id: 9,  tier: "FLAME", q: "f′(x) = 3√x", g: "f(4) = 20", f: "f(x) = 2x<sup>3/2</sup> + 4", C: 4 },
+  { id: 10, tier: "FLAME", q: "f′(x) = 1/x<sup>2</sup>, &nbsp;x &gt; 0", g: "f(1) = 3", f: "f(x) = −1/x + 4", C: 4 },
+  { id: 11, tier: "FLAME", q: "f′(x) = e<sup>x</sup>", g: "f(0) = 6", f: "f(x) = e<sup>x</sup> + 5", C: 5 },
+  { id: 12, tier: "FLAME", q: "f′(x) = 2/x, &nbsp;x &gt; 0", g: "f(1) = −3", f: "f(x) = 2 ln x − 3", C: -3 },
+  { id: 13, tier: "FLAME", q: "f′(x) = cos x", g: "f(0) = 2", f: "f(x) = sin x + 2", C: 2 },
+  { id: 14, tier: "FLAME", q: "f′(x) = sin x", g: "f(0) = 4", f: "f(x) = −cos x + 5", C: 5 },
+  { id: 15, tier: "FLAME", q: "f′(x) = 4e<sup>x</sup> − 2x", g: "f(0) = 1", f: "f(x) = 4e<sup>x</sup> − x² − 3", C: -3 },
+  { id: 16, tier: "FLAME", q: "f′(x) = 1/√x", g: "f(9) = 10", f: "f(x) = 2√x + 4", C: 4 },
+  { id: 17, tier: "INFERNO", q: "f′(x) = (x + 1)(x − 1)", g: "f(3) = 10", f: "f(x) = x³/3 − x + 4", C: 4 },
+  { id: 18, tier: "INFERNO", q: "f′(x) = (x<sup>2</sup> + 3) / x<sup>2</sup>, &nbsp;x &gt; 0", g: "f(1) = 2", f: "f(x) = x − 3/x + 4", C: 4 },
+  { id: 19, tier: "INFERNO", q: "f′(x) = e<sup>2x</sup>", g: "f(0) = 3", f: "f(x) = ½e<sup>2x</sup> + 5/2", C: 2.5 },
+  { id: 20, tier: "INFERNO", q: "f′(x) = cos(3x)", g: "f(0) = −1", f: "f(x) = ⅓ sin(3x) − 1", C: -1 },
+  { id: 21, tier: "INFERNO", q: "f′(x) = (2x + 1)<sup>2</sup>", g: "f(0) = 6", f: "f(x) = (4/3)x³ + 2x² + x + 6", C: 6 },
+  { id: 22, tier: "INFERNO", long: true, q: "Bacteria grow at P′(t) = 200e<sup>0.5t</sup> cells per hour.", g: "P(0) = 1000. Find P(t).", f: "P(t) = 400e<sup>0.5t</sup> + 600", C: 600 },
+  { id: 23, tier: "INFERNO", long: true, q: "A seedling grows at h′(t) = 1.5√t cm per week.", g: "h(0) = 2 cm. Find h(t).<br><i>Bonus: how tall at week 4? (10 cm)</i>", f: "h(t) = t<sup>3/2</sup> + 2", C: 2 },
+  { id: 24, tier: "INFERNO", long: true, q: "A drug leaves the blood at A′(t) = −6e<sup>−0.3t</sup> mg per hour.", g: "A(0) = 25 mg. Find A(t).<br><i>Bonus: what level does A approach? (5 mg)</i>", f: "A(t) = 20e<sup>−0.3t</sup> + 5", C: 5 },
+];
+const EVENTS = ["FLARE", "FLARE", "BUCKET", "BUCKET"];
+const RESCUE_PAY = { EMBER: 1, FLAME: 2, INFERNO: 3 };
+const DEFEND_ORDER = ["EMBER", "EMBER", "FLAME", "FLAME", "INFERNO"];
+const TIER_NOTE = {
+  rescue: { EMBER: "Correct: rescue 1 · Miss: singed", FLAME: "Correct: rescue 2 · Miss: singed", INFERNO: "Correct: rescue 3 · Miss: you fall in" },
+  defend: { EMBER: "Correct: stay in Camp · Miss: into the fire", FLAME: "Correct: stay in Camp · Miss: into the fire", INFERNO: "Correct: pull 1 out · Miss: you + 1 more fall in" },
+};
+const SAVE_KEY = "plusC-rescue-v1";
+
+/* ------------------------------------------------------------------ */
+/* STATE                                                               */
+/* ------------------------------------------------------------------ */
+let S = null;
+let timerHandle = null;
+
+function blankTeam(i) {
+  return { name: "", lost: i === 1, players: Array.from({ length: 5 }, () => ({ name: "", status: "camp" })) };
+}
+function freshSetup() {
+  return { phase: "setup", teams: [blankTeam(0), blankTeam(1)], clockMin: 15, error: "" };
+}
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
+  return null;
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const card = id => CARDS.find(c => c.id === id);
+const campName = t => t.lost ? "Losers' Camp" : "Winners' Camp";
+const other = i => 1 - i;
+
+function missionOf(t) { return t.players.some(p => p.status === "fire") ? "rescue" : "defend"; }
+function inFire(t) { return t.players.filter(p => p.status === "fire"); }
+function inCamp(t) { return t.players.filter(p => p.status === "camp"); }
+function burnLimit(t) { return Math.floor(t.players.length / 2) + 1; }
+
+function log(msg) { S.log.push(msg); }
+
+/* ------------------------------------------------------------------ */
+/* SETUP SCREEN                                                        */
+/* ------------------------------------------------------------------ */
+function renderSetup() {
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    ${topBar(false)}
+    <p class="intro">Enter both Fellowships, then mark each player as <b>Survived</b> or <b>Burned</b> in the tug-of-war. Burned pieces start on The Fire on your board, and everyone else starts in their Camp. The game tells you which pieces to move after every turn.</p>
+    <div class="setup-grid">
+      ${S.teams.map((t, i) => `
+        <section class="fs-card" aria-label="Fellowship ${i + 1}">
+          <h2>Fellowship ${i + 1}</h2>
+          <div>
+            <label class="lbl" for="tname${i}">Fellowship name</label>
+            <input type="text" id="tname${i}" data-team="${i}" data-field="tname" value="${esc(t.name)}" placeholder="e.g. The Integrators" maxlength="40">
+          </div>
+          <div>
+            <span class="lbl">Tug-of-war result</span>
+            <div class="seg" role="group" aria-label="Tug-of-war result">
+              <button type="button" class="${!t.lost ? "on" : ""}" data-act="result" data-team="${i}" data-val="won">Won</button>
+              <button type="button" class="${t.lost ? "on" : ""}" data-act="result" data-team="${i}" data-val="lost">Lost</button>
+            </div>
+          </div>
+          <div>
+            <span class="lbl">Players</span>
+            <div style="display:grid;gap:8px">
+              ${t.players.map((p, j) => `
+                <div class="prow">
+                  <span class="num">${j + 1}</span>
+                  <input type="text" id="p${i}-${j}" data-team="${i}" data-p="${j}" data-field="pname" value="${esc(p.name)}" placeholder="Player name" maxlength="24" aria-label="Player ${j + 1} name">
+                  <div class="seg" role="group" aria-label="Player ${j + 1} tug-of-war status">
+                    <button type="button" class="safe ${p.status === "camp" ? "on" : ""}" data-act="pstat" data-team="${i}" data-p="${j}" data-val="camp">Survived</button>
+                    <button type="button" class="burn ${p.status === "fire" ? "on" : ""}" data-act="pstat" data-team="${i}" data-p="${j}" data-val="fire">Burned</button>
+                  </div>
+                  <button type="button" class="btn small quiet" data-act="del" data-team="${i}" data-p="${j}" aria-label="Remove player ${j + 1}" ${t.players.length <= 1 ? "disabled" : ""}>✕</button>
+                </div>`).join("")}
+            </div>
+            <div style="margin-top:8px"><button type="button" class="btn small" data-act="add" data-team="${i}" ${t.players.length >= 8 ? "disabled" : ""}>+ Add player</button></div>
+          </div>
+          <div class="preview" id="preview${i}">${previewText(t)}</div>
+        </section>`).join("")}
+    </div>
+    <div class="setup-foot">
+      <label for="clockMin"><b>Class clock</b></label>
+      <select id="clockMin" data-field="clock">
+        ${[0, 10, 15, 20, 25, 30].map(m => `<option value="${m}" ${S.clockMin === m ? "selected" : ""}>${m ? m + " minutes" : "No clock"}</option>`).join("")}
+      </select>
+      <span style="flex:1"></span>
+      ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
+      <button type="button" class="btn primary" data-act="start">Light the fire</button>
+    </div>`;
+}
+function previewText(t) {
+  const burned = t.players.filter(p => p.status === "fire").length;
+  const m = missionOf(t);
+  const who = t.lost ? "Lost the tug-of-war, so this Fellowship goes first." : "Won the tug-of-war.";
+  return m === "rescue"
+    ? `<b>Mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Get them all out. ${who}`
+    : `<b>Mission: Defend the Camp.</b> Nobody burned. Answer 5 cards (Ember, Ember, Flame, Flame, Inferno) and keep at least ${t.players.length - burnLimit(t) + 1} of ${t.players.length} in Camp. ${who}`;
+}
+function startGame() {
+  for (const [i, t] of S.teams.entries()) {
+    if (!t.name.trim()) { S.error = `Give Fellowship ${i + 1} a name.`; return renderSetup(); }
+    if (t.players.some(p => !p.name.trim())) { S.error = `Every player in ${t.name.trim()} needs a name.`; return renderSetup(); }
+  }
+  S.error = "";
+  const piles = { EMBER: [], FLAME: [], INFERNO: [] };
+  CARDS.forEach(c => piles[c.tier].push(c.id));
+  EVENTS.forEach(e => piles.EMBER.push(e));
+  Object.values(piles).forEach(shuffle);
+  S.teams.forEach(t => {
+    t.name = t.name.trim();
+    t.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
+    t.mission = missionOf(t);
+    t.result = null;
+    t.defendIdx = 0;
+  });
+  S.piles = piles;
+  S.phase = "play";
+  S.log = [];
+  S.clockEnd = S.clockMin ? Date.now() + S.clockMin * 60000 : null;
+  S.turnTeam = S.teams[0].lost ? 0 : 1;
+  S.turnNo = 0;
+  log(`Game started. ${S.teams[S.turnTeam].name} lost the tug-of-war and goes first.`);
+  beginTurn();
+}
+
+/* ------------------------------------------------------------------ */
+/* TURN ENGINE                                                         */
+/* ------------------------------------------------------------------ */
+function clockExpired() { return S.clockEnd && Date.now() >= S.clockEnd; }
+
+function endOnClock() {
+  S.teams.forEach(t => {
+    if (t.result) return;
+    if (t.mission === "rescue") { t.result = "lost"; log(`Time ran out. The fire keeps ${inFire(t).length} of ${t.name}'s players.`); }
+    else { t.result = inFire(t).length < burnLimit(t) ? "won" : "lost"; log(`Time ran out for ${t.name}'s defense.`); }
+  });
+}
+
+function beginTurn() {
+  if (clockExpired()) endOnClock();
+  if (S.teams.every(t => t.result)) { S.phase = "over"; save(); return render(); }
+  if (S.teams[S.turnTeam].result) S.turnTeam = other(S.turnTeam);
+  const t = S.teams[S.turnTeam];
+  S.turnNo++;
+  t.players.forEach(p => { if (p.singed > 0) p.singed--; });
+
+  if (t.mission === "rescue" && !["EMBER", "FLAME", "INFERNO"].some(k => S.piles[k].length)) {
+    t.result = "lost"; log(`The piles ran out. The fire wins against ${t.name}.`);
+    return nextTurn();
+  }
+  let eligible = eligiblePlayers(t);
+  let lastStand = false;
+  if (!eligible.length && t.mission === "rescue") {
+    if (inCamp(t).length === 0) { eligible = inFire(t).map(p => t.players.indexOf(p)); lastStand = true; }
+  }
+  if (!eligible.length) {
+    log(`${t.name} skips a turn. Everyone in Camp is singed.`);
+    S.turn = { stage: "skip", eligible: [], moves: [] };
+    save(); return render();
+  }
+  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.length === 1 ? eligible[0] : null, tier: t.mission === "defend" ? DEFEND_ORDER[t.defendIdx] : null, moves: [] };
+  save(); render();
+}
+
+function eligiblePlayers(t) {
+  const camp = t.players.map((p, i) => i).filter(i => t.players[i].status === "camp" && !(t.players[i].singed > 0));
+  if (t.mission === "defend") {
+    const fresh = camp.filter(i => !t.players[i].answered);
+    return fresh.length ? fresh : camp;
+  }
+  return camp;
+}
+
+function nextTurn() {
+  clearInterval(timerHandle);
+  if (clockExpired()) endOnClock();
+  if (S.teams.every(t => t.result)) { S.phase = "over"; save(); return render(); }
+  const o = other(S.turnTeam);
+  if (!S.teams[o].result) S.turnTeam = o;
+  beginTurn();
+}
+
+function drawCard() {
+  const t = S.teams[S.turnTeam];
+  let tier = S.turn.tier;
+  if (!S.piles[tier].length) {
+    const alt = ["EMBER", "FLAME", "INFERNO"].find(k => S.piles[k].length);
+    if (!alt) { t.result = t.mission === "defend" ? (inFire(t).length < burnLimit(t) ? "won" : "lost") : "lost"; log("The piles ran out."); return nextTurn(); }
+    tier = alt; S.turn.tier = alt;
+  }
+  const item = S.piles[tier].shift();
+  if (typeof item === "string") {
+    S.turn.stage = "event"; S.turn.event = item;
+    log(`${t.name} drew ${item === "FLARE" ? "FLARE-UP!" : "BUCKET BRIGADE"}.`);
+  } else {
+    S.turn.stage = "card"; S.turn.cardId = item; S.turn.flare = false; S.turn.started = Date.now(); S.turn.limit = 120;
+  }
+  save(); render();
+}
+
+function startFlare() {
+  if (!S.piles.FLAME.length) { log("No Flame cards left, so the flare-up fizzles."); S.turn.stage = "choose"; save(); return render(); }
+  S.turn.flareReturn = { tier: S.turn.tier, answerer: S.turn.answerer };
+  S.turn.stage = "card"; S.turn.cardId = S.piles.FLAME.shift(); S.turn.flare = true; S.turn.started = Date.now(); S.turn.limit = 60;
+  save(); render();
+}
+
+function parseC(raw) {
+  if (raw == null) return NaN;
+  let s = String(raw).trim().toLowerCase().replace(/[−–—]/g, "-").replace(/\s+/g, "").replace(/^c=/, "");
+  if (!s) return NaN;
+  if (/^[-+]?\d+(\.\d+)?\/[-+]?\d+(\.\d+)?$/.test(s)) { const [a, b] = s.split("/").map(Number); return b ? a / b : NaN; }
+  if (/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return Number(s);
+  return NaN;
+}
+const sameC = (x, C) => Number.isFinite(x) && Math.abs(x - C) < 1e-6;
+
+function move(teamIdx, pIdx, to) {
+  const t = S.teams[teamIdx], p = t.players[pIdx];
+  const from = p.status;
+  p.status = to;
+  if (to === "fire") p.singed = 0;
+  const where = to === "fire" ? "The Fire" : campName(t);
+  const fromW = from === "fire" ? "The Fire" : campName(t);
+  S.turn.moves.push(`<b>${esc(p.name)}</b> (${esc(t.name)}): ${fromW} → ${where}`);
+  log(`${p.name} (${t.name}): ${fromW} → ${where}`);
+}
+function singe(teamIdx, pIdx) {
+  const t = S.teams[teamIdx], p = t.players[pIdx];
+  p.singed = 2;
+  S.turn.moves.push(`<b>${esc(p.name)}</b> (${esc(t.name)}) is singed. Lay the piece on its side; it sits out your next turn.`);
+  log(`${p.name} (${t.name}) is singed.`);
+}
+
+async function resolve(activeRaw, marshalRaw, missingC, timeout) {
+  clearInterval(timerHandle);
+  const ti = S.turnTeam, t = S.teams[ti], mi = other(ti), m = S.teams[mi];
+  const c = card(S.turn.cardId);
+  const a = S.turn.answerer, ap = t.players[a];
+  const correct = !timeout && !missingC && sameC(parseC(activeRaw), c.C);
+  const marshalsRight = sameC(parseC(marshalRaw), c.C);
+  S.turn.correct = correct; S.turn.missingC = missingC; S.turn.timeout = timeout;
+  S.turn.activeRaw = activeRaw; S.turn.marshalRaw = marshalRaw;
+  log(`${ap.name} (${t.name}) answered card ${c.id} (${c.tier}): ${correct ? "correct" : missingC ? "Missing C!" : timeout ? "out of time" : "miss"}.`);
+
+  if (S.turn.flare) {
+    if (!correct) {
+      const camp = t.players.map((p, i) => i).filter(i => t.players[i].status === "camp");
+      if (camp.length) {
+        const pick = await choosePlayers(mi, ti, camp, 1, `Flare-up! ${m.name}, choose one of ${t.name}'s players to pull into the fire.`);
+        pick.forEach(i => move(ti, i, "fire"));
+      }
+    }
+  } else if (t.mission === "rescue") {
+    if (correct) {
+      let pay = RESCUE_PAY[c.tier];
+      if (S.turn.lastStand) move(ti, a, "camp");
+      const fire = t.players.map((p, i) => i).filter(i => t.players[i].status === "fire");
+      if (fire.length) {
+        const pick = fire.length <= pay ? fire : await choosePlayers(ti, ti, fire, pay, `${t.name}, choose ${pay} player${pay > 1 ? "s" : ""} to pull out of the fire.`);
+        pick.forEach(i => move(ti, i, "camp"));
+      }
+    } else if (!S.turn.lastStand) {
+      if (c.tier === "INFERNO") move(ti, a, "fire"); else singe(ti, a);
+    }
+  } else {
+    ap.answered = true;
+    t.defendIdx++;
+    if (correct) {
+      if (c.tier === "INFERNO") {
+        const fire = t.players.map((p, i) => i).filter(i => t.players[i].status === "fire");
+        if (fire.length) {
+          const pick = fire.length === 1 ? fire : await choosePlayers(ti, ti, fire, 1, `${t.name}, choose 1 player to pull out of the fire.`);
+          pick.forEach(i => move(ti, i, "camp"));
+        }
+      }
+    } else {
+      move(ti, a, "fire");
+      if (c.tier === "INFERNO") {
+        const camp = t.players.map((p, i) => i).filter(i => t.players[i].status === "camp");
+        if (camp.length) {
+          const pick = camp.length === 1 ? camp : await choosePlayers(mi, ti, camp, 1, `${m.name}, choose one more of ${t.name}'s players to pull into the fire.`);
+          pick.forEach(i => move(ti, i, "fire"));
+        }
+      }
+    }
+  }
+
+  /* steal */
+  S.turn.steal = false;
+  if (!S.turn.flare && !correct && marshalsRight && !m.result) {
+    const fire = m.players.map((p, i) => i).filter(i => m.players[i].status === "fire");
+    if (fire.length) {
+      S.turn.steal = true;
+      const pick = fire.length === 1 ? fire : await choosePlayers(mi, mi, fire, 1, `Steal! ${m.name} got it right. Choose 1 of your players to pull out of the fire.`);
+      pick.forEach(i => move(mi, i, "camp"));
+      log(`${m.name} made a steal.`);
+    }
+  }
+
+  checkMissions();
+  S.turn.stage = S.turn.flare ? "flareResult" : "result";
+  save(); render();
+}
+
+function checkMissions() {
+  S.teams.forEach(t => {
+    if (t.result) return;
+    if (t.mission === "rescue" && inFire(t).length === 0) { t.result = "won"; log(`${t.name} emptied the fire!`); }
+    if (t.mission === "defend") {
+      if (inFire(t).length >= burnLimit(t)) { t.result = "lost"; log(`The fire took too many of ${t.name}.`); }
+      else if (t.defendIdx >= DEFEND_ORDER.length) { t.result = "won"; log(`${t.name} defended the camp!`); }
+    }
+  });
+}
+
+async function bucket() {
+  const ti = S.turnTeam, t = S.teams[ti];
+  const fire = t.players.map((p, i) => i).filter(i => t.players[i].status === "fire");
+  if (fire.length) {
+    const pick = fire.length === 1 ? fire : await choosePlayers(ti, ti, fire, 1, `${t.name}, choose 1 player to pull out of the fire.`);
+    pick.forEach(i => move(ti, i, "camp"));
+  } else {
+    S.turn.moves.push("Nobody is in your fire, so the bucket has nothing to put out.");
+  }
+  checkMissions();
+  S.turn.stage = "eventDone";
+  save(); render();
+}
+
+function backToChoose() {
+  const t = S.teams[S.turnTeam];
+  if (t.result) return nextTurn();
+  const keepTier = S.turn.flareReturn ? S.turn.flareReturn.tier : S.turn.tier;
+  const prevAns = S.turn.flareReturn ? S.turn.flareReturn.answerer : S.turn.answerer;
+  let eligible = eligiblePlayers(t), lastStand = false;
+  if (!eligible.length && t.mission === "rescue" && inCamp(t).length === 0) { eligible = inFire(t).map(p => t.players.indexOf(p)); lastStand = true; }
+  if (!eligible.length) return nextTurn();
+  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.includes(prevAns) ? prevAns : (eligible.length === 1 ? eligible[0] : null), tier: t.mission === "defend" ? DEFEND_ORDER[t.defendIdx] : keepTier, moves: [], drawAgain: true };
+  save(); render();
+}
+
+/* ------------------------------------------------------------------ */
+/* PICK-PLAYERS MODAL                                                  */
+/* ------------------------------------------------------------------ */
+function choosePlayers(chooserIdx, ownerIdx, options, count, title) {
+  return new Promise(res => {
+    const owner = S.teams[ownerIdx];
+    const sel = new Set();
+    const root = document.getElementById("modal-root");
+    const draw = () => {
+      root.innerHTML = `
+        <div class="modal-back" role="dialog" aria-modal="true" aria-labelledby="mt">
+          <div class="modal">
+            <h3 id="mt">${esc(title)}</h3>
+            <p>Pick ${count}. Selected: ${sel.size} of ${count}</p>
+            <div class="choices">
+              ${options.map(i => `<button type="button" class="choice ${sel.has(i) ? "on" : ""}" data-i="${i}">${esc(owner.players[i].name)}</button>`).join("")}
+            </div>
+            <div class="actions"><button type="button" class="btn primary" id="mok" ${sel.size === count ? "" : "disabled"}>Confirm</button></div>
+          </div>
+        </div>`;
+      root.querySelectorAll(".choice").forEach(b => b.onclick = () => {
+        const i = Number(b.dataset.i);
+        if (sel.has(i)) sel.delete(i); else if (sel.size < count) sel.add(i);
+        draw();
+        const again = root.querySelector(`.choice[data-i="${i}"]`); if (again) again.focus();
+      });
+      const ok = root.querySelector("#mok");
+      ok.onclick = () => { root.innerHTML = ""; res([...sel]); };
+    };
+    draw();
+    const first = root.querySelector(".choice"); if (first) first.focus();
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* RENDER: PLAY                                                        */
+/* ------------------------------------------------------------------ */
+function topBar(inGame) {
+  return `<header class="top">
+    <h1>The <span>+C</span> Rescue</h1>
+    <span class="tag">${inGame ? "Move your pieces on the board when the game tells you to." : "Antiderivative follow-up game"}</span>
+    <span class="spacer"></span>
+    ${inGame && S.clockEnd ? `<span class="clock" id="clock" aria-live="off">--:--</span>` : ""}
+    ${inGame ? `<button type="button" class="btn small quiet" data-act="reset">New game</button>` : ""}
+  </header>`;
+}
+
+function teamPanel(i) {
+  const t = S.teams[i];
+  const active = S.phase === "play" && S.turnTeam === i && !t.result;
+  const fire = t.players.filter(p => p.status === "fire");
+  const camp = t.players.filter(p => p.status === "camp");
+  const status = t.result === "won" ? `<span class="pill won">Mission complete</span>` : t.result === "lost" ? `<span class="pill lost">The fire won</span>` : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
+  const progress = t.mission === "defend" ? `Card ${Math.min(t.defendIdx + 1, 5)} of 5 · lose at ${burnLimit(t)} burning` : `${fire.length} still in the fire`;
+  return `<aside class="team ${active ? "active" : ""}" aria-label="${esc(t.name)}">
+    <h3>${esc(t.name)}</h3>
+    <div class="meta">${t.lost ? "Lost" : "Won"} the tug-of-war · ${campName(t)}</div>
+    ${status}
+    <div class="meta" style="margin-top:6px">${t.result ? "" : progress}</div>
+    <div class="zone-title">In Camp</div>
+    <div class="plist">${camp.length ? camp.map(p => `<span class="chip ${p.singed > 0 ? "singed" : "camp"} ${t.mission === "defend" && p.answered ? "done" : ""}">${esc(p.name)}${p.singed > 0 ? " · singed" : ""}${t.mission === "defend" && p.answered ? " ✓" : ""}</span>`).join("") : `<span class="empty">Camp is empty</span>`}</div>
+    <div class="zone-title">In the fire</div>
+    <div class="plist">${fire.length ? fire.map(p => `<span class="chip fire">${esc(p.name)}</span>`).join("") : `<span class="empty">Nobody</span>`}</div>
+    <div class="firebar" aria-hidden="true">${t.players.map(p => `<i class="${p.status === "fire" ? "f" : ""}"></i>`).join("")}</div>
+  </aside>`;
+}
+
+function cardHTML(c, mission) {
+  return `<div class="card ${c.tier}c">
+    <div class="band"><span>${c.tier}</span><span>Card ${c.id}</span></div>
+    <div class="body"><div class="q ${c.long ? "long" : ""}">${c.q}</div><div class="g">${c.g}</div></div>
+    <div class="foot">${S.turn.flare ? "Flare-up: solve as a team in 60 seconds. Miss it and the Marshals pull one of you into the fire." : TIER_NOTE[mission][c.tier]}</div>
+  </div>`;
+}
+
+function movesHTML() {
+  if (!S.turn.moves.length) return `<div class="moves"><h4>Your board</h4><ul><li>No pieces move this time.</li></ul></div>`;
+  return `<div class="moves"><h4>Move these pieces on your board</h4><ul>${S.turn.moves.map(m => `<li>${m}</li>`).join("")}</ul></div>`;
+}
+
+function stageHTML() {
+  const ti = S.turnTeam, t = S.teams[ti], m = S.teams[other(ti)], tr = S.turn;
+  const head = `<h2>${esc(t.name)}'s turn</h2><p class="sub">${t.mission === "rescue" ? "Rescue Mode" : `Defend the Camp · card ${Math.min(5, tr.stage === "result" ? t.defendIdx : t.defendIdx + 1)} of 5`} · <b>${esc(m.name)}</b> ${m.result ? "checks the answer" : "are the Fire Marshals"}</p>`;
+
+  if (tr.stage === "skip") return `${head}<p>Everyone in ${esc(t.name)}'s Camp is singed, so they sit this turn out.</p><div class="actions"><button type="button" class="btn primary" data-act="next">Next turn</button></div>`;
+
+  if (tr.stage === "choose") {
+    const players = tr.eligible.map(i => `<button type="button" class="choice ${tr.answerer === i ? "on" : ""}" data-act="ans" data-i="${i}">${esc(t.players[i].name)}</button>`).join("");
+    const piles = t.mission === "rescue"
+      ? `<div class="piles">${["EMBER", "FLAME", "INFERNO"].map(k => `<button type="button" class="pile ${k} ${tr.tier === k ? "on" : ""}" data-act="tier" data-k="${k}" ${S.piles[k].length ? "" : "disabled"}><span class="t">${k}</span><span class="r">${TIER_NOTE.rescue[k]}</span><span class="r">${S.piles[k].length} left</span></button>`).join("")}</div>`
+      : `<div class="piles"><div class="pile ${tr.tier} on"><span class="t">${tr.tier}</span><span class="r">${TIER_NOTE.defend[tr.tier]}</span><span class="r">Order: ${DEFEND_ORDER.map((d, k) => k === t.defendIdx ? `<b>${d}</b>` : d).join(" · ")}</span></div></div>`;
+    return `${head}
+      ${tr.drawAgain ? `<p><b>Draw again.</b> Event cards don't use up your turn.</p>` : ""}
+      ${tr.lastStand ? `<p><b>Last Stand!</b> Your Camp is empty, so a player answers from the edge of the fire. Get it right and they climb out, plus the card's payoff. Miss and they stay put.</p>` : ""}
+      <div class="step-lbl">${tr.lastStand ? "Who makes the Last Stand?" : "Who answers?"}</div>
+      <div class="choices">${players}</div>
+      <div class="step-lbl">${t.mission === "rescue" ? "Pick a pile" : "Your card comes from"}</div>
+      ${piles}
+      <div class="actions"><button type="button" class="btn primary" data-act="draw" ${tr.answerer != null && tr.tier ? "" : "disabled"}>Draw the card</button></div>`;
+  }
+
+  if (tr.stage === "event") {
+    if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. ${esc(t.name)} solves a Flame card <b>together in 60 seconds</b>. Miss it and ${esc(m.name)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
+    return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div><p>Free rescue! To claim it, the whole Fellowship says out loud:</p><p style="font-family:var(--math);font-size:24px">“The antiderivative of xⁿ is xⁿ⁺¹⁄(n+1) + C, for n ≠ −1.”</p></div><div class="actions"><button type="button" class="btn primary" data-act="bucket">We said it</button></div>`;
+  }
+
+  if (tr.stage === "eventDone") return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div></div>${movesHTML()}<div class="actions"><button type="button" class="btn primary" data-act="again">Draw again</button></div>`;
+
+  if (tr.stage === "card") {
+    const c = card(tr.cardId), ap = t.players[tr.answerer];
+    return `${head}
+      <p><b>${esc(ap.name)}</b> ${tr.flare ? "and the whole Fellowship" : ""} ${tr.lastStand && !tr.flare ? "makes a Last Stand on" : "answers"}:</p>
+      ${cardHTML(c, t.mission)}
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="timer" id="timer" role="timer">--:--</span><span class="hint">Show all four steps on the whiteboard</span></div>
+      <div class="steps4"><div>1. Integrate. Write <b>+C</b>!</div><div>2. Plug in the point</div><div>3. Solve for C</div><div>4. Write the finished function</div></div>
+      <div class="answers">
+        <div class="ansbox"><label class="lbl" for="aC">${esc(t.name)}: C =</label><input type="text" id="aC" inputmode="decimal" autocomplete="off" placeholder="e.g. 4, −3, 5/2"><div class="hint">Fractions and decimals both work.</div></div>
+        ${tr.flare ? "" : `<div class="ansbox"><label class="lbl" for="mC">${esc(m.name)} (Marshals): C =</label><input type="text" id="mC" inputmode="decimal" autocomplete="off" placeholder="your answer"><div class="hint">${m.result ? "Optional." : "Right when they're wrong? That's a steal."}</div></div>`}
+      </div>
+      <label class="check"><input type="checkbox" id="missC"> Missing C! (no +C in step 1)</label>
+      <div class="actions">
+        <button type="button" class="btn primary" data-act="submit">Check the answer</button>
+        <button type="button" class="btn quiet" data-act="timeout">Out of time</button>
+      </div>`;
+  }
+
+  if (tr.stage === "result" || tr.stage === "flareResult") {
+    const c = card(tr.cardId);
+    const why = tr.missingC ? "Missing C! The answer doesn't count." : tr.timeout ? "Out of time." : tr.correct ? "" : `They said C = ${esc(tr.activeRaw || "nothing")}.`;
+    const done = t.result ? `<p><b>${esc(t.name)}: ${t.result === "won" ? "mission complete!" : "the fire won this one."}</b></p>` : "";
+    return `${head}
+      <p class="verdict ${tr.correct ? "good" : "bad"}">${tr.correct ? (tr.flare ? "Flare-up beaten!" : "Correct!") : "Miss."} ${tr.steal ? "<br>Steal!" : ""}</p>
+      ${why ? `<p>${why}</p>` : ""}
+      <div class="reveal">${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b></div>
+      ${movesHTML()}
+      ${done}
+      <div class="actions"><button type="button" class="btn primary" data-act="${tr.stage === "flareResult" && !t.result ? "again" : "next"}">${tr.stage === "flareResult" && !t.result ? "Back to your turn" : "Next turn"}</button></div>`;
+  }
+  return head;
+}
+const fmtC = C => { const sign = C < 0 ? "−" : ""; const a = Math.abs(C); return sign + (Number.isInteger(a) ? a : Number.isInteger(a * 2) ? `${a * 2}/2` : a); };
+
+function renderPlay() {
+  const app = document.getElementById("app");
+  app.innerHTML = `${topBar(true)}
+    <div class="table">
+      ${teamPanel(0)}
+      <section class="stage" aria-live="polite">${stageHTML()}</section>
+      ${teamPanel(1)}
+    </div>
+    <details class="log"><summary>Game log (${S.log.length})</summary><ol>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ol></details>`;
+  if (S.turn && S.turn.stage === "card") startTimer();
+  tickClock();
+}
+
+function renderOver() {
+  const app = document.getElementById("app");
+  app.innerHTML = `${topBar(true)}
+    <section class="stage over">
+      <h2>The fire is out</h2>
+      <p class="sub">Each Fellowship played against the fire. Both can win.</p>
+      <div class="res">${S.teams.map(t => `<div><h3>${esc(t.name)}</h3>
+        <p>${t.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"}</p>
+        <p><span class="pill ${t.result}">${t.result === "won" ? "Mission complete" : "The fire won"}</span></p>
+        <p>${inCamp(t).length} of ${t.players.length} safe in Camp</p></div>`).join("")}</div>
+      <div class="actions" style="justify-content:center"><button type="button" class="btn primary" data-act="reset">Play again</button></div>
+    </section>
+    <details class="log" open><summary>Game log (${S.log.length})</summary><ol>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ol></details>`;
+}
+
+function render() {
+  clearInterval(timerHandle);
+  if (S.phase === "setup") renderSetup();
+  else if (S.phase === "play") renderPlay();
+  else renderOver();
+}
+
+function startTimer() {
+  const el = document.getElementById("timer");
+  const tick = () => {
+    const left = Math.max(0, S.turn.limit - Math.floor((Date.now() - S.turn.started) / 1000));
+    el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    el.classList.toggle("out", left === 0);
+    if (left === 0) el.textContent = "Time!";
+    tickClock();
+  };
+  tick();
+  timerHandle = setInterval(tick, 500);
+}
+function tickClock() {
+  const el = document.getElementById("clock");
+  if (!el || !S.clockEnd) return;
+  const left = Math.max(0, Math.floor((S.clockEnd - Date.now()) / 1000));
+  el.textContent = `Clock ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  el.classList.toggle("low", left < 120);
+}
+setInterval(() => { if (S && S.phase === "play" && !(S.turn && S.turn.stage === "card")) tickClock(); }, 1000);
+
+/* ------------------------------------------------------------------ */
+/* EVENTS                                                              */
+/* ------------------------------------------------------------------ */
+document.addEventListener("input", e => {
+  if (!S || S.phase !== "setup") return;
+  const el = e.target, f = el.dataset.field;
+  if (f === "tname") { S.teams[el.dataset.team].name = el.value; }
+  if (f === "pname") { S.teams[el.dataset.team].players[el.dataset.p].name = el.value; }
+  if (f === "clock") { S.clockMin = Number(el.value); }
+  save();
+});
+document.addEventListener("change", e => {
+  if (S && S.phase === "setup" && e.target.dataset.field === "clock") { S.clockMin = Number(e.target.value); save(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && S && S.phase === "play" && S.turn && S.turn.stage === "card" && (e.target.id === "aC" || e.target.id === "mC")) {
+    e.preventDefault(); document.querySelector('[data-act="submit"]').click();
+  }
+});
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if (!b || b.disabled) return;
+  const act = b.dataset.act;
+  if (act === "reset") {
+    if (b.dataset.armed === "1" || S.phase === "over") { const keep = S.teams.map(t => ({ name: t.name, lost: t.lost, players: t.players.map(p => ({ name: p.name, status: "camp" })) })); S = freshSetup(); S.teams = keep; save(); return render(); }
+    b.dataset.armed = "1"; b.textContent = "Click again to end this game"; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
+  }
+  if (S.phase === "setup") {
+    const t = S.teams[b.dataset.team];
+    if (act === "result") { const lost = b.dataset.val === "lost"; t.lost = lost; S.teams[other(Number(b.dataset.team))].lost = !lost; }
+    if (act === "pstat") t.players[b.dataset.p].status = b.dataset.val;
+    if (act === "add" && t.players.length < 8) t.players.push({ name: "", status: "camp" });
+    if (act === "del" && t.players.length > 1) t.players.splice(Number(b.dataset.p), 1);
+    if (act === "start") return startGame();
+    save(); renderSetup();
+    const again = document.querySelector(`[data-act="${act}"][data-team="${b.dataset.team}"]${b.dataset.p != null && act !== "del" ? `[data-p="${b.dataset.p}"]` : ""}${b.dataset.val ? `[data-val="${b.dataset.val}"]` : ""}`);
+    if (again) again.focus();
+    return;
+  }
+  if (S.phase !== "play") return;
+  if (act === "ans") { S.turn.answerer = Number(b.dataset.i); save(); return render(); }
+  if (act === "tier") { S.turn.tier = b.dataset.k; save(); return render(); }
+  if (act === "draw") return drawCard();
+  if (act === "flare") return startFlare();
+  if (act === "bucket") return bucket();
+  if (act === "again") return backToChoose();
+  if (act === "next") return nextTurn();
+  if (act === "submit") {
+    const a = document.getElementById("aC").value, m = document.getElementById("mC") ? document.getElementById("mC").value : "";
+    const mc = document.getElementById("missC").checked;
+    if (!a.trim() && !mc) { document.getElementById("aC").focus(); return; }
+    return resolve(a, m, mc, false);
+  }
+  if (act === "timeout") {
+    const m = document.getElementById("mC") ? document.getElementById("mC").value : "";
+    return resolve("", m, false, true);
+  }
+});
+
+/* boot */
+S = load() || freshSetup();
+if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
+render();
+</script>
+</body>
+</html>
