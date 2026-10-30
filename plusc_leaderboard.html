@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>+C Rescue Leaderboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Young+Serif&display=swap">
+<style>
+/* Layout: projector wall. Night-fire palette by choice (reads well on a dark room projector). Matchups fill the main column; standings + live feed in a side column. */
+:root {
+  --bg: #160f0d;
+  --panel: #221815;
+  --panel2: #2c1f1b;
+  --ink: #f6ebe3;
+  --muted: #b6a196;
+  --line: #3e2d27;
+  --ember: #f2b24c;
+  --flame: #f2763f;
+  --inferno: #ef5a4c;
+  --camp: #66c795;
+  --singed: #f2b24c;
+  --gold: #f2c94c;
+  --display: "Young Serif", Georgia, serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.4;
+  background-image: radial-gradient(ellipse 70% 40% at 50% 115%, rgba(242,118,63,.22), transparent 70%); background-attachment: fixed; min-height: 100vh; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
+.wrap { max-width: 1700px; margin: 0 auto; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 2px solid var(--flame); }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 4vw, 50px); margin: 0; line-height: 1; }
+h1 span { color: var(--flame); }
+.live { font-weight: 700; font-size: 15px; padding: 5px 12px; border-radius: 99px; background: var(--panel2); color: var(--muted); }
+.live.on { color: var(--camp); }
+.live.on::first-letter { animation: blink 1.6s infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.spacer { flex: 1; }
+.codebox { background: var(--panel2); border: 1.5px solid var(--line); border-radius: 12px; padding: 6px 18px; text-align: center; }
+.codebox small { display: block; font-size: 11px; letter-spacing: .14em; color: var(--muted); font-weight: 700; }
+.codebox b { font-size: 28px; letter-spacing: .04em; }
+.ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctl input { width: 150px; padding: 8px 10px; border-radius: 9px; border: 1.5px solid var(--line); background: var(--panel); }
+.btn { border: 1.5px solid var(--line); background: var(--panel); padding: 8px 14px; border-radius: 9px; font-weight: 700; }
+.btn:hover { background: var(--panel2); }
+.btn.hot { border-color: var(--flame); color: var(--flame); }
+
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.stat { background: var(--panel); border-radius: 12px; padding: 12px 16px; }
+.stat b { display: block; font-family: var(--display); font-weight: 400; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.05; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 14px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
+.stat.fire b { color: var(--inferno); } .stat.safe b { color: var(--camp); } .stat.done b { color: var(--gold); }
+@media (max-width: 700px) { .stats { grid-template-columns: 1fr 1fr; } }
+
+.board { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(300px, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .board { grid-template-columns: 1fr; } }
+h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+
+.matchups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 14px; }
+.match { background: var(--panel); border: 1.5px solid var(--line); border-radius: 16px; padding: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 10px; align-items: stretch; min-width: 0; }
+.vs { align-self: center; font-family: var(--display); color: var(--flame); font-size: 20px; }
+.side { min-width: 0; display: grid; gap: 6px; align-content: start; position: relative; }
+.side.right { text-align: right; justify-items: end; }
+.fname { font-family: var(--display); font-size: 22px; line-height: 1.15; overflow-wrap: anywhere; }
+.tagrow { display: flex; gap: 6px; flex-wrap: wrap; }
+.side.right .tagrow { justify-content: flex-end; }
+.pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: var(--panel2); color: var(--muted); }
+.pill.rescue { color: var(--inferno); } .pill.defend { color: var(--camp); }
+.pill.won { background: var(--camp); color: #10261a; } .pill.lost { background: var(--inferno); color: #2a0b08; }
+.dots { display: flex; gap: 5px; flex-wrap: wrap; }
+.side.right .dots { justify-content: flex-end; }
+.dot { width: 22px; height: 22px; border-radius: 50%; background: var(--camp); position: relative; }
+.dot.f { background: var(--inferno); box-shadow: 0 0 10px rgba(239,90,76,.7); }
+.dot.s { background: transparent; border: 3px solid var(--singed); }
+.nums { font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.nums b { color: var(--ink); }
+.lastev { font-size: 14px; color: var(--muted); font-style: italic; overflow-wrap: anywhere; }
+.waiting { color: var(--muted); font-style: italic; align-self: center; }
+.x { position: absolute; top: -4px; right: -4px; border: 0; background: none; color: var(--muted); font-size: 14px; opacity: .35; padding: 2px 6px; }
+.side.right .x { right: auto; left: -4px; }
+.x:hover { opacity: 1; }
+.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { from { box-shadow: 0 0 0 4px var(--flame); } to { box-shadow: 0 0 0 0 transparent; } }
+
+.col { display: grid; gap: 18px; }
+.panel { background: var(--panel); border-radius: 16px; padding: 14px; border: 1.5px solid var(--line); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td, th { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+td.r { text-align: right; }
+td.rank { font-family: var(--display); font-size: 22px; width: 36px; }
+tr.g1 td.rank { color: var(--gold); } tr.g2 td.rank { color: #d9d9d9; } tr.g3 td.rank { color: #d69a5b; }
+.tn { font-weight: 700; overflow-wrap: anywhere; }
+.bar { height: 7px; background: var(--panel2); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; background: var(--camp); }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 520px; overflow: auto; }
+.feed li { font-size: 15px; border-left: 3px solid var(--flame); padding-left: 10px; }
+.feed time { color: var(--muted); font-size: 12px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.feed b { color: var(--ember); }
+.empty { color: var(--muted); padding: 30px; text-align: center; border: 2px dashed var(--line); border-radius: 16px; }
+.legend { color: var(--muted); font-size: 14px; display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; align-items: center; }
+.legend .dot { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; margin-right: 4px; }
+.confirm { display: inline-flex; gap: 6px; align-items: center; }
+@media (prefers-reduced-motion: reduce) { .flash, .live.on::first-letter { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>The <span>+C</span> Rescue</h1>
+    <span class="live" id="live">● Not connected</span>
+    <span class="spacer"></span>
+    <div class="codebox"><small>CLASS CODE</small><b id="codeShow">—</b></div>
+    <div class="ctl">
+      <label for="codeIn" class="sr" style="position:absolute;left:-9999px">Class code</label>
+      <input id="codeIn" placeholder="Class code" autocomplete="off">
+      <button class="btn hot" id="setBtn" type="button">Set code</button>
+      <button class="btn" id="clearBtn" type="button">Clear board</button>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Class totals">
+    <div class="stat"><b id="sFs">0</b><span>Fellowships</span></div>
+    <div class="stat safe"><b id="sOut">0</b><span>Pulled from the fire</span></div>
+    <div class="stat fire"><b id="sIn">0</b><span>Still burning</span></div>
+    <div class="stat done"><b id="sDone">0</b><span>Missions complete</span></div>
+  </section>
+
+  <div class="board">
+    <section aria-label="Matchups">
+      <h2>Matchups</h2>
+      <div id="matchups" class="matchups"></div>
+      <div id="empty" class="empty">Set a class code, write it on the board, and each Fellowship shows up here as soon as it lights its fire.</div>
+      <div class="legend"><span><i class="dot"></i>In Camp</span><span><i class="dot s"></i>Singed</span><span><i class="dot f"></i>In the fire</span></div>
+    </section>
+    <div class="col">
+      <section class="panel" aria-label="Standings">
+        <h2>Standings</h2>
+        <table><thead><tr><th>#</th><th>Fellowship</th><th class="r">Safe</th><th class="r">Correct</th></tr></thead><tbody id="rows"></tbody></table>
+      </section>
+      <section class="panel" aria-label="Live feed">
+        <h2>Around the fire</h2>
+        <ul class="feed" id="feed"></ul>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const RELAY = "https://ntfy.sh/";
+function topicFor(code) { return "cpffl2001-plusc-" + String(code).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+const KEY = "plusC_board_v1";
+let B = { code: "", teams: {}, hidden: {}, feed: [], clearedAt: 0 };
+try { B = Object.assign(B, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(B)); } catch (e) {} }
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = s => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+let es = null, retryT = null, retryMs = 3000, flash = new Set();
+
+/* ---------- live connection (same relay as the Calculus OR game) ---------- */
+function setCode() {
+  const c = $("codeIn").value.trim(); if (!c) return;
+  if (c !== B.code) { B.code = c; B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = 0; save(); }
+  connect(); render();
+}
+function connect() {
+  $("codeShow").textContent = B.code || "—";
+  if (es) { es.close(); es = null; }
+  clearTimeout(retryT);
+  if (!B.code) { setLive(false); return; }
+  const since = Math.max(Math.floor(B.clearedAt / 1000), Math.floor(Date.now() / 1000) - 12 * 3600);
+  es = new EventSource(RELAY + topicFor(B.code) + "/sse?since=" + since);
+  es.onopen = () => { retryMs = 3000; setLive(true); };
+  es.onerror = () => { setLive("retry"); if (es && es.readyState === 2) { clearTimeout(retryT); retryT = setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); } };
+  es.onmessage = e => {
+    try {
+      const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
+      take(JSON.parse(env.message));
+    } catch (err) {}
+  };
+}
+function take(m) {
+  if (!m || !m.id || !m.fs || !Array.isArray(m.p)) return;
+  if (m.t < B.clearedAt) return;
+  const old = B.teams[m.id];
+  if (old && old.t >= m.t) return;
+  B.teams[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), lost: !!m.lost, mission: m.mission === "defend" ? "defend" : "rescue",
+    result: m.result === "won" || m.result === "lost" ? m.result : null, p: m.p.slice(0, 8).map(x => [String(x[0]).slice(0, 24), x[1] ? 1 : 0, x[2] ? 1 : 0]),
+    b0: Number(m.b0) || 0, ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
+  if (m.last && (!old || old.last !== m.last) && !B.hidden[m.id]) {
+    B.feed.unshift({ t: m.t, fs: B.teams[m.id].fs, msg: B.teams[m.id].last });
+    B.feed.sort((a, b) => b.t - a.t); B.feed = B.feed.slice(0, 40);
+  }
+  flash.add(m.id); save(); schedule();
+}
+function setLive(on) {
+  const l = $("live");
+  l.className = "live" + (on === true ? " on" : "");
+  l.textContent = on === true ? "● Live" : on === "limit" ? "● Relay busy, retrying" : on === "retry" ? "● Reconnecting…" : "● Not connected";
+}
+setInterval(() => {
+  if (!B.code) return;
+  fetch(RELAY + topicFor(B.code) + "/json?poll=1&since=1s").then(r => {
+    if (r.status === 429) setLive("limit"); else if (r.ok && (!es || es.readyState === 2)) connect();
+  }).catch(() => {});
+}, 30000);
+
+/* ---------- scoring ---------- */
+const safe = t => t.p.filter(x => !x[1]).length;
+const burning = t => t.p.filter(x => x[1]).length;
+const statusRank = t => t.result === "won" ? 2 : t.result ? 0 : 1;
+function ranked() {
+  return Object.entries(B.teams).filter(([id]) => !B.hidden[id]).map(([id, t]) => ({ id, ...t }))
+    .sort((a, b) => statusRank(b) - statusRank(a) || safe(b) / b.p.length - safe(a) / a.p.length || b.ok - a.ok || a.ans - b.ans || a.t - b.t);
+}
+
+/* ---------- render ---------- */
+let pending = false;
+function schedule() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); }
+
+function sideHTML(t, right) {
+  if (!t) return "";
+  const status = t.result ? `<span class="pill ${t.result}">${t.result === "won" ? "Mission complete" : "The fire won"}</span>` : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : `Defend · card ${Math.min(t.di + 1, 5)}/5`}</span>`;
+  return `<div class="side ${right ? "right" : ""} ${flash.has(t.id) ? "flash" : ""}">
+    <button class="x" type="button" data-hide="${esc(t.id)}" title="Remove ${esc(t.fs)} from the board" aria-label="Remove ${esc(t.fs)}">✕</button>
+    <div class="fname">${esc(t.fs)}</div>
+    <div class="tagrow">${status}<span class="pill">${t.lost ? "Lost" : "Won"} tug-of-war</span></div>
+    <div class="dots" role="img" aria-label="${safe(t)} safe, ${burning(t)} in the fire">${t.p.map(x => `<i class="dot ${x[1] ? "f" : x[2] ? "s" : ""}" title="${esc(x[0])}${x[1] ? ": in the fire" : x[2] ? ": singed" : ": in Camp"}"></i>`).join("")}</div>
+    <div class="nums"><b>${safe(t)}/${t.p.length}</b> safe · <b>${t.ok}/${t.ans}</b> correct</div>
+    ${t.last ? `<div class="lastev">${esc(t.last)}</div>` : ""}
+  </div>`;
+}
+
+function render() {
+  const list = ranked();
+  $("empty").style.display = list.length ? "none" : "block";
+  $("codeShow").textContent = B.code || "—";
+
+  /* totals */
+  $("sFs").textContent = list.length;
+  $("sIn").textContent = list.reduce((a, t) => a + burning(t), 0);
+  $("sOut").textContent = list.reduce((a, t) => a + Math.max(0, t.b0 - burning(t)), 0);
+  $("sDone").textContent = list.filter(t => t.result === "won").length;
+
+  /* matchups: pair each Fellowship with the opponent it named */
+  const byName = {};
+  list.forEach(t => { (byName[norm(t.fs)] = byName[norm(t.fs)] || []).push(t); });
+  const used = new Set(), pairs = [];
+  list.forEach(t => {
+    if (used.has(t.id)) return;
+    used.add(t.id);
+    const mate = (byName[norm(t.opp)] || []).find(o => !used.has(o.id) && norm(o.opp) === norm(t.fs)) || (byName[norm(t.opp)] || []).find(o => !used.has(o.id));
+    if (mate) used.add(mate.id);
+    pairs.push([t, mate || null]);
+  });
+  $("matchups").innerHTML = pairs.map(([a, b]) => `<article class="match">
+      ${sideHTML(a, false)}
+      <div class="vs" aria-hidden="true">vs</div>
+      ${b ? sideHTML(b, true) : `<div class="side right waiting">Waiting for ${esc(a.opp || "an opponent")} to light their fire…</div>`}
+    </article>`).join("");
+
+  /* standings */
+  $("rows").innerHTML = list.map((t, i) => `<tr class="${i < 3 && (t.result === "won" || safe(t)) ? "g" + (i + 1) : ""}">
+      <td class="rank">${i + 1}</td>
+      <td><div class="tn">${esc(t.fs)}</div><div class="bar"><i style="width:${Math.round(100 * safe(t) / t.p.length)}%"></i></div></td>
+      <td class="r">${safe(t)}/${t.p.length}${t.result === "won" ? " ✓" : ""}</td>
+      <td class="r">${t.ok}/${t.ans}</td></tr>`).join("");
+
+  /* feed */
+  const fmt = ms => new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  $("feed").innerHTML = B.feed.filter(f => !Object.entries(B.hidden).some(([id]) => B.teams[id] && B.teams[id].fs === f.fs)).slice(0, 25)
+    .map(f => `<li><time>${fmt(f.t)}</time><b>${esc(f.fs)}</b> ${esc(f.msg.startsWith(f.fs) ? f.msg.slice(f.fs.length) : "· " + f.msg)}</li>`).join("") || `<li style="border:0;color:var(--muted)">Moves will show up here as they happen.</li>`;
+  flash.clear();
+}
+
+/* ---------- controls ---------- */
+$("setBtn").onclick = setCode;
+$("codeIn").addEventListener("keydown", e => { if (e.key === "Enter") setCode(); });
+$("clearBtn").onclick = function () {
+  const b = this;
+  if (b.dataset.armed === "1") { B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = Date.now(); save(); connect(); render(); b.dataset.armed = ""; b.textContent = "Clear board"; return; }
+  b.dataset.armed = "1"; b.textContent = "Click again to clear";
+  setTimeout(() => { b.dataset.armed = ""; b.textContent = "Clear board"; }, 4000);
+};
+document.addEventListener("click", e => {
+  const h = e.target.closest("[data-hide]"); if (!h) return;
+  if (h.dataset.armed === "1") { B.hidden[h.dataset.hide] = true; save(); render(); return; }
+  h.dataset.armed = "1"; h.textContent = "Remove?"; h.style.opacity = 1;
+  setTimeout(() => { if (h.isConnected) { h.dataset.armed = ""; h.textContent = "✕"; h.style.opacity = ""; } }, 3000);
+});
+
+$("codeIn").value = B.code;
+render(); connect();
+</script>
+</body>
+</html>
