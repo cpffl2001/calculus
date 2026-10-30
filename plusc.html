@@ -176,18 +176,21 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .over .res div { background: var(--sunk); border-radius: 12px; padding: 16px; }
 .over .res h3 { font-family: var(--display); font-weight: 400; margin: 0 0 6px; font-size: 24px; }
 @media (prefers-reduced-motion: no-preference) { .verdict, .event .big { animation: pop .35s ease-out; } @keyframes pop { from { transform: scale(.9); opacity: .4; } to { transform: none; opacity: 1; } } }
+
+.fs-card.solo { max-width: 900px; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
+.table.solo { grid-template-columns: minmax(240px, 1fr) minmax(0, 2.4fr); }
+@media (max-width: 1000px) { .table.solo { grid-template-columns: 1fr; } }
+.vs { color: var(--flame); font-weight: 700; }
+.relay { font-size: 13px; font-weight: 700; color: var(--muted); }
+.relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
 </head>
 <body>
 <div class="wrap" id="app"></div>
 <div id="modal-root"></div>
-
 <script>
 "use strict";
-/* ------------------------------------------------------------------ */
-/* CARDS: f'(x) and a point are given; students find C.                */
-/* C is the exact constant; the app accepts decimals or fractions.     */
-/* ------------------------------------------------------------------ */
 const CARDS = [
   { id: 1,  tier: "EMBER", q: "f′(x) = 6x", g: "f(0) = 4", f: "f(x) = 3x² + 4", C: 4 },
   { id: 2,  tier: "EMBER", q: "f′(x) = 4x<sup>3</sup>", g: "f(1) = 7", f: "f(x) = x⁴ + 6", C: 6 },
@@ -221,370 +224,295 @@ const TIER_NOTE = {
   rescue: { EMBER: "Correct: rescue 1 · Miss: singed", FLAME: "Correct: rescue 2 · Miss: singed", INFERNO: "Correct: rescue 3 · Miss: you fall in" },
   defend: { EMBER: "Correct: stay in Camp · Miss: into the fire", FLAME: "Correct: stay in Camp · Miss: into the fire", INFERNO: "Correct: pull 1 out · Miss: you + 1 more fall in" },
 };
-const SAVE_KEY = "plusC-rescue-v1";
+
+const RELAY = "https://ntfy.sh/";
+function topicFor(code) { return "cpffl2001-plusc-" + String(code).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+const KEY = "plusC-fellowship-v2";
 
 /* ------------------------------------------------------------------ */
-/* STATE                                                               */
+/* STATE: one Fellowship per device                                   */
 /* ------------------------------------------------------------------ */
 let S = null;
 let timerHandle = null;
-
-function blankTeam(i) {
-  return { name: "", lost: i === 1, players: Array.from({ length: 5 }, () => ({ name: "", status: "camp" })) };
-}
-function freshSetup() {
-  return { phase: "setup", teams: [blankTeam(0), blankTeam(1)], clockMin: 15, error: "" };
-}
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); } catch (e) {} }
-function load() {
-  try { const raw = localStorage.getItem(SAVE_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
-  return null;
-}
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const card = id => CARDS.find(c => c.id === id);
-const campName = t => t.lost ? "Losers' Camp" : "Winners' Camp";
-const other = i => 1 - i;
+const newId = () => Math.random().toString(36).slice(2, 10);
 
-function missionOf(t) { return t.players.some(p => p.status === "fire") ? "rescue" : "defend"; }
-function inFire(t) { return t.players.filter(p => p.status === "fire"); }
-function inCamp(t) { return t.players.filter(p => p.status === "camp"); }
-function burnLimit(t) { return Math.floor(t.players.length / 2) + 1; }
+function freshSetup(prev) {
+  return {
+    phase: "setup", id: newId(), code: prev ? prev.code : "", name: prev ? prev.name : "", opp: prev ? prev.opp : "",
+    lost: prev ? prev.lost : false,
+    players: prev ? prev.players.map(p => ({ name: p.name, status: "camp" })) : Array.from({ length: 5 }, () => ({ name: "", status: "camp" })),
+    error: "",
+  };
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+function load() { try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch (e) {} return null; }
 
-function log(msg) { S.log.push(msg); }
+const campName = () => S.lost ? "Losers' Camp" : "Winners' Camp";
+function missionOf() { return S.players.some(p => p.status === "fire") ? "rescue" : "defend"; }
+const inFire = () => S.players.filter(p => p.status === "fire");
+const inCamp = () => S.players.filter(p => p.status === "camp");
+const idxWhere = f => S.players.map((p, i) => i).filter(i => f(S.players[i]));
+const burnLimit = () => Math.floor(S.players.length / 2) + 1;
+function log(msg) { S.log.push(msg); S.last = msg; }
 
 /* ------------------------------------------------------------------ */
-/* SETUP SCREEN                                                        */
+/* LIVE LEADERBOARD: same relay pattern as the Calculus OR game        */
+/* ------------------------------------------------------------------ */
+function broadcast() {
+  if (!S || !S.code || S.phase === "setup") return;
+  const msg = JSON.stringify({
+    id: S.id, fs: S.name, opp: S.opp, lost: S.lost, mission: S.mission, result: S.result,
+    p: S.players.map(p => [p.name, p.status === "fire" ? 1 : 0, p.singed > 0 ? 1 : 0]),
+    b0: S.b0 || 0, ans: S.stats.answered, ok: S.stats.correct, di: S.defendIdx, last: S.last || "", t: Date.now(),
+  });
+  const send = tries => fetch(RELAY + topicFor(S.code), { method: "POST", body: msg })
+    .then(r => setRelay(r.ok ? "ok" : r.status === 429 ? "limit" : "err"))
+    .catch(() => { setRelay("err"); if (tries > 0) setTimeout(() => send(tries - 1), 4000); });
+  send(3);
+}
+let relayState = "ok";
+function setRelay(st) { relayState = st; const el = document.getElementById("relay"); if (el) paintRelay(el); }
+function paintRelay(el) {
+  el.className = "relay " + relayState;
+  el.textContent = relayState === "ok" ? "● Sending to leaderboard" : relayState === "limit" ? "● Leaderboard relay busy. Keep playing." : "● Reconnecting to leaderboard…";
+}
+/* No heartbeat: ntfy.sh keeps 12 hours of messages, so a leaderboard opened late still replays every Fellowship. Fewer posts also keeps a whole classroom (one shared network) under the relay's free daily limit. */
+
+/* ------------------------------------------------------------------ */
+/* SETUP                                                               */
 /* ------------------------------------------------------------------ */
 function renderSetup() {
-  const app = document.getElementById("app");
-  app.innerHTML = `
+  document.getElementById("app").innerHTML = `
     ${topBar(false)}
-    <p class="intro">Enter both Fellowships, then mark each player as <b>Survived</b> or <b>Burned</b> in the tug-of-war. Burned pieces start on The Fire on your board, and everyone else starts in their Camp. The game tells you which pieces to move after every turn.</p>
-    <div class="setup-grid">
-      ${S.teams.map((t, i) => `
-        <section class="fs-card" aria-label="Fellowship ${i + 1}">
-          <h2>Fellowship ${i + 1}</h2>
-          <div>
-            <label class="lbl" for="tname${i}">Fellowship name</label>
-            <input type="text" id="tname${i}" data-team="${i}" data-field="tname" value="${esc(t.name)}" placeholder="e.g. The Integrators" maxlength="40">
-          </div>
-          <div>
-            <span class="lbl">Tug-of-war result</span>
-            <div class="seg" role="group" aria-label="Tug-of-war result">
-              <button type="button" class="${!t.lost ? "on" : ""}" data-act="result" data-team="${i}" data-val="won">Won</button>
-              <button type="button" class="${t.lost ? "on" : ""}" data-act="result" data-team="${i}" data-val="lost">Lost</button>
-            </div>
-          </div>
-          <div>
-            <span class="lbl">Players</span>
-            <div style="display:grid;gap:8px">
-              ${t.players.map((p, j) => `
-                <div class="prow">
-                  <span class="num">${j + 1}</span>
-                  <input type="text" id="p${i}-${j}" data-team="${i}" data-p="${j}" data-field="pname" value="${esc(p.name)}" placeholder="Player name" maxlength="24" aria-label="Player ${j + 1} name">
-                  <div class="seg" role="group" aria-label="Player ${j + 1} tug-of-war status">
-                    <button type="button" class="safe ${p.status === "camp" ? "on" : ""}" data-act="pstat" data-team="${i}" data-p="${j}" data-val="camp">Survived</button>
-                    <button type="button" class="burn ${p.status === "fire" ? "on" : ""}" data-act="pstat" data-team="${i}" data-p="${j}" data-val="fire">Burned</button>
-                  </div>
-                  <button type="button" class="btn small quiet" data-act="del" data-team="${i}" data-p="${j}" aria-label="Remove player ${j + 1}" ${t.players.length <= 1 ? "disabled" : ""}>✕</button>
-                </div>`).join("")}
-            </div>
-            <div style="margin-top:8px"><button type="button" class="btn small" data-act="add" data-team="${i}" ${t.players.length >= 8 ? "disabled" : ""}>+ Add player</button></div>
-          </div>
-          <div class="preview" id="preview${i}">${previewText(t)}</div>
-        </section>`).join("")}
-    </div>
-    <div class="setup-foot">
-      <label for="clockMin"><b>Class clock</b></label>
-      <select id="clockMin" data-field="clock">
-        ${[0, 10, 15, 20, 25, 30].map(m => `<option value="${m}" ${S.clockMin === m ? "selected" : ""}>${m ? m + " minutes" : "No clock"}</option>`).join("")}
-      </select>
-      <span style="flex:1"></span>
-      ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
-      <button type="button" class="btn primary" data-act="start">Light the fire</button>
-    </div>`;
+    <p class="intro">One computer per Fellowship. Enter the class code from the board, your Fellowship, and the Fellowship you played in the tug-of-war. Then mark each player <b>Survived</b> or <b>Burned</b>. Burned pieces start on The Fire on your physical board.</p>
+    <section class="fs-card solo" aria-label="Your Fellowship">
+      <div class="two">
+        <div><label class="lbl" for="code">Class code</label><input type="text" id="code" data-field="code" value="${esc(S.code)}" placeholder="Code on the board" maxlength="20" autocomplete="off"></div>
+        <div><span class="lbl">Tug-of-war result</span>
+          <div class="seg" role="group" aria-label="Tug-of-war result">
+            <button type="button" class="${!S.lost ? "on" : ""}" data-act="result" data-val="won">We won</button>
+            <button type="button" class="${S.lost ? "on" : ""}" data-act="result" data-val="lost">We lost</button>
+          </div></div>
+      </div>
+      <div class="two">
+        <div><label class="lbl" for="fname">Your Fellowship's name</label><input type="text" id="fname" data-field="name" value="${esc(S.name)}" placeholder="e.g. The Integrators" maxlength="40"></div>
+        <div><label class="lbl" for="oname">Your opponent's Fellowship</label><input type="text" id="oname" data-field="opp" value="${esc(S.opp)}" placeholder="Who you played in tug-of-war" maxlength="40"></div>
+      </div>
+      <div>
+        <span class="lbl">Players</span>
+        <div style="display:grid;gap:8px">
+          ${S.players.map((p, j) => `
+            <div class="prow">
+              <span class="num">${j + 1}</span>
+              <input type="text" id="p${j}" data-p="${j}" data-field="pname" value="${esc(p.name)}" placeholder="Player name" maxlength="24" aria-label="Player ${j + 1} name">
+              <div class="seg" role="group" aria-label="Player ${j + 1} tug-of-war status">
+                <button type="button" class="safe ${p.status === "camp" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="camp">Survived</button>
+                <button type="button" class="burn ${p.status === "fire" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="fire">Burned</button>
+              </div>
+              <button type="button" class="btn small quiet" data-act="del" data-p="${j}" aria-label="Remove player ${j + 1}" ${S.players.length <= 1 ? "disabled" : ""}>✕</button>
+            </div>`).join("")}
+        </div>
+        <div style="margin-top:8px"><button type="button" class="btn small" data-act="add" ${S.players.length >= 8 ? "disabled" : ""}>+ Add player</button></div>
+      </div>
+      <div class="preview" id="preview">${previewText()}</div>
+      <div class="setup-foot">
+        <span style="flex:1"></span>
+        ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
+        <button type="button" class="btn primary" data-act="start">Light the fire</button>
+      </div>
+    </section>`;
 }
-function previewText(t) {
-  const burned = t.players.filter(p => p.status === "fire").length;
-  const m = missionOf(t);
-  const who = t.lost ? "Lost the tug-of-war, so this Fellowship goes first." : "Won the tug-of-war.";
-  return m === "rescue"
-    ? `<b>Mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Get them all out. ${who}`
-    : `<b>Mission: Defend the Camp.</b> Nobody burned. Answer 5 cards (Ember, Ember, Flame, Flame, Inferno) and keep at least ${t.players.length - burnLimit(t) + 1} of ${t.players.length} in Camp. ${who}`;
+function previewText() {
+  const burned = S.players.filter(p => p.status === "fire").length;
+  return missionOf() === "rescue"
+    ? `<b>Your mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Get every one of them out.`
+    : `<b>Your mission: Defend the Camp.</b> Nobody burned. Answer 5 cards (Ember, Ember, Flame, Flame, Inferno) and keep at least ${S.players.length - burnLimit() + 1} of ${S.players.length} in Camp.`;
 }
 function startGame() {
-  for (const [i, t] of S.teams.entries()) {
-    if (!t.name.trim()) { S.error = `Give Fellowship ${i + 1} a name.`; return renderSetup(); }
-    if (t.players.some(p => !p.name.trim())) { S.error = `Every player in ${t.name.trim()} needs a name.`; return renderSetup(); }
-  }
+  S.code = S.code.trim(); S.name = S.name.trim(); S.opp = S.opp.trim();
+  if (!S.code) { S.error = "Enter the class code from the board."; return renderSetup(); }
+  if (!S.name) { S.error = "Enter your Fellowship's name."; return renderSetup(); }
+  if (!S.opp) { S.error = "Enter your opponent's Fellowship."; return renderSetup(); }
+  if (S.name.toLowerCase() === S.opp.toLowerCase()) { S.error = "Your opponent needs a different name than yours."; return renderSetup(); }
+  if (S.players.some(p => !p.name.trim())) { S.error = "Every player needs a name."; return renderSetup(); }
   S.error = "";
   const piles = { EMBER: [], FLAME: [], INFERNO: [] };
   CARDS.forEach(c => piles[c.tier].push(c.id));
   EVENTS.forEach(e => piles.EMBER.push(e));
   Object.values(piles).forEach(shuffle);
-  S.teams.forEach(t => {
-    t.name = t.name.trim();
-    t.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
-    t.mission = missionOf(t);
-    t.result = null;
-    t.defendIdx = 0;
-  });
-  S.piles = piles;
-  S.phase = "play";
-  S.log = [];
-  S.clockEnd = S.clockMin ? Date.now() + S.clockMin * 60000 : null;
-  S.turnTeam = S.teams[0].lost ? 0 : 1;
-  S.turnNo = 0;
-  log(`Game started. ${S.teams[S.turnTeam].name} lost the tug-of-war and goes first.`);
+  S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
+  Object.assign(S, { piles, phase: "play", log: [], mission: missionOf(), result: null, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
+  log(`${S.name} lit the fire: ${S.mission === "rescue" ? `rescuing ${inFire().length}` : "defending the camp"}.`);
   beginTurn();
 }
 
 /* ------------------------------------------------------------------ */
 /* TURN ENGINE                                                         */
 /* ------------------------------------------------------------------ */
-function clockExpired() { return S.clockEnd && Date.now() >= S.clockEnd; }
-
-function endOnClock() {
-  S.teams.forEach(t => {
-    if (t.result) return;
-    if (t.mission === "rescue") { t.result = "lost"; log(`Time ran out. The fire keeps ${inFire(t).length} of ${t.name}'s players.`); }
-    else { t.result = inFire(t).length < burnLimit(t) ? "won" : "lost"; log(`Time ran out for ${t.name}'s defense.`); }
-  });
+function eligiblePlayers() {
+  const camp = idxWhere(p => p.status === "camp" && !(p.singed > 0));
+  if (S.mission === "defend") { const fresh = camp.filter(i => !S.players[i].answered); return fresh.length ? fresh : camp; }
+  return camp;
 }
+function finish() { S.phase = "over"; save(); broadcast(); render(); }
 
 function beginTurn() {
-  if (clockExpired()) endOnClock();
-  if (S.teams.every(t => t.result)) { S.phase = "over"; save(); return render(); }
-  if (S.teams[S.turnTeam].result) S.turnTeam = other(S.turnTeam);
-  const t = S.teams[S.turnTeam];
-  S.turnNo++;
-  t.players.forEach(p => { if (p.singed > 0) p.singed--; });
-
-  if (t.mission === "rescue" && !["EMBER", "FLAME", "INFERNO"].some(k => S.piles[k].length)) {
-    t.result = "lost"; log(`The piles ran out. The fire wins against ${t.name}.`);
-    return nextTurn();
+  clearInterval(timerHandle);
+  if (S.result) return finish();
+  S.players.forEach(p => { if (p.singed > 0) p.singed--; });
+  if (S.mission === "rescue" && !["EMBER", "FLAME", "INFERNO"].some(k => S.piles[k].length)) {
+    S.result = "lost"; log(`The cards ran out. The fire keeps ${inFire().length} of ${S.name}.`); return finish();
   }
-  let eligible = eligiblePlayers(t);
-  let lastStand = false;
-  if (!eligible.length && t.mission === "rescue") {
-    if (inCamp(t).length === 0) { eligible = inFire(t).map(p => t.players.indexOf(p)); lastStand = true; }
-  }
+  let eligible = eligiblePlayers(), lastStand = false;
+  if (!eligible.length && S.mission === "rescue" && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
   if (!eligible.length) {
-    log(`${t.name} skips a turn. Everyone in Camp is singed.`);
     S.turn = { stage: "skip", eligible: [], moves: [] };
     save(); return render();
   }
-  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.length === 1 ? eligible[0] : null, tier: t.mission === "defend" ? DEFEND_ORDER[t.defendIdx] : null, moves: [] };
+  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.length === 1 ? eligible[0] : null, tier: S.mission === "defend" ? DEFEND_ORDER[S.defendIdx] : null, moves: [] };
+  if (!S.announced) { S.announced = true; save(); broadcast(); }
   save(); render();
 }
 
-function eligiblePlayers(t) {
-  const camp = t.players.map((p, i) => i).filter(i => t.players[i].status === "camp" && !(t.players[i].singed > 0));
-  if (t.mission === "defend") {
-    const fresh = camp.filter(i => !t.players[i].answered);
-    return fresh.length ? fresh : camp;
-  }
-  return camp;
-}
-
-function nextTurn() {
-  clearInterval(timerHandle);
-  if (clockExpired()) endOnClock();
-  if (S.teams.every(t => t.result)) { S.phase = "over"; save(); return render(); }
-  const o = other(S.turnTeam);
-  if (!S.teams[o].result) S.turnTeam = o;
-  beginTurn();
-}
-
 function drawCard() {
-  const t = S.teams[S.turnTeam];
   let tier = S.turn.tier;
   if (!S.piles[tier].length) {
     const alt = ["EMBER", "FLAME", "INFERNO"].find(k => S.piles[k].length);
-    if (!alt) { t.result = t.mission === "defend" ? (inFire(t).length < burnLimit(t) ? "won" : "lost") : "lost"; log("The piles ran out."); return nextTurn(); }
+    if (!alt) { S.result = S.mission === "defend" ? (inFire().length < burnLimit() ? "won" : "lost") : "lost"; log("The cards ran out."); return finish(); }
     tier = alt; S.turn.tier = alt;
   }
   const item = S.piles[tier].shift();
   if (typeof item === "string") {
     S.turn.stage = "event"; S.turn.event = item;
-    log(`${t.name} drew ${item === "FLARE" ? "FLARE-UP!" : "BUCKET BRIGADE"}.`);
+    log(`${S.name} drew ${item === "FLARE" ? "a Flare-Up!" : "the Bucket Brigade"}`);
   } else {
-    S.turn.stage = "card"; S.turn.cardId = item; S.turn.flare = false; S.turn.started = Date.now(); S.turn.limit = 120;
+    Object.assign(S.turn, { stage: "card", cardId: item, flare: false, started: Date.now(), limit: 120 });
   }
   save(); render();
 }
 
 function startFlare() {
-  if (!S.piles.FLAME.length) { log("No Flame cards left, so the flare-up fizzles."); S.turn.stage = "choose"; save(); return render(); }
+  if (!S.piles.FLAME.length) { log("No Flame cards left, so the flare-up fizzles."); return backToChoose(); }
   S.turn.flareReturn = { tier: S.turn.tier, answerer: S.turn.answerer };
-  S.turn.stage = "card"; S.turn.cardId = S.piles.FLAME.shift(); S.turn.flare = true; S.turn.started = Date.now(); S.turn.limit = 60;
+  Object.assign(S.turn, { stage: "card", cardId: S.piles.FLAME.shift(), flare: true, started: Date.now(), limit: 60 });
   save(); render();
 }
 
 function parseC(raw) {
   if (raw == null) return NaN;
-  let s = String(raw).trim().toLowerCase().replace(/[−–—]/g, "-").replace(/\s+/g, "").replace(/^c=/, "");
+  const s = String(raw).trim().toLowerCase().replace(/[−–—]/g, "-").replace(/\s+/g, "").replace(/^c=/, "");
   if (!s) return NaN;
   if (/^[-+]?\d+(\.\d+)?\/[-+]?\d+(\.\d+)?$/.test(s)) { const [a, b] = s.split("/").map(Number); return b ? a / b : NaN; }
   if (/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return Number(s);
   return NaN;
 }
 const sameC = (x, C) => Number.isFinite(x) && Math.abs(x - C) < 1e-6;
+const fmtC = C => { const sign = C < 0 ? "−" : ""; const a = Math.abs(C); return sign + (Number.isInteger(a) ? a : Number.isInteger(a * 2) ? `${a * 2}/2` : a); };
 
-function move(teamIdx, pIdx, to) {
-  const t = S.teams[teamIdx], p = t.players[pIdx];
-  const from = p.status;
+function move(i, to) {
+  const p = S.players[i], from = p.status;
   p.status = to;
   if (to === "fire") p.singed = 0;
-  const where = to === "fire" ? "The Fire" : campName(t);
-  const fromW = from === "fire" ? "The Fire" : campName(t);
-  S.turn.moves.push(`<b>${esc(p.name)}</b> (${esc(t.name)}): ${fromW} → ${where}`);
-  log(`${p.name} (${t.name}): ${fromW} → ${where}`);
+  const w = st => st === "fire" ? "The Fire" : campName();
+  S.turn.moves.push(`<b>${esc(p.name)}</b>: ${w(from)} → ${w(to)}`);
+  S.log.push(`${p.name}: ${w(from)} → ${w(to)}`);
 }
-function singe(teamIdx, pIdx) {
-  const t = S.teams[teamIdx], p = t.players[pIdx];
-  p.singed = 2;
-  S.turn.moves.push(`<b>${esc(p.name)}</b> (${esc(t.name)}) is singed. Lay the piece on its side; it sits out your next turn.`);
-  log(`${p.name} (${t.name}) is singed.`);
+function singe(i) {
+  const p = S.players[i]; p.singed = 2;
+  S.turn.moves.push(`<b>${esc(p.name)}</b> is singed. Lay the piece on its side; it sits out your next turn.`);
+  S.log.push(`${p.name} is singed.`);
 }
 
-async function resolve(activeRaw, marshalRaw, missingC, timeout) {
+async function resolve(raw, missingC, timeout) {
   clearInterval(timerHandle);
-  const ti = S.turnTeam, t = S.teams[ti], mi = other(ti), m = S.teams[mi];
-  const c = card(S.turn.cardId);
-  const a = S.turn.answerer, ap = t.players[a];
-  const correct = !timeout && !missingC && sameC(parseC(activeRaw), c.C);
-  const marshalsRight = sameC(parseC(marshalRaw), c.C);
-  S.turn.correct = correct; S.turn.missingC = missingC; S.turn.timeout = timeout;
-  S.turn.activeRaw = activeRaw; S.turn.marshalRaw = marshalRaw;
-  log(`${ap.name} (${t.name}) answered card ${c.id} (${c.tier}): ${correct ? "correct" : missingC ? "Missing C!" : timeout ? "out of time" : "miss"}.`);
+  const c = card(S.turn.cardId), a = S.turn.answerer, ap = S.players[a];
+  const correct = !timeout && !missingC && sameC(parseC(raw), c.C);
+  Object.assign(S.turn, { correct, missingC, timeout, raw });
+  S.stats.answered++; if (correct) S.stats.correct++;
+  const before = inFire().length;
 
   if (S.turn.flare) {
     if (!correct) {
-      const camp = t.players.map((p, i) => i).filter(i => t.players[i].status === "camp");
-      if (camp.length) {
-        const pick = await choosePlayers(mi, ti, camp, 1, `Flare-up! ${m.name}, choose one of ${t.name}'s players to pull into the fire.`);
-        pick.forEach(i => move(ti, i, "fire"));
-      }
+      const camp = idxWhere(p => p.status === "camp");
+      if (camp.length) (await choosePlayers(camp, 1, `Flare-up missed! ${S.opp}, choose one of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire"));
     }
-  } else if (t.mission === "rescue") {
+  } else if (S.mission === "rescue") {
     if (correct) {
-      let pay = RESCUE_PAY[c.tier];
-      if (S.turn.lastStand) move(ti, a, "camp");
-      const fire = t.players.map((p, i) => i).filter(i => t.players[i].status === "fire");
-      if (fire.length) {
-        const pick = fire.length <= pay ? fire : await choosePlayers(ti, ti, fire, pay, `${t.name}, choose ${pay} player${pay > 1 ? "s" : ""} to pull out of the fire.`);
-        pick.forEach(i => move(ti, i, "camp"));
-      }
+      const pay = RESCUE_PAY[c.tier];
+      if (S.turn.lastStand) move(a, "camp");
+      const fire = idxWhere(p => p.status === "fire");
+      if (fire.length) (fire.length <= pay ? fire : await choosePlayers(fire, pay, `Choose ${pay} player${pay > 1 ? "s" : ""} to pull out of the fire.`)).forEach(i => move(i, "camp"));
     } else if (!S.turn.lastStand) {
-      if (c.tier === "INFERNO") move(ti, a, "fire"); else singe(ti, a);
+      if (c.tier === "INFERNO") move(a, "fire"); else singe(a);
     }
   } else {
-    ap.answered = true;
-    t.defendIdx++;
+    ap.answered = true; S.defendIdx++;
     if (correct) {
-      if (c.tier === "INFERNO") {
-        const fire = t.players.map((p, i) => i).filter(i => t.players[i].status === "fire");
-        if (fire.length) {
-          const pick = fire.length === 1 ? fire : await choosePlayers(ti, ti, fire, 1, `${t.name}, choose 1 player to pull out of the fire.`);
-          pick.forEach(i => move(ti, i, "camp"));
-        }
-      }
+      if (c.tier === "INFERNO") { const fire = idxWhere(p => p.status === "fire"); if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp")); }
     } else {
-      move(ti, a, "fire");
-      if (c.tier === "INFERNO") {
-        const camp = t.players.map((p, i) => i).filter(i => t.players[i].status === "camp");
-        if (camp.length) {
-          const pick = camp.length === 1 ? camp : await choosePlayers(mi, ti, camp, 1, `${m.name}, choose one more of ${t.name}'s players to pull into the fire.`);
-          pick.forEach(i => move(ti, i, "fire"));
-        }
-      }
+      move(a, "fire");
+      if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp"); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire")); }
     }
   }
-
-  /* steal */
-  S.turn.steal = false;
-  if (!S.turn.flare && !correct && marshalsRight && !m.result) {
-    const fire = m.players.map((p, i) => i).filter(i => m.players[i].status === "fire");
-    if (fire.length) {
-      S.turn.steal = true;
-      const pick = fire.length === 1 ? fire : await choosePlayers(mi, mi, fire, 1, `Steal! ${m.name} got it right. Choose 1 of your players to pull out of the fire.`);
-      pick.forEach(i => move(mi, i, "camp"));
-      log(`${m.name} made a steal.`);
-    }
-  }
-
-  checkMissions();
+  const after = inFire().length;
+  const verdict = correct ? "solved" : missingC ? "forgot +C on" : timeout ? "ran out of time on" : "missed";
+  const delta = after < before ? `, rescued ${before - after}` : after > before ? `, ${after - before} fell in` : "";
+  log(`${ap.name} ${verdict} ${S.turn.flare ? "a Flare-Up" : `an ${c.tier === "EMBER" ? "Ember" : c.tier === "FLAME" ? "Flame" : "Inferno"}`} card${delta}.`.replace("an Flame", "a Flame"));
+  checkMission();
   S.turn.stage = S.turn.flare ? "flareResult" : "result";
-  save(); render();
+  save(); broadcast(); render();
 }
 
-function checkMissions() {
-  S.teams.forEach(t => {
-    if (t.result) return;
-    if (t.mission === "rescue" && inFire(t).length === 0) { t.result = "won"; log(`${t.name} emptied the fire!`); }
-    if (t.mission === "defend") {
-      if (inFire(t).length >= burnLimit(t)) { t.result = "lost"; log(`The fire took too many of ${t.name}.`); }
-      else if (t.defendIdx >= DEFEND_ORDER.length) { t.result = "won"; log(`${t.name} defended the camp!`); }
-    }
-  });
+function checkMission() {
+  if (S.result) return;
+  if (S.mission === "rescue" && inFire().length === 0) { S.result = "won"; log(`${S.name} emptied the fire!`); }
+  if (S.mission === "defend") {
+    if (inFire().length >= burnLimit()) { S.result = "lost"; log(`The fire took too many of ${S.name}.`); }
+    else if (S.defendIdx >= DEFEND_ORDER.length) { S.result = "won"; log(`${S.name} defended the camp!`); }
+  }
 }
 
 async function bucket() {
-  const ti = S.turnTeam, t = S.teams[ti];
-  const fire = t.players.map((p, i) => i).filter(i => t.players[i].status === "fire");
-  if (fire.length) {
-    const pick = fire.length === 1 ? fire : await choosePlayers(ti, ti, fire, 1, `${t.name}, choose 1 player to pull out of the fire.`);
-    pick.forEach(i => move(ti, i, "camp"));
-  } else {
-    S.turn.moves.push("Nobody is in your fire, so the bucket has nothing to put out.");
-  }
-  checkMissions();
+  const fire = idxWhere(p => p.status === "fire");
+  if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp"));
+  else S.turn.moves.push("Nobody is in your fire, so the bucket has nothing to put out.");
+  log(`${S.name} used the Bucket Brigade.`);
+  checkMission();
   S.turn.stage = "eventDone";
-  save(); render();
+  save(); broadcast(); render();
 }
 
 function backToChoose() {
-  const t = S.teams[S.turnTeam];
-  if (t.result) return nextTurn();
+  if (S.result) return finish();
   const keepTier = S.turn.flareReturn ? S.turn.flareReturn.tier : S.turn.tier;
   const prevAns = S.turn.flareReturn ? S.turn.flareReturn.answerer : S.turn.answerer;
-  let eligible = eligiblePlayers(t), lastStand = false;
-  if (!eligible.length && t.mission === "rescue" && inCamp(t).length === 0) { eligible = inFire(t).map(p => t.players.indexOf(p)); lastStand = true; }
-  if (!eligible.length) return nextTurn();
-  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.includes(prevAns) ? prevAns : (eligible.length === 1 ? eligible[0] : null), tier: t.mission === "defend" ? DEFEND_ORDER[t.defendIdx] : keepTier, moves: [], drawAgain: true };
+  let eligible = eligiblePlayers(), lastStand = false;
+  if (!eligible.length && S.mission === "rescue" && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
+  if (!eligible.length) return beginTurn();
+  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.includes(prevAns) ? prevAns : (eligible.length === 1 ? eligible[0] : null), tier: S.mission === "defend" ? DEFEND_ORDER[S.defendIdx] : keepTier, moves: [], drawAgain: true };
   save(); render();
 }
 
 /* ------------------------------------------------------------------ */
 /* PICK-PLAYERS MODAL                                                  */
 /* ------------------------------------------------------------------ */
-function choosePlayers(chooserIdx, ownerIdx, options, count, title) {
+function choosePlayers(options, count, title) {
   return new Promise(res => {
-    const owner = S.teams[ownerIdx];
-    const sel = new Set();
-    const root = document.getElementById("modal-root");
+    const sel = new Set(), root = document.getElementById("modal-root");
     const draw = () => {
-      root.innerHTML = `
-        <div class="modal-back" role="dialog" aria-modal="true" aria-labelledby="mt">
-          <div class="modal">
-            <h3 id="mt">${esc(title)}</h3>
-            <p>Pick ${count}. Selected: ${sel.size} of ${count}</p>
-            <div class="choices">
-              ${options.map(i => `<button type="button" class="choice ${sel.has(i) ? "on" : ""}" data-i="${i}">${esc(owner.players[i].name)}</button>`).join("")}
-            </div>
-            <div class="actions"><button type="button" class="btn primary" id="mok" ${sel.size === count ? "" : "disabled"}>Confirm</button></div>
-          </div>
-        </div>`;
+      root.innerHTML = `<div class="modal-back" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modal">
+        <h3 id="mt">${esc(title)}</h3><p>Pick ${count}. Selected: ${sel.size} of ${count}</p>
+        <div class="choices">${options.map(i => `<button type="button" class="choice ${sel.has(i) ? "on" : ""}" data-i="${i}">${esc(S.players[i].name)}</button>`).join("")}</div>
+        <div class="actions"><button type="button" class="btn primary" id="mok" ${sel.size === count ? "" : "disabled"}>Confirm</button></div></div></div>`;
       root.querySelectorAll(".choice").forEach(b => b.onclick = () => {
         const i = Number(b.dataset.i);
         if (sel.has(i)) sel.delete(i); else if (sel.size < count) sel.add(i);
-        draw();
-        const again = root.querySelector(`.choice[data-i="${i}"]`); if (again) again.focus();
+        draw(); const again = root.querySelector(`.choice[data-i="${i}"]`); if (again) again.focus();
       });
-      const ok = root.querySelector("#mok");
-      ok.onclick = () => { root.innerHTML = ""; res([...sel]); };
+      root.querySelector("#mok").onclick = () => { root.innerHTML = ""; res([...sel]); };
     };
     draw();
     const first = root.querySelector(".choice"); if (first) first.focus();
@@ -592,91 +520,82 @@ function choosePlayers(chooserIdx, ownerIdx, options, count, title) {
 }
 
 /* ------------------------------------------------------------------ */
-/* RENDER: PLAY                                                        */
+/* RENDER                                                              */
 /* ------------------------------------------------------------------ */
 function topBar(inGame) {
   return `<header class="top">
     <h1>The <span>+C</span> Rescue</h1>
-    <span class="tag">${inGame ? "Move your pieces on the board when the game tells you to." : "Antiderivative follow-up game"}</span>
+    <span class="tag">${inGame ? `${esc(S.name)} <span class="vs">vs</span> ${esc(S.opp)} · class ${esc(S.code)}` : "Antiderivative follow-up game"}</span>
     <span class="spacer"></span>
-    ${inGame && S.clockEnd ? `<span class="clock" id="clock" aria-live="off">--:--</span>` : ""}
-    ${inGame ? `<button type="button" class="btn small quiet" data-act="reset">New game</button>` : ""}
+    ${inGame ? `<span class="relay ok" id="relay" aria-live="polite"></span><button type="button" class="btn small quiet" data-act="reset">New game</button>` : ""}
   </header>`;
 }
 
-function teamPanel(i) {
-  const t = S.teams[i];
-  const active = S.phase === "play" && S.turnTeam === i && !t.result;
-  const fire = t.players.filter(p => p.status === "fire");
-  const camp = t.players.filter(p => p.status === "camp");
-  const status = t.result === "won" ? `<span class="pill won">Mission complete</span>` : t.result === "lost" ? `<span class="pill lost">The fire won</span>` : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
-  const progress = t.mission === "defend" ? `Card ${Math.min(t.defendIdx + 1, 5)} of 5 · lose at ${burnLimit(t)} burning` : `${fire.length} still in the fire`;
-  return `<aside class="team ${active ? "active" : ""}" aria-label="${esc(t.name)}">
-    <h3>${esc(t.name)}</h3>
-    <div class="meta">${t.lost ? "Lost" : "Won"} the tug-of-war · ${campName(t)}</div>
+function teamPanel() {
+  const fire = S.players.filter(p => p.status === "fire"), camp = S.players.filter(p => p.status === "camp");
+  const status = S.result === "won" ? `<span class="pill won">Mission complete</span>` : S.result === "lost" ? `<span class="pill lost">The fire won</span>` : `<span class="pill ${S.mission}">${S.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
+  const progress = S.mission === "defend" ? `Card ${Math.min(S.defendIdx + 1, 5)} of 5 · lose at ${burnLimit()} burning` : `${fire.length} still in the fire`;
+  return `<aside class="team active" aria-label="${esc(S.name)}">
+    <h3>${esc(S.name)}</h3>
+    <div class="meta">${S.lost ? "Lost" : "Won"} the tug-of-war vs ${esc(S.opp)} · ${campName()}</div>
     ${status}
-    <div class="meta" style="margin-top:6px">${t.result ? "" : progress}</div>
+    <div class="meta" style="margin-top:6px">${S.result ? "" : progress}</div>
     <div class="zone-title">In Camp</div>
-    <div class="plist">${camp.length ? camp.map(p => `<span class="chip ${p.singed > 0 ? "singed" : "camp"} ${t.mission === "defend" && p.answered ? "done" : ""}">${esc(p.name)}${p.singed > 0 ? " · singed" : ""}${t.mission === "defend" && p.answered ? " ✓" : ""}</span>`).join("") : `<span class="empty">Camp is empty</span>`}</div>
+    <div class="plist">${camp.length ? camp.map(p => `<span class="chip ${p.singed > 0 ? "singed" : "camp"} ${S.mission === "defend" && p.answered ? "done" : ""}">${esc(p.name)}${p.singed > 0 ? " · singed" : ""}${S.mission === "defend" && p.answered ? " ✓" : ""}</span>`).join("") : `<span class="empty">Camp is empty</span>`}</div>
     <div class="zone-title">In the fire</div>
     <div class="plist">${fire.length ? fire.map(p => `<span class="chip fire">${esc(p.name)}</span>`).join("") : `<span class="empty">Nobody</span>`}</div>
-    <div class="firebar" aria-hidden="true">${t.players.map(p => `<i class="${p.status === "fire" ? "f" : ""}"></i>`).join("")}</div>
+    <div class="firebar" aria-hidden="true">${S.players.map(p => `<i class="${p.status === "fire" ? "f" : ""}"></i>`).join("")}</div>
+    <div class="meta" style="margin-top:10px">${S.stats.correct} of ${S.stats.answered} cards correct</div>
   </aside>`;
 }
 
-function cardHTML(c, mission) {
+function cardHTML(c) {
   return `<div class="card ${c.tier}c">
     <div class="band"><span>${c.tier}</span><span>Card ${c.id}</span></div>
     <div class="body"><div class="q ${c.long ? "long" : ""}">${c.q}</div><div class="g">${c.g}</div></div>
-    <div class="foot">${S.turn.flare ? "Flare-up: solve as a team in 60 seconds. Miss it and the Marshals pull one of you into the fire." : TIER_NOTE[mission][c.tier]}</div>
+    <div class="foot">${S.turn.flare ? "Flare-up: solve as a team in 60 seconds. Miss it and your opponent pulls one of you into the fire." : TIER_NOTE[S.mission][c.tier]}</div>
   </div>`;
 }
-
 function movesHTML() {
   if (!S.turn.moves.length) return `<div class="moves"><h4>Your board</h4><ul><li>No pieces move this time.</li></ul></div>`;
   return `<div class="moves"><h4>Move these pieces on your board</h4><ul>${S.turn.moves.map(m => `<li>${m}</li>`).join("")}</ul></div>`;
 }
 
 function stageHTML() {
-  const ti = S.turnTeam, t = S.teams[ti], m = S.teams[other(ti)], tr = S.turn;
-  const head = `<h2>${esc(t.name)}'s turn</h2><p class="sub">${t.mission === "rescue" ? "Rescue Mode" : `Defend the Camp · card ${Math.min(5, tr.stage === "result" ? t.defendIdx : t.defendIdx + 1)} of 5`} · <b>${esc(m.name)}</b> ${m.result ? "checks the answer" : "are the Fire Marshals"}</p>`;
-
-  if (tr.stage === "skip") return `${head}<p>Everyone in ${esc(t.name)}'s Camp is singed, so they sit this turn out.</p><div class="actions"><button type="button" class="btn primary" data-act="next">Next turn</button></div>`;
+  const tr = S.turn;
+  const head = `<h2>${esc(S.name)}'s turn</h2><p class="sub">${S.mission === "rescue" ? "Rescue Mode" : `Defend the Camp · card ${Math.min(5, tr.stage === "result" ? S.defendIdx : S.defendIdx + 1)} of 5`} · ${esc(S.opp)} can call “Missing C!”</p>`;
+  if (tr.stage === "skip") return `${head}<p>Everyone in your Camp is singed, so you sit this turn out. Stand the pieces back up.</p><div class="actions"><button type="button" class="btn primary" data-act="next">Next turn</button></div>`;
 
   if (tr.stage === "choose") {
-    const players = tr.eligible.map(i => `<button type="button" class="choice ${tr.answerer === i ? "on" : ""}" data-act="ans" data-i="${i}">${esc(t.players[i].name)}</button>`).join("");
-    const piles = t.mission === "rescue"
+    const players = tr.eligible.map(i => `<button type="button" class="choice ${tr.answerer === i ? "on" : ""}" data-act="ans" data-i="${i}">${esc(S.players[i].name)}</button>`).join("");
+    const piles = S.mission === "rescue"
       ? `<div class="piles">${["EMBER", "FLAME", "INFERNO"].map(k => `<button type="button" class="pile ${k} ${tr.tier === k ? "on" : ""}" data-act="tier" data-k="${k}" ${S.piles[k].length ? "" : "disabled"}><span class="t">${k}</span><span class="r">${TIER_NOTE.rescue[k]}</span><span class="r">${S.piles[k].length} left</span></button>`).join("")}</div>`
-      : `<div class="piles"><div class="pile ${tr.tier} on"><span class="t">${tr.tier}</span><span class="r">${TIER_NOTE.defend[tr.tier]}</span><span class="r">Order: ${DEFEND_ORDER.map((d, k) => k === t.defendIdx ? `<b>${d}</b>` : d).join(" · ")}</span></div></div>`;
+      : `<div class="piles"><div class="pile ${tr.tier} on"><span class="t">${tr.tier}</span><span class="r">${TIER_NOTE.defend[tr.tier]}</span><span class="r">Order: ${DEFEND_ORDER.map((d, k) => k === S.defendIdx ? `<b>${d}</b>` : d).join(" · ")}</span></div></div>`;
     return `${head}
       ${tr.drawAgain ? `<p><b>Draw again.</b> Event cards don't use up your turn.</p>` : ""}
       ${tr.lastStand ? `<p><b>Last Stand!</b> Your Camp is empty, so a player answers from the edge of the fire. Get it right and they climb out, plus the card's payoff. Miss and they stay put.</p>` : ""}
       <div class="step-lbl">${tr.lastStand ? "Who makes the Last Stand?" : "Who answers?"}</div>
       <div class="choices">${players}</div>
-      <div class="step-lbl">${t.mission === "rescue" ? "Pick a pile" : "Your card comes from"}</div>
+      <div class="step-lbl">${S.mission === "rescue" ? "Pick a pile" : "Your card comes from"}</div>
       ${piles}
       <div class="actions"><button type="button" class="btn primary" data-act="draw" ${tr.answerer != null && tr.tier ? "" : "disabled"}>Draw the card</button></div>`;
   }
 
   if (tr.stage === "event") {
-    if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. ${esc(t.name)} solves a Flame card <b>together in 60 seconds</b>. Miss it and ${esc(m.name)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
+    if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. Your whole Fellowship solves a Flame card <b>together in 60 seconds</b>. Miss it and ${esc(S.opp)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
     return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div><p>Free rescue! To claim it, the whole Fellowship says out loud:</p><p style="font-family:var(--math);font-size:24px">“The antiderivative of xⁿ is xⁿ⁺¹⁄(n+1) + C, for n ≠ −1.”</p></div><div class="actions"><button type="button" class="btn primary" data-act="bucket">We said it</button></div>`;
   }
-
   if (tr.stage === "eventDone") return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div></div>${movesHTML()}<div class="actions"><button type="button" class="btn primary" data-act="again">Draw again</button></div>`;
 
   if (tr.stage === "card") {
-    const c = card(tr.cardId), ap = t.players[tr.answerer];
+    const c = card(tr.cardId), ap = S.players[tr.answerer];
     return `${head}
-      <p><b>${esc(ap.name)}</b> ${tr.flare ? "and the whole Fellowship" : ""} ${tr.lastStand && !tr.flare ? "makes a Last Stand on" : "answers"}:</p>
-      ${cardHTML(c, t.mission)}
+      <p><b>${esc(ap.name)}</b>${tr.flare ? " and the whole Fellowship" : ""} ${tr.lastStand && !tr.flare ? "makes a Last Stand on" : "answer" + (tr.flare ? "" : "s")}:</p>
+      ${cardHTML(c)}
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="timer" id="timer" role="timer">--:--</span><span class="hint">Show all four steps on the whiteboard</span></div>
       <div class="steps4"><div>1. Integrate. Write <b>+C</b>!</div><div>2. Plug in the point</div><div>3. Solve for C</div><div>4. Write the finished function</div></div>
-      <div class="answers">
-        <div class="ansbox"><label class="lbl" for="aC">${esc(t.name)}: C =</label><input type="text" id="aC" inputmode="decimal" autocomplete="off" placeholder="e.g. 4, −3, 5/2"><div class="hint">Fractions and decimals both work.</div></div>
-        ${tr.flare ? "" : `<div class="ansbox"><label class="lbl" for="mC">${esc(m.name)} (Marshals): C =</label><input type="text" id="mC" inputmode="decimal" autocomplete="off" placeholder="your answer"><div class="hint">${m.result ? "Optional." : "Right when they're wrong? That's a steal."}</div></div>`}
-      </div>
-      <label class="check"><input type="checkbox" id="missC"> Missing C! (no +C in step 1)</label>
+      <div class="ansbox"><label class="lbl" for="aC">C =</label><input type="text" id="aC" inputmode="decimal" autocomplete="off" placeholder="e.g. 4, −3, 5/2"><div class="hint">Fractions and decimals both work.</div></div>
+      <label class="check"><input type="checkbox" id="missC"> ${esc(S.opp)} called “Missing C!” (no +C in step 1)</label>
       <div class="actions">
         <button type="button" class="btn primary" data-act="submit">Check the answer</button>
         <button type="button" class="btn quiet" data-act="timeout">Out of time</button>
@@ -685,75 +604,60 @@ function stageHTML() {
 
   if (tr.stage === "result" || tr.stage === "flareResult") {
     const c = card(tr.cardId);
-    const why = tr.missingC ? "Missing C! The answer doesn't count." : tr.timeout ? "Out of time." : tr.correct ? "" : `They said C = ${esc(tr.activeRaw || "nothing")}.`;
-    const done = t.result ? `<p><b>${esc(t.name)}: ${t.result === "won" ? "mission complete!" : "the fire won this one."}</b></p>` : "";
+    const why = tr.missingC ? "Missing C! The answer doesn't count." : tr.timeout ? "Out of time." : tr.correct ? "" : `You said C = ${esc(tr.raw || "nothing")}.`;
+    const back = tr.stage === "flareResult" && !S.result;
     return `${head}
-      <p class="verdict ${tr.correct ? "good" : "bad"}">${tr.correct ? (tr.flare ? "Flare-up beaten!" : "Correct!") : "Miss."} ${tr.steal ? "<br>Steal!" : ""}</p>
+      <p class="verdict ${tr.correct ? "good" : "bad"}">${tr.correct ? (tr.flare ? "Flare-up beaten!" : "Correct!") : "Miss."}</p>
       ${why ? `<p>${why}</p>` : ""}
       <div class="reveal">${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b></div>
       ${movesHTML()}
-      ${done}
-      <div class="actions"><button type="button" class="btn primary" data-act="${tr.stage === "flareResult" && !t.result ? "again" : "next"}">${tr.stage === "flareResult" && !t.result ? "Back to your turn" : "Next turn"}</button></div>`;
+      ${S.result ? `<p><b>${S.result === "won" ? "Mission complete!" : "The fire won this one."}</b></p>` : ""}
+      <div class="actions"><button type="button" class="btn primary" data-act="${back ? "again" : "next"}">${back ? "Back to your turn" : S.result ? "See the results" : "Next turn"}</button></div>`;
   }
   return head;
 }
-const fmtC = C => { const sign = C < 0 ? "−" : ""; const a = Math.abs(C); return sign + (Number.isInteger(a) ? a : Number.isInteger(a * 2) ? `${a * 2}/2` : a); };
 
 function renderPlay() {
-  const app = document.getElementById("app");
-  app.innerHTML = `${topBar(true)}
-    <div class="table">
-      ${teamPanel(0)}
+  document.getElementById("app").innerHTML = `${topBar(true)}
+    <div class="table solo">
+      ${teamPanel()}
       <section class="stage" aria-live="polite">${stageHTML()}</section>
-      ${teamPanel(1)}
     </div>
     <details class="log"><summary>Game log (${S.log.length})</summary><ol>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ol></details>`;
+  const r = document.getElementById("relay"); if (r) paintRelay(r);
   if (S.turn && S.turn.stage === "card") startTimer();
-  tickClock();
 }
 
 function renderOver() {
-  const app = document.getElementById("app");
-  app.innerHTML = `${topBar(true)}
+  document.getElementById("app").innerHTML = `${topBar(true)}
     <section class="stage over">
-      <h2>The fire is out</h2>
-      <p class="sub">Each Fellowship played against the fire. Both can win.</p>
-      <div class="res">${S.teams.map(t => `<div><h3>${esc(t.name)}</h3>
-        <p>${t.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"}</p>
-        <p><span class="pill ${t.result}">${t.result === "won" ? "Mission complete" : "The fire won"}</span></p>
-        <p>${inCamp(t).length} of ${t.players.length} safe in Camp</p></div>`).join("")}</div>
+      <h2>${S.result === "won" ? "Mission complete!" : "The fire won this time"}</h2>
+      <p class="sub">${esc(S.name)} · ${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · vs ${esc(S.opp)}</p>
+      <div class="res">
+        <div><h3>${inCamp().length} of ${S.players.length}</h3><p>safe in Camp</p></div>
+        <div><h3>${S.stats.correct} of ${S.stats.answered}</h3><p>cards correct</p></div>
+      </div>
+      <p>Check the leaderboard to see how every Fellowship is doing.</p>
       <div class="actions" style="justify-content:center"><button type="button" class="btn primary" data-act="reset">Play again</button></div>
     </section>
     <details class="log" open><summary>Game log (${S.log.length})</summary><ol>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ol></details>`;
+  const r = document.getElementById("relay"); if (r) paintRelay(r);
 }
 
 function render() {
   clearInterval(timerHandle);
-  if (S.phase === "setup") renderSetup();
-  else if (S.phase === "play") renderPlay();
-  else renderOver();
+  if (S.phase === "setup") renderSetup(); else if (S.phase === "play") renderPlay(); else renderOver();
 }
 
 function startTimer() {
   const el = document.getElementById("timer");
   const tick = () => {
     const left = Math.max(0, S.turn.limit - Math.floor((Date.now() - S.turn.started) / 1000));
-    el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+    el.textContent = left ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "Time!";
     el.classList.toggle("out", left === 0);
-    if (left === 0) el.textContent = "Time!";
-    tickClock();
   };
-  tick();
-  timerHandle = setInterval(tick, 500);
+  tick(); timerHandle = setInterval(tick, 500);
 }
-function tickClock() {
-  const el = document.getElementById("clock");
-  if (!el || !S.clockEnd) return;
-  const left = Math.max(0, Math.floor((S.clockEnd - Date.now()) / 1000));
-  el.textContent = `Clock ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
-  el.classList.toggle("low", left < 120);
-}
-setInterval(() => { if (S && S.phase === "play" && !(S.turn && S.turn.stage === "card")) tickClock(); }, 1000);
 
 /* ------------------------------------------------------------------ */
 /* EVENTS                                                              */
@@ -761,36 +665,32 @@ setInterval(() => { if (S && S.phase === "play" && !(S.turn && S.turn.stage === 
 document.addEventListener("input", e => {
   if (!S || S.phase !== "setup") return;
   const el = e.target, f = el.dataset.field;
-  if (f === "tname") { S.teams[el.dataset.team].name = el.value; }
-  if (f === "pname") { S.teams[el.dataset.team].players[el.dataset.p].name = el.value; }
-  if (f === "clock") { S.clockMin = Number(el.value); }
+  if (f === "code") S.code = el.value;
+  if (f === "name") S.name = el.value;
+  if (f === "opp") S.opp = el.value;
+  if (f === "pname") S.players[el.dataset.p].name = el.value;
   save();
 });
-document.addEventListener("change", e => {
-  if (S && S.phase === "setup" && e.target.dataset.field === "clock") { S.clockMin = Number(e.target.value); save(); }
-});
 document.addEventListener("keydown", e => {
-  if (e.key === "Enter" && S && S.phase === "play" && S.turn && S.turn.stage === "card" && (e.target.id === "aC" || e.target.id === "mC")) {
-    e.preventDefault(); document.querySelector('[data-act="submit"]').click();
-  }
+  if (e.key === "Enter" && S && S.phase === "play" && S.turn && S.turn.stage === "card" && e.target.id === "aC") { e.preventDefault(); document.querySelector('[data-act="submit"]').click(); }
 });
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-act]");
   if (!b || b.disabled) return;
   const act = b.dataset.act;
   if (act === "reset") {
-    if (b.dataset.armed === "1" || S.phase === "over") { const keep = S.teams.map(t => ({ name: t.name, lost: t.lost, players: t.players.map(p => ({ name: p.name, status: "camp" })) })); S = freshSetup(); S.teams = keep; save(); return render(); }
-    b.dataset.armed = "1"; b.textContent = "Click again to end this game"; setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
+    if (b.dataset.armed === "1" || S.phase === "over") { S = freshSetup(S); save(); return render(); }
+    b.dataset.armed = "1"; b.textContent = "Click again to start over";
+    setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
   }
   if (S.phase === "setup") {
-    const t = S.teams[b.dataset.team];
-    if (act === "result") { const lost = b.dataset.val === "lost"; t.lost = lost; S.teams[other(Number(b.dataset.team))].lost = !lost; }
-    if (act === "pstat") t.players[b.dataset.p].status = b.dataset.val;
-    if (act === "add" && t.players.length < 8) t.players.push({ name: "", status: "camp" });
-    if (act === "del" && t.players.length > 1) t.players.splice(Number(b.dataset.p), 1);
+    if (act === "result") S.lost = b.dataset.val === "lost";
+    if (act === "pstat") S.players[b.dataset.p].status = b.dataset.val;
+    if (act === "add" && S.players.length < 8) S.players.push({ name: "", status: "camp" });
+    if (act === "del" && S.players.length > 1) S.players.splice(Number(b.dataset.p), 1);
     if (act === "start") return startGame();
     save(); renderSetup();
-    const again = document.querySelector(`[data-act="${act}"][data-team="${b.dataset.team}"]${b.dataset.p != null && act !== "del" ? `[data-p="${b.dataset.p}"]` : ""}${b.dataset.val ? `[data-val="${b.dataset.val}"]` : ""}`);
+    const again = document.querySelector(`[data-act="${act}"]${b.dataset.p != null && act !== "del" ? `[data-p="${b.dataset.p}"]` : ""}${b.dataset.val ? `[data-val="${b.dataset.val}"]` : ""}`);
     if (again) again.focus();
     return;
   }
@@ -801,23 +701,20 @@ document.addEventListener("click", e => {
   if (act === "flare") return startFlare();
   if (act === "bucket") return bucket();
   if (act === "again") return backToChoose();
-  if (act === "next") return nextTurn();
+  if (act === "next") return beginTurn();
   if (act === "submit") {
-    const a = document.getElementById("aC").value, m = document.getElementById("mC") ? document.getElementById("mC").value : "";
-    const mc = document.getElementById("missC").checked;
+    const a = document.getElementById("aC").value, mc = document.getElementById("missC").checked;
     if (!a.trim() && !mc) { document.getElementById("aC").focus(); return; }
-    return resolve(a, m, mc, false);
+    return resolve(a, mc, false);
   }
-  if (act === "timeout") {
-    const m = document.getElementById("mC") ? document.getElementById("mC").value : "";
-    return resolve("", m, false, true);
-  }
+  if (act === "timeout") return resolve("", false, true);
 });
 
 /* boot */
 S = load() || freshSetup();
 if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
 render();
+broadcast();
 </script>
 </body>
 </html>
