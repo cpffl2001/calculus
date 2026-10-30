@@ -527,7 +527,7 @@ function topBar(inGame) {
     <h1>The <span>+C</span> Rescue</h1>
     <span class="tag">${inGame ? `${esc(S.name)} <span class="vs">vs</span> ${esc(S.opp)} · class ${esc(S.code)}` : "Antiderivative follow-up game"}</span>
     <span class="spacer"></span>
-    ${inGame ? `<span class="relay ok" id="relay" aria-live="polite"></span><button type="button" class="btn small quiet" data-act="reset">New game</button>` : ""}
+    ${inGame ? `<span class="relay ok" id="relay" aria-live="polite"></span><button type="button" class="btn small quiet" data-act="reset">New game</button>` : `<button type="button" class="btn small quiet" data-act="clearform">Clear all boxes</button>`}
   </header>`;
 }
 
@@ -679,11 +679,12 @@ document.addEventListener("click", e => {
   if (!b || b.disabled) return;
   const act = b.dataset.act;
   if (act === "reset") {
-    if (b.dataset.armed === "1" || S.phase === "over") { S = freshSetup(S); save(); return render(); }
+    if (b.dataset.armed === "1" || S.phase === "over") { S = freshSetup(); save(); return render(); }
     b.dataset.armed = "1"; b.textContent = "Click again to start over";
     setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
   }
   if (S.phase === "setup") {
+    if (act === "clearform") { S = freshSetup(); save(); renderSetup(); document.getElementById("code").focus(); return; }
     if (act === "result") S.lost = b.dataset.val === "lost";
     if (act === "pstat") S.players[b.dataset.p].status = b.dataset.val;
     if (act === "add" && S.players.length < 8) S.players.push({ name: "", status: "camp" });
