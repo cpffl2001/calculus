@@ -182,6 +182,10 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .table.solo { grid-template-columns: minmax(240px, 1fr) minmax(0, 2.4fr); }
 @media (max-width: 1000px) { .table.solo { grid-template-columns: 1fr; } }
 .vs { color: var(--flame); font-weight: 700; }
+.fs-card h2 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; }
+.sug { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--ember-soft); border: 2px solid var(--ember); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.sug.ok { background: var(--camp-soft); border-color: var(--camp); color: var(--ink); display: block; }
+.already { margin-top: 10px; }
 .relay { font-size: 13px; font-weight: 700; color: var(--muted); }
 .relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
@@ -339,6 +343,112 @@ function startGame() {
   if (S.name.toLowerCase() === S.opp.toLowerCase()) { S.error = "Your opponent needs a different name than yours."; return renderSetup(); }
   if (S.players.some(p => !p.name.trim())) { S.error = "Every player needs a name."; return renderSetup(); }
   S.error = "";
+  openCheck();
+}
+
+/* ------------------------------------------------------------------ */
+/* NAME CHECK: compare with Fellowships already playing in this class */
+/* so both computers spell the matchup the same way.                  */
+/* ------------------------------------------------------------------ */
+const nameKey = s => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(the|team)\b/g, " ")
+  .split(/\s+/).filter(Boolean).map(w => w.length > 3 ? w.replace(/s$/, "") : w).join(" ");
+const same = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+function editDist(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function closeness(a, b) { /* 0 = identical spelling idea; bigger = further apart */
+  const x = nameKey(a), y = nameKey(b);
+  if (!x || !y) return 99;
+  if (x === y) return 0;
+  if (x.length > 4 && y.length > 4 && (x.includes(y) || y.includes(x))) return 1;
+  const dd = editDist(x, y);
+  return dd <= Math.max(2, Math.floor(Math.max(x.length, y.length) * 0.3)) ? 1 + dd : 99;
+}
+async function fetchClass(code) {
+  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const r = await fetch(RELAY + topicFor(code) + "/json?poll=1&since=12h", { signal: ctl.signal });
+    const latest = {};
+    (await r.text()).split("\n").forEach(line => {
+      try {
+        const env = JSON.parse(line); if (env.event && env.event !== "message") return;
+        const m = JSON.parse(env.message);
+        if (!m.id || !m.fs || m.id === S.id) return;
+        if (!latest[m.id] || latest[m.id].t < m.t) latest[m.id] = m;
+      } catch (e) {}
+    });
+    return Object.values(latest).map(m => ({ fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40) }));
+  } catch (e) { return null; } finally { clearTimeout(tm); }
+}
+async function openCheck() {
+  S.phase = "check"; S.check = { loading: true, others: [] };
+  save(); render();
+  const others = await fetchClass(S.code);
+  if (S.phase !== "check") return;
+  S.check = { loading: false, offline: others === null, others: others || [] };
+  save(); renderSugs();
+}
+function suggestions() {
+  const others = S.check.others;
+  const out = { opp: null, name: null, oppOk: false, nameOk: false };
+  const oppTeam = others.find(o => same(o.fs, S.opp));
+  out.oppOk = !!oppTeam;
+  if (!oppTeam) {
+    const best = others.map(o => ({ o, c: closeness(o.fs, S.opp) })).filter(x => x.c < 99).sort((a, b) => a.c - b.c)[0];
+    if (best) out.opp = best.o.fs;
+  }
+  /* how did our opponent spell OUR name? */
+  const opTeam = oppTeam || others.find(o => out.opp && same(o.fs, out.opp));
+  if (opTeam && opTeam.opp) {
+    if (same(opTeam.opp, S.name)) out.nameOk = true;
+    else if (closeness(opTeam.opp, S.name) < 99) out.name = { spell: opTeam.opp, by: opTeam.fs };
+  }
+  return out;
+}
+function renderCheck() {
+  document.getElementById("app").innerHTML = `
+    ${topBar(false)}
+    <section class="fs-card solo" aria-label="Check your names">
+      <h2>Check your names</h2>
+      <p class="intro" style="margin:0">The leaderboard pairs you with your opponent only when <b>both computers spell both names the same way</b>. Look across the table and compare with the other Fellowship before you start.</p>
+      <div class="two">
+        <div><label class="lbl" for="fname">Your Fellowship's name</label><input type="text" id="fname" data-field="name" value="${esc(S.name)}" maxlength="40"></div>
+        <div><label class="lbl" for="oname">Your opponent's Fellowship</label><input type="text" id="oname" data-field="opp" value="${esc(S.opp)}" maxlength="40"></div>
+      </div>
+      <div id="sugs" aria-live="polite"></div>
+      <div class="setup-foot">
+        <button type="button" class="btn" data-act="back">← Back</button>
+        <span style="flex:1"></span>
+        ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
+        <button type="button" class="btn primary" data-act="launch">Names match. Light the fire</button>
+      </div>
+    </section>`;
+  renderSugs();
+}
+function renderSugs() {
+  const el = document.getElementById("sugs"); if (!el || !S.check) return;
+  if (S.check.loading) { el.innerHTML = `<div class="preview">Checking which Fellowships in class <b>${esc(S.code)}</b> have already started…</div>`; return; }
+  const g = suggestions(), others = S.check.others, rows = [];
+  if (g.name) rows.push(`<div class="sug"><span><b>${esc(g.name.by)}</b> already started and spelled your name <b>“${esc(g.name.spell)}”</b>.</span><button type="button" class="btn small" data-act="usename" data-val="${esc(g.name.spell)}">Use “${esc(g.name.spell)}”</button></div>`);
+  if (g.opp) rows.push(`<div class="sug"><span>Did you mean <b>“${esc(g.opp)}”</b>? That Fellowship has already started.</span><button type="button" class="btn small" data-act="useopp" data-val="${esc(g.opp)}">Use “${esc(g.opp)}”</button></div>`);
+  if (g.oppOk && (g.nameOk || !g.name)) rows.push(`<div class="sug ok">✓ <b>${esc(S.opp)}</b> is already playing, and your names line up. You'll be paired on the leaderboard.</div>`);
+  if (!rows.length) rows.push(S.check.offline
+    ? `<div class="preview">Couldn't reach the leaderboard to compare names. Double-check the spelling with your opponent, then start.</div>`
+    : others.length === 0
+      ? `<div class="preview">You're the first Fellowship in class <b>${esc(S.code)}</b> to start. Show the other Fellowship exactly how you spelled <b>both</b> names so they can type them the same way.</div>`
+      : `<div class="preview"><b>${esc(S.opp)}</b> hasn't started yet. Show them exactly how you spelled both names.</div>`);
+  if (others.length) rows.push(`<div class="already"><span class="lbl">Already playing in class ${esc(S.code)} · tap to use as your opponent</span><div class="choices">${others.map(o => `<button type="button" class="choice ${same(o.fs, S.opp) ? "on" : ""}" data-act="useopp" data-val="${esc(o.fs)}">${esc(o.fs)}</button>`).join("")}</div></div>`);
+  el.innerHTML = rows.join("");
+}
+function launch() {
+  S.name = S.name.trim(); S.opp = S.opp.trim();
+  if (!S.name || !S.opp) { S.error = "Both names need to be filled in."; return renderCheck(); }
+  if (same(S.name, S.opp)) { S.error = "Your opponent needs a different name than yours."; return renderCheck(); }
+  S.error = ""; delete S.check;
   const piles = { EMBER: [], FLAME: [], INFERNO: [] };
   CARDS.forEach(c => piles[c.tier].push(c.id));
   EVENTS.forEach(e => piles.EMBER.push(e));
@@ -645,7 +755,7 @@ function renderOver() {
 
 function render() {
   clearInterval(timerHandle);
-  if (S.phase === "setup") renderSetup(); else if (S.phase === "play") renderPlay(); else renderOver();
+  if (S.phase === "setup") renderSetup(); else if (S.phase === "check") renderCheck(); else if (S.phase === "play") renderPlay(); else renderOver();
 }
 
 function startTimer() {
@@ -662,8 +772,9 @@ function startTimer() {
 /* EVENTS                                                              */
 /* ------------------------------------------------------------------ */
 document.addEventListener("input", e => {
-  if (!S || S.phase !== "setup") return;
+  if (!S || (S.phase !== "setup" && S.phase !== "check")) return;
   const el = e.target, f = el.dataset.field;
+  if (S.phase === "check") { if (f === "name") S.name = el.value; if (f === "opp") S.opp = el.value; save(); renderSugs(); return; }
   if (f === "code") S.code = el.value;
   if (f === "name") S.name = el.value;
   if (f === "opp") S.opp = el.value;
@@ -681,6 +792,14 @@ document.addEventListener("click", e => {
     if (b.dataset.armed === "1" || S.phase === "over") { S = freshSetup(); save(); return render(); }
     b.dataset.armed = "1"; b.textContent = "Click again to start over";
     setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
+  }
+  if (S.phase === "check") {
+    if (act === "clearform") { S = freshSetup(); save(); return render(); }
+    if (act === "back") { S.phase = "setup"; delete S.check; S.error = ""; save(); return render(); }
+    if (act === "useopp") { S.opp = b.dataset.val; document.getElementById("oname").value = S.opp; save(); return renderSugs(); }
+    if (act === "usename") { S.name = b.dataset.val; document.getElementById("fname").value = S.name; save(); return renderSugs(); }
+    if (act === "launch") return launch();
+    return;
   }
   if (S.phase === "setup") {
     if (act === "clearform") { S = freshSetup(); save(); renderSetup(); document.getElementById("code").focus(); return; }
@@ -714,6 +833,7 @@ document.addEventListener("click", e => {
 S = load() || freshSetup();
 if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
 render();
+if (S.phase === "check") openCheck();
 broadcast();
 </script>
 </body>
