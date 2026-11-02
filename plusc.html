@@ -372,16 +372,21 @@ async function fetchClass(code) {
   const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 6000);
   try {
     const r = await fetch(RELAY + topicFor(code) + "/json?poll=1&since=12h", { signal: ctl.signal });
-    const latest = {};
+    const latest = {}, hidden = new Set(); let clearedAt = 0;
     (await r.text()).split("\n").forEach(line => {
       try {
         const env = JSON.parse(line); if (env.event && env.event !== "message") return;
         const m = JSON.parse(env.message);
+        if (m.clear) { clearedAt = Math.max(clearedAt, Number(m.t) || 0); return; }   /* teacher pressed Clear board */
+        if (m.hide) { hidden.add(String(m.hide)); return; }                             /* teacher removed one with ✕ */
         if (!m.id || !m.fs || m.id === S.id) return;
         if (!latest[m.id] || latest[m.id].t < m.t) latest[m.id] = m;
       } catch (e) {}
     });
-    return Object.values(latest).map(m => ({ fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40) }));
+    const seen = new Set();
+    return Object.values(latest).filter(m => m.t >= clearedAt && !hidden.has(m.id)).sort((a, b) => b.t - a.t)
+      .map(m => ({ fs: String(m.fs).trim().slice(0, 40), opp: String(m.opp || "").trim().slice(0, 40) }))
+      .filter(o => { const k = o.fs.toLowerCase(); if (seen.has(k) || same(o.fs, S.name)) return false; seen.add(k); return true; });
   } catch (e) { return null; } finally { clearTimeout(tm); }
 }
 async function openCheck() {
