@@ -187,6 +187,20 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .sug.ok { background: var(--camp-soft); border-color: var(--camp); color: var(--ink); display: block; }
 .already { margin-top: 10px; }
 .shield { margin-top: 10px; background: var(--sky-soft); color: var(--sky); border: 2px solid var(--sky); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 14px; }
+.waitroom { text-align: center; justify-items: center; }
+.waitroom h2 { font-size: clamp(24px, 3vw, 32px); text-wrap: balance; }
+.waitroom .opp { color: var(--flame); }
+.waitroom .preview, .waitroom #waitsugs { width: 100%; text-align: left; }
+.waitroom .setup-foot { width: 100%; }
+.campfire { position: relative; width: 120px; height: 110px; margin: 6px auto 0; }
+.campfire::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 16px; border-radius: 8px; background: repeating-linear-gradient(90deg, #6b4423 0 22px, #4a2e17 22px 26px); }
+.campfire i { position: absolute; bottom: 10px; left: 50%; width: 46px; height: 80px; margin-left: -23px; border-radius: 50% 50% 35% 35% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse at 50% 80%, #fff3b0 0%, #ffb347 35%, #ff6a2b 65%, transparent 72%); transform-origin: 50% 100%; animation: lick 1s ease-in-out infinite alternate; }
+.campfire i:nth-child(2) { margin-left: -42px; height: 58px; animation-delay: -.4s; }
+.campfire i:nth-child(3) { margin-left: -4px; height: 64px; animation-delay: -.7s; }
+@keyframes lick { from { transform: scaleY(.85) skewX(-6deg); } to { transform: scaleY(1.1) skewX(6deg); } }
+@media (prefers-reduced-motion: reduce) { .campfire i { animation: none; } }
+.choice small { font-weight: 400; color: var(--muted); }
 .relay { font-size: 13px; font-weight: 700; color: var(--muted); }
 .relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
@@ -217,7 +231,8 @@ const CARDS = [
   { id: 18, tier: "INFERNO", q: "f′(x) = (x<sup>2</sup> + 3) / x<sup>2</sup>, &nbsp;x &gt; 0", g: "f(1) = 2", f: "f(x) = x − 3/x + 4", C: 4 },
   { id: 19, tier: "INFERNO", q: "f′(x) = e<sup>2x</sup>", g: "f(0) = 3", f: "f(x) = ½e<sup>2x</sup> + 5/2", C: 2.5 },
   { id: 20, tier: "INFERNO", q: "f′(x) = cos(3x)", g: "f(0) = −1", f: "f(x) = ⅓ sin(3x) − 1", C: -1 },
-  { id: 21, tier: "INFERNO", q: "f′(x) = (2x + 1)<sup>2</sup>", g: "f(0) = 6", f: "f(x) = (4/3)x³ + 2x² + x + 6", C: 6 },
+  { id: 21, tier: "INFERNO", q: "f′(x) = (2x + 1)<sup>2</sup>", g: "f(0) = 6", f: "f(x) = (4/3)x³ + 2x² + x + 6", C: 6,
+    alt: { C: 35 / 6, f: "f(x) = (1/6)(2x + 1)³ + 35/6", show: "35/6", how: "substitution (u = 2x + 1)" }, how: "expanding first" },
   { id: 22, tier: "INFERNO", long: true, q: "Bacteria grow at P′(t) = 200e<sup>0.5t</sup> cells per hour.", g: "P(0) = 1000. Find P(t).", f: "P(t) = 400e<sup>0.5t</sup> + 600", C: 600 },
   { id: 23, tier: "INFERNO", long: true, q: "A seedling grows at h′(t) = 1.5√t cm per week.", g: "h(0) = 2 cm. Find h(t).<br><i>Bonus: how tall at week 4? (10 cm)</i>", f: "h(t) = t<sup>3/2</sup> + 2", C: 2 },
   { id: 24, tier: "INFERNO", long: true, q: "A drug leaves the blood at A′(t) = −6e<sup>−0.3t</sup> mg per hour.", g: "A(0) = 25 mg. Find A(t).<br><i>Bonus: what level does A approach? (5 mg)</i>", f: "A(t) = 20e<sup>−0.3t</sup> + 5", C: 5 },
@@ -269,7 +284,7 @@ function log(msg) { S.log.push(msg); S.last = msg; }
 function broadcast() {
   if (!S || !S.code || S.phase === "setup") return;
   const msg = JSON.stringify({
-    id: S.id, fs: S.name, opp: S.opp, lost: S.lost, mission: S.mission, result: S.result,
+    id: S.id, fs: S.name, opp: S.opp, lost: S.lost, mission: S.mission, result: S.result, ready: S.phase === "waiting",
     p: S.players.map(p => [p.name, p.status === "fire" ? 1 : 0, p.singed > 0 ? 1 : 0]),
     b0: S.b0 || 0, sh: S.shield || 0, rt: S.resultAt || 0, end: S.endBy || "", ans: S.stats.answered, ok: S.stats.correct, di: S.defendIdx, last: S.last || "", t: Date.now(),
   });
@@ -279,7 +294,8 @@ function broadcast() {
   send(3);
 }
 let relayState = "ok";
-function setRelay(st) { relayState = st; const el = document.getElementById("relay"); if (el) paintRelay(el); }
+let relayErrSince = 0;
+function setRelay(st) { const changed = relayState !== st; relayState = st; relayErrSince = st === "ok" ? 0 : (relayErrSince || Date.now()); const el = document.getElementById("relay"); if (el) paintRelay(el); if (changed && S && S.phase === "waiting") renderWaitSugs(); }
 function paintRelay(el) {
   el.className = "relay " + relayState;
   el.textContent = relayState === "ok" ? "● Sending to leaderboard" : relayState === "limit" ? "● Leaderboard relay busy. Keep playing." : "● Reconnecting to leaderboard…";
@@ -430,7 +446,7 @@ function renderCheck() {
         <button type="button" class="btn" data-act="back">← Back</button>
         <span style="flex:1"></span>
         ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
-        <button type="button" class="btn primary" data-act="launch">Names match. Light the fire</button>
+        <button type="button" class="btn primary" data-act="launch">Names match. Light our fire</button>
       </div>
     </section>`;
   renderSugs();
@@ -455,14 +471,90 @@ function launch() {
   if (!S.name || !S.opp) { S.error = "Both names need to be filled in."; return renderCheck(); }
   if (same(S.name, S.opp)) { S.error = "Your opponent needs a different name than yours."; return renderCheck(); }
   S.error = ""; delete S.check;
+  S.players.forEach(p => { p.name = p.name.trim(); });
+  Object.assign(S, { phase: "waiting", readyAt: Date.now(), mission: missionOf(), result: null, shield: 0, defendIdx: 0,
+    stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length, log: [], announced: false });
+  S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`;
+  save(); render(); broadcast(); watchReady();
+}
+
+/* ------------------------------------------------------------------ */
+/* WAITING ROOM: both Fellowships in a matchup must light their fire  */
+/* (with matching names) before either game starts.                   */
+/* ------------------------------------------------------------------ */
+let readyES = null, waitingOthers = {}, readyClearedAt = 0;
+function stopReady() { if (readyES) { readyES.close(); readyES = null; } }
+const isPartner = m => closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99;
+function watchReady() {
+  stopReady(); waitingOthers = {}; readyClearedAt = 0;
+  if (!S || S.phase !== "waiting" || typeof EventSource === "undefined") return;
+  const since = Math.floor(Date.now() / 1000) - 30 * 60;   /* a partner who got ready in the last 30 minutes */
+  readyES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + since);
+  readyES.onopen = () => setRelay("ok");
+  readyES.onerror = () => setRelay("err");
+  readyES.onmessage = e => {
+    try {
+      const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
+      const m = JSON.parse(env.message);
+      if (m.clear) { readyClearedAt = Math.max(readyClearedAt, Number(m.t) || 0); Object.keys(waitingOthers).forEach(id => { if (waitingOthers[id].t < readyClearedAt) delete waitingOthers[id]; }); return renderWaitSugs(); }
+      if (m.hide) { delete waitingOthers[m.hide]; return renderWaitSugs(); }
+      if (!m.id || m.id === S.id || !m.fs || m.result || m.t < readyClearedAt) return;
+      if (m.ready) waitingOthers[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), t: m.t };
+      else delete waitingOthers[m.id];
+      if (m.ready && isPartner(m)) return partnerReady(m);
+      renderWaitSugs();
+    } catch (err) {}
+  };
+}
+function partnerReady(m) {
+  if (S.phase !== "waiting") return;
+  stopReady();
+  S.partner = String(m.fs).slice(0, 40);
+  startPlay();
+}
+function leaveWaiting() {   /* back to the name check; the old waiting entry leaves the leaderboard */
+  stopReady();
+  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
+  S.id = newId(); S.phase = "setup"; save(); openCheck();
+}
+function renderWaiting() {
+  document.getElementById("app").innerHTML = `
+    ${topBar(true)}
+    <section class="fs-card solo waitroom" aria-label="Waiting for your opponent">
+      <div class="campfire" aria-hidden="true"><i></i><i></i><i></i></div>
+      <h2>Your fire is lit. Waiting for <span class="opp">${esc(S.opp)}</span>…</h2>
+      <p class="intro" style="margin:0">Your game starts the moment <b>${esc(S.opp)}</b> clicks “Light our fire” on their computer with your name, <b>${esc(S.name)}</b>, as their opponent. Both games start together.</p>
+      <div class="preview">${previewText()}</div>
+      <div id="waitsugs" aria-live="polite"></div>
+      <div class="setup-foot">
+        <button type="button" class="btn" data-act="unwait">← Fix our names</button>
+        <span style="flex:1"></span>
+      </div>
+    </section>`;
+  const r = document.getElementById("relay"); if (r) paintRelay(r);
+  renderWaitSugs();
+}
+function renderWaitSugs() {
+  const el = document.getElementById("waitsugs"); if (!el || S.phase !== "waiting") return;
+  const others = Object.values(waitingOthers).filter(o => !same(o.fs, S.name));
+  const wantUs = others.filter(o => closeness(o.opp, S.name) < 99 && closeness(o.fs, S.opp) >= 99);
+  const rows = wantUs.map(o => `<div class="sug"><span><b>${esc(o.fs)}</b> is waiting and says they're playing <b>you</b>. Is that your opponent?</span><button type="button" class="btn small" data-act="playthem" data-val="${esc(o.fs)}">Play ${esc(o.fs)}</button></div>`);
+  if (others.length) rows.push(`<div class="already"><span class="lbl">Also waiting in class ${esc(S.code)}</span><div class="choices">${others.map(o => `<span class="choice">${esc(o.fs)} <small>vs ${esc(o.opp)}</small></span>`).join("")}</div></div>`);
+  if (relayErrSince && Date.now() - relayErrSince > 30000) rows.push(`<div class="sug"><span>Can't reach the leaderboard right now. If it doesn't come back, your teacher can let you start without waiting.</span><button type="button" class="btn small" data-act="startanyway">Start without waiting</button></div>`);
+  el.innerHTML = rows.join("");
+}
+
+setInterval(() => { if (S && S.phase === "waiting") renderWaitSugs(); }, 5000);
+
+function startPlay() {
   const piles = { EMBER: [], FLAME: [], INFERNO: [] };
   CARDS.forEach(c => piles[c.tier].push(c.id));
   EVENTS.forEach(e => piles.EMBER.push(e));
   Object.values(piles).forEach(shuffle);
   S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
-  Object.assign(S, { piles, phase: "play", startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
+  Object.assign(S, { piles, phase: "play", announced: false, startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
   watchOpponent();
-  log(`${S.name} lit the fire: ${S.mission === "rescue" ? `rescuing ${inFire().length}` : "defending the camp"}.`);
+  log(`${S.name} vs ${S.partner || S.opp}: the game is on! ${S.mission === "rescue" ? `Rescuing ${inFire().length}` : "Defending the camp"}.`);
   beginTurn();
 }
 
@@ -562,7 +654,7 @@ function parseC(raw) {
   if (/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return Number(s);
   return NaN;
 }
-const sameC = (x, C) => Number.isFinite(x) && Math.abs(x - C) < 1e-6;
+const sameC = (x, C) => Number.isFinite(x) && Math.abs(x - C) < 0.006;   /* lets 35/6 be typed as 5.83 */
 const fmtC = C => { const sign = C < 0 ? "−" : ""; const a = Math.abs(C); return sign + (Number.isInteger(a) ? a : Number.isInteger(a * 2) ? `${a * 2}/2` : a); };
 
 function move(i, to) {
@@ -590,7 +682,7 @@ async function resolve(raw, timeout) {
   S.turn.stage = "checking";
   clearInterval(timerHandle);
   const c = card(S.turn.cardId), a = S.turn.answerer, ap = S.players[a];
-  const correct = !timeout && sameC(parseC(raw), c.C);
+  const correct = !timeout && (sameC(parseC(raw), c.C) || (c.alt && sameC(parseC(raw), c.alt.C)));
   Object.assign(S.turn, { correct, timeout, raw });
   S.stats.answered++; if (correct) S.stats.correct++;
   const before = inFire().length;
@@ -775,7 +867,7 @@ function stageHTML() {
     return `${head}
       <p class="verdict ${tr.correct ? "good" : "bad"}">${tr.correct ? (tr.flare ? "Flare-up beaten!" : "Correct!") : "Miss."}</p>
       ${why ? `<p>${why}</p>` : ""}
-      <div class="reveal">${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b></div>
+      <div class="reveal">${c.alt ? `By ${c.how}: ` : ""}${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b>${c.alt ? `<br>By ${c.alt.how}: ${c.alt.f} &nbsp;&nbsp;<b>C = ${c.alt.show}</b><br><small>Both are right. The two antiderivatives differ by 1/6, so their C values differ too.</small>` : ""}</div>
       ${movesHTML()}
       ${S.result ? `<p><b>${S.result === "won" ? winText() : "The fire won this one."}</b></p>` : ""}
       <div class="actions"><button type="button" class="btn primary" data-act="${back ? "again" : "next"}">${back ? "Back to your turn" : S.result ? "See the results" : "Next turn"}</button></div>`;
@@ -822,7 +914,7 @@ function renderOver() {
 
 function render() {
   clearInterval(timerHandle);
-  if (S.phase === "setup") renderSetup(); else if (S.phase === "check") renderCheck(); else if (S.phase === "play") renderPlay(); else renderOver();
+  if (S.phase === "setup") renderSetup(); else if (S.phase === "check") renderCheck(); else if (S.phase === "waiting") renderWaiting(); else if (S.phase === "play") renderPlay(); else renderOver();
 }
 
 function startTimer() {
@@ -862,9 +954,16 @@ document.addEventListener("click", e => {
   if (!b || b.disabled) return;
   const act = b.dataset.act;
   if (act === "reset") {
-    if (b.dataset.armed === "1" || S.phase === "over") { stopWatching(); S = freshSetup(); save(); return render(); }
+    if (b.dataset.armed === "1" || S.phase === "over") { stopWatching(); stopReady(); S = freshSetup(); save(); return render(); }
     b.dataset.armed = "1"; b.textContent = "Click again to start over";
     setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
+  }
+  if (S.phase === "waiting") {
+    if (act === "unwait") return leaveWaiting();
+    if (act === "playthem") { S.opp = b.dataset.val; S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`; save(); renderWaiting(); broadcast();
+      const hit = Object.values(waitingOthers).find(o => same(o.fs, S.opp) && isPartner(o)); if (hit) partnerReady(hit); return; }
+    if (act === "startanyway") { stopReady(); return startPlay(); }
+    return;
   }
   if (S.phase === "check") {
     if (act === "clearform") { S = freshSetup(); save(); return render(); }
@@ -908,6 +1007,7 @@ if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) 
 render();
 if (S.phase === "check") openCheck();
 if (S.phase === "play") watchOpponent();
+if (S.phase === "waiting") watchReady();
 broadcast();
 </script>
 </body>
