@@ -91,6 +91,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
 .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; background: var(--team); box-shadow: 0 0 8px var(--team); }
 .tagrow { display: flex; gap: 6px; flex-wrap: wrap; }
 .pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,.08); color: var(--muted); }
+.pill.shield { background: rgba(76,201,240,.18); color: #8fdcff; }
 .pill.rescue { color: #ff9b80; } .pill.defend { color: var(--good); }
 .pill.won { background: var(--gold); color: #2b1a00; } .pill.lost { background: var(--inferno); color: #fff; }
 
@@ -131,6 +132,11 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
 @keyframes flash { from { box-shadow: 0 0 0 4px var(--ember), 0 0 30px rgba(255,150,50,.7); } to { box-shadow: 0 0 0 0 transparent; } }
 .banner { position: absolute; top: -12px; right: 10px; font-family: var(--display); font-size: 12px; letter-spacing: .08em; background: var(--gold); color: #2b1a00; padding: 3px 10px; border-radius: 6px; transform: rotate(3deg); box-shadow: 0 4px 10px rgba(0,0,0,.4); z-index: 3; }
 .banner.lost { background: var(--inferno); color: #fff; }
+.side.won .banner::before { content: ""; display: inline-block; width: 14px; height: 11px; margin-right: 6px; vertical-align: -1px;
+  background: #2b1a00; clip-path: polygon(0 100%, 0 20%, 25% 55%, 50% 0, 75% 55%, 100% 20%, 100% 100%); }
+.match.final { border-color: var(--gold); }
+.final-tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: 13px; letter-spacing: .2em;
+  background: #120c0a; color: var(--gold); border: 2px solid var(--gold); padding: 2px 12px; border-radius: 8px; z-index: 4; }
 
 /* standings */
 .col { display: grid; gap: 18px; }
@@ -213,7 +219,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
     <div class="stat"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#b9a59a"><use href="#pawn"/></svg><div><b id="sFs">0</b><span>Fellowships</span></div></div>
     <div class="stat safe"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#7be0a6"><use href="#pawn"/></svg><div><b id="sOut">0</b><span>Pulled from the fire</span></div></div>
     <div class="stat fire"><svg viewBox="0 0 30 40" aria-hidden="true"><use href="#flamei"/></svg><div><b id="sIn">0</b><span>Still burning</span></div></div>
-    <div class="stat done"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#ffd166"><use href="#pawn"/></svg><div><b id="sDone">0</b><span>Missions complete</span></div></div>
+    <div class="stat done"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#ffd166"><use href="#pawn"/></svg><div><b id="sDone">0</b><span>Matchups won</span></div></div>
   </section>
 
   <div class="board">
@@ -311,7 +317,7 @@ function take(m) {
   if (old && old.t >= m.t) return;
   B.teams[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), lost: !!m.lost, mission: m.mission === "defend" ? "defend" : "rescue",
     result: m.result === "won" || m.result === "lost" ? m.result : null, p: m.p.slice(0, 8).map(x => [String(x[0]).slice(0, 24), x[1] ? 1 : 0, x[2] ? 1 : 0]),
-    b0: Number(m.b0) || 0, ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
+    b0: Number(m.b0) || 0, sh: Number(m.sh) || 0, rt: Number(m.rt) || 0, end: m.end === "opp" ? "opp" : "self", ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
   if (m.last && (!old || old.last !== m.last) && !B.hidden[m.id]) {
     B.feed.unshift({ t: m.t, id: m.id, fs: B.teams[m.id].fs, msg: B.teams[m.id].last });
     B.feed.sort((a, b) => b.t - a.t); B.feed = B.feed.slice(0, 40); newFeed++;
@@ -333,10 +339,22 @@ setInterval(() => {
 /* ---------- scoring ---------- */
 const safe = t => t.p.filter(x => !x[1]).length;
 const burning = t => t.p.filter(x => x[1]).length;
-const statusRank = t => t.result === "won" ? 2 : t.result ? 0 : 1;
-function ranked() {
-  return Object.entries(B.teams).filter(([id]) => !B.hidden[id]).map(([id, t]) => ({ id, ...t }))
-    .sort((a, b) => statusRank(b) - statusRank(a) || safe(b) / b.p.length - safe(a) / a.p.length || b.ok - a.ok || a.ans - b.ans || a.t - b.t);
+const statusRank = t => t.outcome === "win" ? 2 : t.outcome ? 0 : 1;
+const finishedAt = t => t.result ? (t.rt || t.t) : Infinity;
+function ranked(list) {
+  return list.sort((a, b) => statusRank(b) - statusRank(a)
+    || (a.outcome === "win" && b.outcome === "win" ? finishedAt(a) - finishedAt(b) : 0)   /* faster winners rank higher */
+    || safe(b) / b.p.length - safe(a) / a.p.length || b.ok - a.ok || a.ans - b.ans || a.t - b.t);
+}
+/* The first Fellowship in a matchup to finish ends it. If it completed its mission it wins;
+   if the fire took it, its opponent wins. */
+function decide(a, b) {
+  const done = [a, b].filter(t => t && t.result).sort((x, y) => finishedAt(x) - finishedAt(y));
+  if (!done.length) return;
+  const first = done[0], other = first === a ? b : a;
+  const winner = first.result === "won" ? first : other, loser = winner === a ? b : a;
+  if (winner) { winner.outcome = "win"; winner.how = winner === first ? "self" : "oppburned"; }
+  if (loser) { loser.outcome = "lose"; loser.how = loser === first ? "burned" : "beaten"; }
 }
 
 /* ---------- render ---------- */
@@ -357,12 +375,15 @@ function pawnHTML(t, x, where) {
 
 function sideHTML(t) {
   const camp = t.p.filter(x => !x[1]), fire = t.p.filter(x => x[1]);
-  const status = t.result ? "" : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : `Defend · card ${Math.min(t.di + 1, 5)} of 5`}</span>`;
-  return `<div class="side ${t.result || ""} ${flash.has(t.id) ? "flash" : ""}" style="--team:${t.color}">
-    ${t.result ? `<span class="banner ${t.result}">${t.result === "won" ? (t.mission === "defend" ? `Camp defended · ${safe(t)} of ${t.p.length} saved` : "Mission complete · fire's out") : "The fire won"}</span>` : ""}
+  const status = t.outcome ? "" : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : `Defend · card ${Math.min(t.di + 1, 5)} of 5`}</span>`;
+  const banner = t.outcome === "win"
+    ? (t.how === "oppburned" ? "Winner · opponent burned" : t.mission === "defend" ? `Winner · camp defended, ${safe(t)} of ${t.p.length} saved` : "Winner · fire's out")
+    : t.outcome === "lose" ? (t.how === "beaten" ? "Beaten to it" : "The fire won") : "";
+  return `<div class="side ${t.outcome === "win" ? "won" : t.outcome === "lose" ? "lost" : ""} ${flash.has(t.id) ? "flash" : ""}" style="--team:${t.color}">
+    ${banner ? `<span class="banner ${t.outcome === "win" ? "won" : "lost"}">${banner}</span>` : ""}
     <button class="x" type="button" data-hide="${esc(t.id)}" title="Remove ${esc(t.fs)} from the board" aria-label="Remove ${esc(t.fs)}">✕</button>
     <div class="fname"><span class="swatch"></span>${esc(t.fs)}</div>
-    <div class="tagrow">${status}<span class="pill">${t.lost ? "Lost" : "Won"} tug-of-war</span></div>
+    <div class="tagrow">${status}${t.sh > 0 && !t.outcome ? `<span class="pill shield">🛡 Fire Shield${t.sh > 1 ? " ×" + t.sh : ""}</span>` : ""}<span class="pill">${t.lost ? "Lost" : "Won"} tug-of-war</span></div>
     <div class="camp" data-label="CAMP" aria-label="${camp.length} in Camp">${camp.map(x => pawnHTML(t, x, "c")).join("")}</div>
     <div class="pit ${fire.length ? "" : "out"}" data-label="THE FIRE" aria-label="${fire.length} in the fire">
       ${fire.length ? `<div class="flames"><i></i><i></i><i></i><i></i></div>${fire.map(x => pawnHTML(t, x, "f")).join("")}` : `<span class="smoke"></span><span class="smoke"></span><span class="none">Fire's out</span>`}
@@ -376,7 +397,7 @@ let lastTotals = {};
 function setTotal(id, v) { const el = $(id); if (String(lastTotals[id]) !== String(v)) { el.textContent = v; if (lastTotals[id] !== undefined) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); } lastTotals[id] = v; } }
 
 function render() {
-  const list = ranked();
+  const list = Object.entries(B.teams).filter(([id]) => !B.hidden[id]).map(([id, t]) => ({ id, ...t, outcome: null, how: "" }));
   list.forEach(t => { t.color = colorFor(t.fs); });
   $("empty").style.display = list.length ? "none" : "grid";
   $("codeShow").textContent = B.code || "—";
@@ -384,7 +405,6 @@ function render() {
   setTotal("sFs", list.length);
   setTotal("sIn", list.reduce((a, t) => a + burning(t), 0));
   setTotal("sOut", list.reduce((a, t) => a + Math.max(0, t.b0 - burning(t)), 0));
-  setTotal("sDone", list.filter(t => t.result === "won").length);
 
   /* matchups: pair each Fellowship with the opponent it named. Exact spelling first, then close
      spellings ("Derivative Bee" vs "Derivative Bees", "The Integrator" vs "Integrators"). */
@@ -398,7 +418,11 @@ function render() {
     if (mate) used.add(mate.o.id);
     pairs.push([t, mate ? mate.o : null]);
   });
-  $("matchups").innerHTML = pairs.map(([a, b]) => `<article class="match">
+  pairs.forEach(([a, b]) => decide(a, b));
+  ranked(list);
+  setTotal("sDone", list.filter(t => t.outcome === "win").length);
+  $("matchups").innerHTML = pairs.map(([a, b]) => `<article class="match ${a.outcome ? "final" : ""}">
+      ${a.outcome ? `<span class="final-tag">FINAL</span>` : ""}
       ${sideHTML(a)}
       <div class="vs" aria-hidden="true">VS</div>
       ${b ? sideHTML(b) : `<div class="waiting"><span>Waiting for</span><b>${esc(a.opp || "an opponent")}</b><span>to light their fire…</span></div>`}
@@ -408,12 +432,12 @@ function render() {
   const top = list.slice(0, 3);
   const step = (t, place) => t ? `<div class="step p${place}">
       <div class="who">${esc(t.fs)}</div>${pawnSVG(t.color)}
-      <div class="blk">${place}</div><div class="sc">${safe(t)}/${t.p.length} safe${t.result === "won" ? " · ✓" : ""}</div></div>` : `<div class="step p${place}"></div>`;
+      <div class="blk">${place}</div><div class="sc">${t.outcome === "win" ? "Won matchup" : `${safe(t)}/${t.p.length} safe`}</div></div>` : `<div class="step p${place}"></div>`;
   $("podium").innerHTML = list.length ? step(top[1], 2) + step(top[0], 1) + step(top[2], 3) : "";
   $("rows").innerHTML = list.slice(3).map((t, i) => `<li>
       <span class="n">${i + 4}</span>
       <div><div class="tn"><span class="swatch" style="--team:${t.color}"></span>${esc(t.fs)}</div><div class="meter"><i style="width:${Math.round(100 * safe(t) / t.p.length)}%"></i></div></div>
-      <span class="r"><b>${safe(t)}/${t.p.length}</b> safe<br>${t.ok}/${t.ans} correct</span></li>`).join("");
+      <span class="r"><b>${safe(t)}/${t.p.length}</b> safe<br>${t.outcome === "win" ? "won matchup" : t.outcome === "lose" ? "lost matchup" : `${t.ok}/${t.ans} correct`}</span></li>`).join("");
 
   /* feed */
   const hiddenNames = new Set(Object.keys(B.hidden).map(id => B.teams[id] && B.teams[id].fs).filter(Boolean));
