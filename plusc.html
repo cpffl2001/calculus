@@ -186,6 +186,7 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .sug { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--ember-soft); border: 2px solid var(--ember); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
 .sug.ok { background: var(--camp-soft); border-color: var(--camp); color: var(--ink); display: block; }
 .already { margin-top: 10px; }
+.shield { margin-top: 10px; background: var(--sky-soft); color: var(--sky); border: 2px solid var(--sky); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 14px; }
 .relay { font-size: 13px; font-weight: 700; color: var(--muted); }
 .relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
@@ -270,7 +271,7 @@ function broadcast() {
   const msg = JSON.stringify({
     id: S.id, fs: S.name, opp: S.opp, lost: S.lost, mission: S.mission, result: S.result,
     p: S.players.map(p => [p.name, p.status === "fire" ? 1 : 0, p.singed > 0 ? 1 : 0]),
-    b0: S.b0 || 0, ans: S.stats.answered, ok: S.stats.correct, di: S.defendIdx, last: S.last || "", t: Date.now(),
+    b0: S.b0 || 0, sh: S.shield || 0, rt: S.resultAt || 0, end: S.endBy || "", ans: S.stats.answered, ok: S.stats.correct, di: S.defendIdx, last: S.last || "", t: Date.now(),
   });
   const send = tries => fetch(RELAY + topicFor(S.code), { method: "POST", body: msg })
     .then(r => setRelay(r.ok ? "ok" : r.status === 429 ? "limit" : "err"))
@@ -459,7 +460,8 @@ function launch() {
   EVENTS.forEach(e => piles.EMBER.push(e));
   Object.values(piles).forEach(shuffle);
   S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
-  Object.assign(S, { piles, phase: "play", log: [], mission: missionOf(), result: null, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
+  Object.assign(S, { piles, phase: "play", startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
+  watchOpponent();
   log(`${S.name} lit the fire: ${S.mission === "rescue" ? `rescuing ${inFire().length}` : "defending the camp"}.`);
   beginTurn();
 }
@@ -472,7 +474,43 @@ function eligiblePlayers() {
   if (S.mission === "defend") { const fresh = camp.filter(i => !S.players[i].answered); return fresh.length ? fresh : camp; }
   return camp;
 }
-function finish() { S.phase = "over"; save(); broadcast(); render(); }
+function finish() {
+  if (!S.resultAt) S.resultAt = Date.now();
+  if (!S.endBy) S.endBy = "self";
+  S.phase = "over"; document.getElementById("modal-root").innerHTML = "";
+  save(); broadcast(); render(); stopWatching();
+}
+
+/* ------------------------------------------------------------------ */
+/* MATCHUP RACE: listen for our opponent. The first Fellowship to     */
+/* finish ends the matchup for both.                                  */
+/* ------------------------------------------------------------------ */
+let oppES = null;
+function stopWatching() { if (oppES) { oppES.close(); oppES = null; } }
+function watchOpponent() {
+  stopWatching();
+  if (!S || S.phase !== "play" || !S.code || !S.startedAt || typeof EventSource === "undefined") return;
+  oppES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + Math.floor(S.startedAt / 1000));
+  oppES.onmessage = e => {
+    try {
+      const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
+      const m = JSON.parse(env.message);
+      if (!m.id || m.id === S.id || !m.fs || !m.result || !m.rt) return;
+      if (m.rt < S.startedAt) return;                                  /* an old game from earlier */
+      if (closeness(m.fs, S.opp) >= 99) return;                        /* not our opponent */
+      if (m.opp && closeness(m.opp, S.name) >= 99) return;
+      opponentFinished(m);
+    } catch (err) {}
+  };
+}
+function opponentFinished(m) {
+  if (S.phase !== "play" || S.result) return;
+  S.endBy = "opp"; S.resultAt = Date.now(); S.oppFinal = { fs: String(m.fs).slice(0, 40), result: m.result, mission: m.mission };
+  if (m.result === "won") { S.result = "lost"; log(`${S.oppFinal.fs} finished their mission first. The matchup is over.`); }
+  else { S.result = "won"; log(`The fire took ${S.oppFinal.fs}. ${S.name} wins the matchup!`); }
+  clearInterval(timerHandle);
+  finish();
+}
 
 function beginTurn() {
   clearInterval(timerHandle);
@@ -529,6 +567,12 @@ const fmtC = C => { const sign = C < 0 ? "−" : ""; const a = Math.abs(C); retu
 
 function move(i, to) {
   const p = S.players[i], from = p.status;
+  if (to === "fire" && S.shield > 0) {
+    S.shield--;
+    S.turn.moves.push(`<b>Fire Shield!</b> It blocks the fire. <b>${esc(p.name)}</b> stays in ${campName()}.`);
+    S.log.push(`Fire Shield saved ${p.name}.`);
+    return;
+  }
   p.status = to;
   if (to === "fire") p.singed = 0;
   const w = st => st === "fire" ? "The Fire" : campName();
@@ -542,6 +586,8 @@ function singe(i) {
 }
 
 async function resolve(raw, timeout) {
+  if (!S.turn || S.turn.stage !== "card") return;   /* already checked (timer and button can't both count) */
+  S.turn.stage = "checking";
   clearInterval(timerHandle);
   const c = card(S.turn.cardId), a = S.turn.answerer, ap = S.players[a];
   const correct = !timeout && sameC(parseC(raw), c.C);
@@ -553,6 +599,10 @@ async function resolve(raw, timeout) {
     if (!correct) {
       const camp = idxWhere(p => p.status === "camp");
       if (camp.length) (await choosePlayers(camp, 1, `Flare-up missed! ${S.opp}, choose one of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire"));
+    } else {
+      const fire = idxWhere(p => p.status === "fire");
+      if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Flare-up beaten! Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp"));
+      else { S.shield = (S.shield || 0) + 1; S.turn.moves.push(`Nobody is in your fire, so you earn a <b>Fire Shield</b>. It blocks the next player who would go into the fire.`); S.log.push(`${S.name} earned a Fire Shield.`); }
     }
   } else if (S.mission === "rescue") {
     if (correct) {
@@ -569,7 +619,7 @@ async function resolve(raw, timeout) {
       if (c.tier === "INFERNO") { const fire = idxWhere(p => p.status === "fire"); if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp")); }
     } else {
       move(a, "fire");
-      if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp"); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire")); }
+      if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp").filter(i => i !== a); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire")); }
     }
   }
   const after = inFire().length;
@@ -588,6 +638,7 @@ function checkMission() {
     if (inFire().length >= burnLimit()) { S.result = "lost"; log(`The fire took too many of ${S.name}.`); }
     else if (S.defendIdx >= DEFEND_ORDER.length) { S.result = "won"; log(`${S.name} defended the camp!`); }
   }
+  if (S.result && !S.resultAt) { S.resultAt = Date.now(); S.endBy = "self"; } /* stamp now so the opponent's game ends right away */
 }
 
 async function bucket() {
@@ -661,6 +712,7 @@ function teamPanel() {
     <div class="zone-title">In the fire</div>
     <div class="plist">${fire.length ? fire.map(p => `<span class="chip fire">${esc(p.name)}</span>`).join("") : `<span class="empty">Nobody</span>`}</div>
     <div class="firebar" aria-hidden="true">${S.players.map(p => `<i class="${p.status === "fire" ? "f" : ""}"></i>`).join("")}</div>
+    ${S.shield > 0 ? `<div class="shield">🛡 Fire Shield${S.shield > 1 ? ` ×${S.shield}` : ""}: blocks the next player who would go into the fire</div>` : ""}
     <div class="meta" style="margin-top:10px">${S.stats.correct} of ${S.stats.answered} cards correct</div>
   </aside>`;
 }
@@ -669,7 +721,7 @@ function cardHTML(c) {
   return `<div class="card ${c.tier}c">
     <div class="band"><span>${c.tier}</span><span>Card ${c.id}</span></div>
     <div class="body"><div class="q ${c.long ? "long" : ""}">${c.q}</div><div class="g">${c.g}</div></div>
-    <div class="foot">${S.turn.flare ? "Flare-up: solve as a team in 60 seconds. Miss it and your opponent pulls one of you into the fire." : TIER_NOTE[S.mission][c.tier]}</div>
+    <div class="foot">${S.turn.flare ? "Flare-up: solve as a team in 60 seconds. Right: pull 1 player out of the fire (or earn a Fire Shield). Miss: your opponent pulls one of you in." : TIER_NOTE[S.mission][c.tier]}</div>
   </div>`;
 }
 function movesHTML() {
@@ -698,7 +750,7 @@ function stageHTML() {
   }
 
   if (tr.stage === "event") {
-    if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. Your whole Fellowship solves a Flame card <b>together in 60 seconds</b>. Miss it and ${esc(S.opp)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
+    if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. Your whole Fellowship solves a Flame card <b>together in 60 seconds</b>.</p><p><b>Get it right:</b> pull 1 player out of the fire. If nobody is in it, you earn a <b>Fire Shield</b> that blocks the next player who would go in.<br><b>Miss it:</b> ${esc(S.opp)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
     return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div><p>Free rescue! To claim it, the whole Fellowship says out loud:</p><p style="font-family:var(--math);font-size:24px">“The antiderivative of xⁿ is xⁿ⁺¹⁄(n+1) + C, for n ≠ −1.”</p></div><div class="actions"><button type="button" class="btn primary" data-act="bucket">We said it</button></div>`;
   }
   if (tr.stage === "eventDone") return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div></div>${movesHTML()}<div class="actions"><button type="button" class="btn primary" data-act="again">Draw again</button></div>`;
@@ -713,7 +765,6 @@ function stageHTML() {
       <div class="ansbox"><label class="lbl" for="aC">C =</label><input type="text" id="aC" inputmode="decimal" autocomplete="off" placeholder="e.g. 4, −3, 5/2"><div class="hint">Fractions and decimals both work.</div></div>
       <div class="actions">
         <button type="button" class="btn primary" data-act="submit">Check the answer</button>
-        <button type="button" class="btn quiet" data-act="timeout">Out of time</button>
       </div>`;
   }
 
@@ -743,10 +794,20 @@ function renderPlay() {
   if (S.turn && S.turn.stage === "card") startTimer();
 }
 
+function overTitle() {
+  if (S.endBy === "opp") return S.result === "won" ? "You win the matchup!" : `${esc(S.oppFinal ? S.oppFinal.fs : S.opp)} finished first`;
+  return S.result === "won" ? winText() : "The fire won this time";
+}
+function overLine() {
+  const o = esc(S.oppFinal ? S.oppFinal.fs : S.opp);
+  if (S.endBy === "opp") return S.result === "won" ? `The fire took ${o}, so the matchup goes to you.` : `${o} completed their mission before you did. The game is over for both Fellowships.`;
+  return S.result === "won" ? `You finished before ${o}. You win the matchup, and their game is over too.` : `The fire won, so ${o} wins the matchup.`;
+}
 function renderOver() {
   document.getElementById("app").innerHTML = `${topBar(true)}
     <section class="stage over">
-      <h2>${S.result === "won" ? winText() : "The fire won this time"}</h2>
+      <h2>${overTitle()}</h2>
+      <p class="verdict ${S.result === "won" ? "good" : "bad"}" style="font-size:22px">${overLine()}</p>
       <p class="sub">${esc(S.name)} · ${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · vs ${esc(S.opp)}</p>
       <div class="res">
         <div><h3>${inCamp().length} of ${S.players.length}</h3><p>safe in Camp</p></div>
@@ -770,6 +831,12 @@ function startTimer() {
     const left = Math.max(0, S.turn.limit - Math.floor((Date.now() - S.turn.started) / 1000));
     el.textContent = left ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "Time!";
     el.classList.toggle("out", left === 0);
+    if (left === 0 && S.turn.stage === "card") {
+      const box = document.getElementById("aC"); if (box) box.disabled = true;
+      const btn = document.querySelector('[data-act="submit"]'); if (btn) btn.disabled = true;
+      clearInterval(timerHandle);
+      setTimeout(() => resolve("", true), 900);   /* a moment to see "Time!" */
+    }
   };
   tick(); timerHandle = setInterval(tick, 500);
 }
@@ -795,7 +862,7 @@ document.addEventListener("click", e => {
   if (!b || b.disabled) return;
   const act = b.dataset.act;
   if (act === "reset") {
-    if (b.dataset.armed === "1" || S.phase === "over") { S = freshSetup(); save(); return render(); }
+    if (b.dataset.armed === "1" || S.phase === "over") { stopWatching(); S = freshSetup(); save(); return render(); }
     b.dataset.armed = "1"; b.textContent = "Click again to start over";
     setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
   }
@@ -832,14 +899,15 @@ document.addEventListener("click", e => {
     if (!a.trim()) { document.getElementById("aC").focus(); return; }
     return resolve(a, false);
   }
-  if (act === "timeout") return resolve("", true);
 });
 
 /* boot */
 S = load() || freshSetup();
+if (S.phase === "play" && S.turn && S.turn.stage === "checking") S.turn.stage = "card";   /* reloaded mid-check */
 if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
 render();
 if (S.phase === "check") openCheck();
+if (S.phase === "play") watchOpponent();
 broadcast();
 </script>
 </body>
