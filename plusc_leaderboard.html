@@ -76,8 +76,8 @@ h1 small { display: block; font-family: var(--body); font-size: 14px; letter-spa
 @keyframes bump { 30% { transform: scale(1.25); } }
 @media (max-width: 760px) { .stats { grid-template-columns: 1fr 1fr; } }
 
-. { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 1150px) { . { grid-template-columns: 1fr; } }
+.board { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1150px) { .board { grid-template-columns: 1fr; } }
 h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spacing: .14em; color: var(--ember); margin: 0 0 10px; }
 
 /* matchup tabletop */
@@ -91,6 +91,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
 .swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; background: var(--team); box-shadow: 0 0 8px var(--team); }
 .tagrow { display: flex; gap: 6px; flex-wrap: wrap; }
 .pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,.08); color: var(--muted); }
+.pill.wait { background: rgba(255,179,71,.16); color: var(--ember); animation: blink 2s infinite; }
 .pill.shield { background: rgba(76,201,240,.18); color: #8fdcff; }
 .pill.rescue { color: #ff9b80; } .pill.defend { color: var(--good); }
 .pill.won { background: var(--gold); color: #2b1a00; } .pill.lost { background: var(--inferno); color: #fff; }
@@ -211,7 +212,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
       <label for="codeIn" style="position:absolute;left:-9999px">Class code</label>
       <input id="codeIn" placeholder="Class code" autocomplete="off">
       <button class="btn" id="setBtn" type="button">Set code</button>
-      <button class="btn" id="clearBtn" type="button">Clear </button>
+      <button class="btn" id="clearBtn" type="button">Clear board</button>
     </div>
   </header>
 
@@ -222,13 +223,13 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
     <div class="stat done"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#ffd166"><use href="#pawn"/></svg><div><b id="sDone">0</b><span>Matchups won</span></div></div>
   </section>
 
-  <div class="">
+  <div class="board">
     <section aria-label="Matchups">
       <h2>Matchups</h2>
       <div id="matchups" class="matchups"></div>
       <div id="empty" class="empty">
         <div class="pit"><div class="flames"><i></i><i></i><i></i><i></i></div></div>
-        <div>Set a class code! <br>Each Fellowship lands here the moment it lights its fire.</div>
+        <div>Set a class code and write it on the board.<br>Each Fellowship lands here the moment it lights its fire.</div>
       </div>
       <div class="legend">
         <span><svg viewBox="0 0 30 42" fill="#7be0a6"><use href="#pawn"/></svg>Standing in Camp</span>
@@ -317,7 +318,7 @@ function take(m) {
   if (old && old.t >= m.t) return;
   B.teams[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), lost: !!m.lost, mission: m.mission === "defend" ? "defend" : "rescue",
     result: m.result === "won" || m.result === "lost" ? m.result : null, p: m.p.slice(0, 8).map(x => [String(x[0]).slice(0, 24), x[1] ? 1 : 0, x[2] ? 1 : 0]),
-    b0: Number(m.b0) || 0, sh: Number(m.sh) || 0, rt: Number(m.rt) || 0, end: m.end === "opp" ? "opp" : "self", ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
+    wait: !!m.ready, b0: Number(m.b0) || 0, sh: Number(m.sh) || 0, rt: Number(m.rt) || 0, end: m.end === "opp" ? "opp" : "self", ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
   if (m.last && (!old || old.last !== m.last) && !B.hidden[m.id]) {
     B.feed.unshift({ t: m.t, id: m.id, fs: B.teams[m.id].fs, msg: B.teams[m.id].last });
     B.feed.sort((a, b) => b.t - a.t); B.feed = B.feed.slice(0, 40); newFeed++;
@@ -375,7 +376,7 @@ function pawnHTML(t, x, where) {
 
 function sideHTML(t) {
   const camp = t.p.filter(x => !x[1]), fire = t.p.filter(x => x[1]);
-  const status = t.outcome ? "" : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : `Defend · card ${Math.min(t.di + 1, 5)} of 5`}</span>`;
+  const status = t.outcome ? "" : t.wait ? `<span class="pill wait">Ready · waiting for opponent</span>` : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : `Defend · card ${Math.min(t.di + 1, 5)} of 5`}</span>`;
   const banner = t.outcome === "win"
     ? (t.how === "oppburned" ? "Winner · opponent burned" : t.mission === "defend" ? `Winner · camp defended, ${safe(t)} of ${t.p.length} saved` : "Winner · fire's out")
     : t.outcome === "lose" ? (t.how === "beaten" ? "Beaten to it" : "The fire won") : "";
