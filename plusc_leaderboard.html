@@ -299,6 +299,12 @@ function connect() {
   };
 }
 function take(m) {
+  if (m && m.clear && Number(m.t) > B.clearedAt) { /* Clear board pressed (here or on another computer) */
+    B.clearedAt = Number(m.t);
+    Object.keys(B.teams).forEach(id => { if (B.teams[id].t < B.clearedAt) delete B.teams[id]; });
+    B.feed = B.feed.filter(f => f.t >= B.clearedAt); save(); schedule(); return;
+  }
+  if (m && m.hide && typeof m.hide === "string") { B.hidden[m.hide] = true; save(); schedule(); return; }
   if (!m || !m.id || !m.fs || !Array.isArray(m.p)) return;
   if (m.t < B.clearedAt) return;
   const old = B.teams[m.id];
@@ -444,15 +450,16 @@ function render() {
 /* ---------- controls ---------- */
 $("setBtn").onclick = setCode;
 $("codeIn").addEventListener("keydown", e => { if (e.key === "Enter") setCode(); });
+function announce(obj) { if (B.code) fetch(RELAY + topicFor(B.code), { method: "POST", body: JSON.stringify(obj) }).catch(() => {}); }
 $("clearBtn").onclick = function () {
   const b = this;
-  if (b.dataset.armed === "1") { B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = Date.now(); save(); connect(); render(); b.dataset.armed = ""; b.textContent = "Clear board"; return; }
+  if (b.dataset.armed === "1") { B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = Date.now(); announce({ clear: true, t: B.clearedAt }); save(); connect(); render(); b.dataset.armed = ""; b.textContent = "Clear board"; return; }
   b.dataset.armed = "1"; b.textContent = "Click again to clear";
   setTimeout(() => { b.dataset.armed = ""; b.textContent = "Clear board"; }, 4000);
 };
 document.addEventListener("click", e => {
   const h = e.target.closest("[data-hide]"); if (!h) return;
-  if (h.dataset.armed === "1") { B.hidden[h.dataset.hide] = true; save(); render(); return; }
+  if (h.dataset.armed === "1") { B.hidden[h.dataset.hide] = true; announce({ hide: h.dataset.hide, t: Date.now() }); save(); render(); return; }
   h.dataset.armed = "1"; h.textContent = "Remove?"; h.style.opacity = 1;
   setTimeout(() => { if (h.isConnected) { h.dataset.armed = ""; h.textContent = "✕"; h.style.opacity = ""; } }, 3000);
 });
