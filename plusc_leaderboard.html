@@ -353,7 +353,7 @@ function sideHTML(t) {
   const camp = t.p.filter(x => !x[1]), fire = t.p.filter(x => x[1]);
   const status = t.result ? "" : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : `Defend · card ${Math.min(t.di + 1, 5)} of 5`}</span>`;
   return `<div class="side ${t.result || ""} ${flash.has(t.id) ? "flash" : ""}" style="--team:${t.color}">
-    ${t.result ? `<span class="banner ${t.result}">${t.result === "won" ? "Mission complete" : "The fire won"}</span>` : ""}
+    ${t.result ? `<span class="banner ${t.result}">${t.result === "won" ? (t.mission === "defend" ? `Camp defended · ${safe(t)} of ${t.p.length} saved` : "Mission complete · fire's out") : "The fire won"}</span>` : ""}
     <button class="x" type="button" data-hide="${esc(t.id)}" title="Remove ${esc(t.fs)} from the board" aria-label="Remove ${esc(t.fs)}">✕</button>
     <div class="fname"><span class="swatch"></span>${esc(t.fs)}</div>
     <div class="tagrow">${status}<span class="pill">${t.lost ? "Lost" : "Won"} tug-of-war</span></div>
