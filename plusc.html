@@ -426,11 +426,11 @@ function singe(i) {
   S.log.push(`${p.name} is singed.`);
 }
 
-async function resolve(raw, missingC, timeout) {
+async function resolve(raw, timeout) {
   clearInterval(timerHandle);
   const c = card(S.turn.cardId), a = S.turn.answerer, ap = S.players[a];
-  const correct = !timeout && !missingC && sameC(parseC(raw), c.C);
-  Object.assign(S.turn, { correct, missingC, timeout, raw });
+  const correct = !timeout && sameC(parseC(raw), c.C);
+  Object.assign(S.turn, { correct, timeout, raw });
   S.stats.answered++; if (correct) S.stats.correct++;
   const before = inFire().length;
 
@@ -458,7 +458,7 @@ async function resolve(raw, missingC, timeout) {
     }
   }
   const after = inFire().length;
-  const verdict = correct ? "solved" : missingC ? "forgot +C on" : timeout ? "ran out of time on" : "missed";
+  const verdict = correct ? "solved" : timeout ? "ran out of time on" : "missed";
   const delta = after < before ? `, rescued ${before - after}` : after > before ? `, ${after - before} fell in` : "";
   log(`${ap.name} ${verdict} ${S.turn.flare ? "a Flare-Up" : `an ${c.tier === "EMBER" ? "Ember" : c.tier === "FLAME" ? "Flame" : "Inferno"}`} card${delta}.`.replace("an Flame", "a Flame"));
   checkMission();
@@ -563,7 +563,7 @@ function movesHTML() {
 
 function stageHTML() {
   const tr = S.turn;
-  const head = `<h2>${esc(S.name)}'s turn</h2><p class="sub">${S.mission === "rescue" ? "Rescue Mode" : `Defend the Camp · card ${Math.min(5, tr.stage === "result" ? S.defendIdx : S.defendIdx + 1)} of 5`} · ${esc(S.opp)} can call “Missing C!”</p>`;
+  const head = `<h2>${esc(S.name)}'s turn</h2><p class="sub">${S.mission === "rescue" ? "Rescue Mode" : `Defend the Camp · card ${Math.min(5, tr.stage === "result" ? S.defendIdx : S.defendIdx + 1)} of 5`} · vs ${esc(S.opp)}</p>`;
   if (tr.stage === "skip") return `${head}<p>Everyone in your Camp is singed, so you sit this turn out. Stand the pieces back up.</p><div class="actions"><button type="button" class="btn primary" data-act="next">Next turn</button></div>`;
 
   if (tr.stage === "choose") {
@@ -595,7 +595,6 @@ function stageHTML() {
       <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="timer" id="timer" role="timer">--:--</span><span class="hint">Show all four steps on the whiteboard</span></div>
       <div class="steps4"><div>1. Integrate. Write <b>+C</b>!</div><div>2. Plug in the point</div><div>3. Solve for C</div><div>4. Write the finished function</div></div>
       <div class="ansbox"><label class="lbl" for="aC">C =</label><input type="text" id="aC" inputmode="decimal" autocomplete="off" placeholder="e.g. 4, −3, 5/2"><div class="hint">Fractions and decimals both work.</div></div>
-      <label class="check"><input type="checkbox" id="missC"> ${esc(S.opp)} called “Missing C!” (no +C in step 1)</label>
       <div class="actions">
         <button type="button" class="btn primary" data-act="submit">Check the answer</button>
         <button type="button" class="btn quiet" data-act="timeout">Out of time</button>
@@ -604,7 +603,7 @@ function stageHTML() {
 
   if (tr.stage === "result" || tr.stage === "flareResult") {
     const c = card(tr.cardId);
-    const why = tr.missingC ? "Missing C! The answer doesn't count." : tr.timeout ? "Out of time." : tr.correct ? "" : `You said C = ${esc(tr.raw || "nothing")}.`;
+    const why = tr.timeout ? "Out of time." : tr.correct ? "" : `You said C = ${esc(tr.raw || "nothing")}.`;
     const back = tr.stage === "flareResult" && !S.result;
     return `${head}
       <p class="verdict ${tr.correct ? "good" : "bad"}">${tr.correct ? (tr.flare ? "Flare-up beaten!" : "Correct!") : "Miss."}</p>
@@ -704,11 +703,11 @@ document.addEventListener("click", e => {
   if (act === "again") return backToChoose();
   if (act === "next") return beginTurn();
   if (act === "submit") {
-    const a = document.getElementById("aC").value, mc = document.getElementById("missC").checked;
-    if (!a.trim() && !mc) { document.getElementById("aC").focus(); return; }
-    return resolve(a, mc, false);
+    const a = document.getElementById("aC").value;
+    if (!a.trim()) { document.getElementById("aC").focus(); return; }
+    return resolve(a, false);
   }
-  if (act === "timeout") return resolve("", false, true);
+  if (act === "timeout") return resolve("", true);
 });
 
 /* boot */
