@@ -641,9 +641,10 @@ function topBar(inGame) {
   </header>`;
 }
 
+const winText = () => S.mission === "defend" ? `Camp defended! ${inCamp().length} of ${S.players.length} saved` : "Mission complete! The fire's out";
 function teamPanel() {
   const fire = S.players.filter(p => p.status === "fire"), camp = S.players.filter(p => p.status === "camp");
-  const status = S.result === "won" ? `<span class="pill won">Mission complete</span>` : S.result === "lost" ? `<span class="pill lost">The fire won</span>` : `<span class="pill ${S.mission}">${S.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
+  const status = S.result === "won" ? `<span class="pill won">${S.mission === "defend" ? "Camp defended" : "Mission complete"}</span>` : S.result === "lost" ? `<span class="pill lost">The fire won</span>` : `<span class="pill ${S.mission}">${S.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
   const progress = S.mission === "defend" ? `Card ${Math.min(S.defendIdx + 1, 5)} of 5 · lose at ${burnLimit()} burning` : `${fire.length} still in the fire`;
   return `<aside class="team active" aria-label="${esc(S.name)}">
     <h3>${esc(S.name)}</h3>
@@ -720,7 +721,7 @@ function stageHTML() {
       ${why ? `<p>${why}</p>` : ""}
       <div class="reveal">${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b></div>
       ${movesHTML()}
-      ${S.result ? `<p><b>${S.result === "won" ? "Mission complete!" : "The fire won this one."}</b></p>` : ""}
+      ${S.result ? `<p><b>${S.result === "won" ? winText() : "The fire won this one."}</b></p>` : ""}
       <div class="actions"><button type="button" class="btn primary" data-act="${back ? "again" : "next"}">${back ? "Back to your turn" : S.result ? "See the results" : "Next turn"}</button></div>`;
   }
   return head;
@@ -740,7 +741,7 @@ function renderPlay() {
 function renderOver() {
   document.getElementById("app").innerHTML = `${topBar(true)}
     <section class="stage over">
-      <h2>${S.result === "won" ? "Mission complete!" : "The fire won this time"}</h2>
+      <h2>${S.result === "won" ? winText() : "The fire won this time"}</h2>
       <p class="sub">${esc(S.name)} · ${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · vs ${esc(S.opp)}</p>
       <div class="res">
         <div><h3>${inCamp().length} of ${S.players.length}</h3><p>safe in Camp</p></div>
