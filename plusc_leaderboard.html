@@ -76,8 +76,8 @@ h1 small { display: block; font-family: var(--body); font-size: 14px; letter-spa
 @keyframes bump { 30% { transform: scale(1.25); } }
 @media (max-width: 760px) { .stats { grid-template-columns: 1fr 1fr; } }
 
-.board { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 1150px) { .board { grid-template-columns: 1fr; } }
+. { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1150px) { . { grid-template-columns: 1fr; } }
 h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spacing: .14em; color: var(--ember); margin: 0 0 10px; }
 
 /* matchup tabletop */
@@ -211,7 +211,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
       <label for="codeIn" style="position:absolute;left:-9999px">Class code</label>
       <input id="codeIn" placeholder="Class code" autocomplete="off">
       <button class="btn" id="setBtn" type="button">Set code</button>
-      <button class="btn" id="clearBtn" type="button">Clear board</button>
+      <button class="btn" id="clearBtn" type="button">Clear </button>
     </div>
   </header>
 
@@ -222,13 +222,13 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
     <div class="stat done"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#ffd166"><use href="#pawn"/></svg><div><b id="sDone">0</b><span>Matchups won</span></div></div>
   </section>
 
-  <div class="board">
+  <div class="">
     <section aria-label="Matchups">
       <h2>Matchups</h2>
       <div id="matchups" class="matchups"></div>
       <div id="empty" class="empty">
         <div class="pit"><div class="flames"><i></i><i></i><i></i><i></i></div></div>
-        <div>Set a class code and write it on the board.<br>Each Fellowship lands here the moment it lights its fire.</div>
+        <div>Set a class code! <br>Each Fellowship lands here the moment it lights its fire.</div>
       </div>
       <div class="legend">
         <span><svg viewBox="0 0 30 42" fill="#7be0a6"><use href="#pawn"/></svg>Standing in Camp</span>
