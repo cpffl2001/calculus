@@ -240,6 +240,7 @@ const CARDS = [
 const EVENTS = ["FLARE", "FLARE", "BUCKET", "BUCKET"];
 const RESCUE_PAY = { EMBER: 1, FLAME: 2, INFERNO: 3 };
 const DEFEND_ORDER = ["EMBER", "EMBER", "FLAME", "FLAME", "INFERNO"];
+const CARDS_PER_GAME = 5;   /* every Fellowship answers exactly 5 problem cards (Flare-Ups and Bucket Brigades are extra) */
 const TIER_NOTE = {
   rescue: { EMBER: "Correct: rescue 1 · Miss: singed", FLAME: "Correct: rescue 2 · Miss: singed", INFERNO: "Correct: rescue 3 · Miss: you fall in" },
   defend: { EMBER: "Correct: stay in Camp · Miss: into the fire", FLAME: "Correct: stay in Camp · Miss: into the fire", INFERNO: "Correct: pull 1 out · Miss: you + 1 more fall in" },
@@ -348,9 +349,10 @@ function renderSetup() {
 }
 function previewText() {
   const burned = S.players.filter(p => p.status === "fire").length;
-  return missionOf() === "rescue"
-    ? `<b>Your mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Get every one of them out.`
-    : `<b>Your mission: Defend the Camp.</b> Nobody burned. Answer 5 cards (Ember, Ember, Flame, Flame, Inferno) and keep at least ${S.players.length - burnLimit() + 1} of ${S.players.length} in Camp.`;
+  return (missionOf() === "rescue"
+    ? `<b>Your mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Pull as many out as you can. You pick Ember, Flame, or Inferno each turn.`
+    : `<b>Your mission: Defend the Camp.</b> Nobody burned. Keep everyone out of the fire. Your cards come in order: Ember, Ember, Flame, Flame, Inferno.`)
+    + ` <b>Everyone answers 5 cards.</b> After both Fellowships finish, the one with more players safe in Camp wins.`;
 }
 function startGame() {
   S.code = S.code.trim(); S.name = S.name.trim(); S.opp = S.opp.trim();
@@ -570,24 +572,25 @@ function finish() {
   if (!S.resultAt) S.resultAt = Date.now();
   if (!S.endBy) S.endBy = "self";
   S.phase = "over"; document.getElementById("modal-root").innerHTML = "";
-  save(); broadcast(); render(); stopWatching();
+  save(); broadcast(); render();
+  if (S.oppFinal) stopWatching(); else if (!oppES) watchOpponent();
 }
 
 /* ------------------------------------------------------------------ */
-/* MATCHUP RACE: listen for our opponent. The first Fellowship to     */
-/* finish ends the matchup for both.                                  */
+/* MATCHUP: listen for our opponent's final score. When both have    */
+/* finished 5 cards, more players safe wins.                          */
 /* ------------------------------------------------------------------ */
 let oppES = null;
 function stopWatching() { if (oppES) { oppES.close(); oppES = null; } }
 function watchOpponent() {
   stopWatching();
-  if (!S || S.phase !== "play" || !S.code || !S.startedAt || typeof EventSource === "undefined") return;
+  if (!S || (S.phase !== "play" && S.phase !== "over") || S.oppFinal || !S.code || !S.startedAt || typeof EventSource === "undefined") return;
   oppES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + Math.floor(S.startedAt / 1000));
   oppES.onmessage = e => {
     try {
       const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
       const m = JSON.parse(env.message);
-      if (!m.id || m.id === S.id || !m.fs || !m.result || !m.rt) return;
+      if (!m.id || m.id === S.id || !m.fs || m.result !== "done" || !m.rt || !Array.isArray(m.p)) return;
       if (m.rt < S.startedAt) return;                                  /* an old game from earlier */
       if (closeness(m.fs, S.opp) >= 99) return;                        /* not our opponent */
       if (m.opp && closeness(m.opp, S.name) >= 99) return;
@@ -596,12 +599,15 @@ function watchOpponent() {
   };
 }
 function opponentFinished(m) {
-  if (S.phase !== "play" || S.result) return;
-  S.endBy = "opp"; S.resultAt = Date.now(); S.oppFinal = { fs: String(m.fs).slice(0, 40), result: m.result, mission: m.mission };
-  if (m.result === "won") { S.result = "lost"; log(`${S.oppFinal.fs} finished their mission first. The matchup is over.`); }
-  else { S.result = "won"; log(`The fire took ${S.oppFinal.fs}. ${S.name} wins the matchup!`); }
-  clearInterval(timerHandle);
-  finish();
+  if (S.oppFinal) return;
+  S.oppFinal = { fs: String(m.fs).slice(0, 40), safe: m.p.filter(x => !x[1]).length, total: m.p.length, ok: Number(m.ok) || 0, rt: Number(m.rt) };
+  log(`${S.oppFinal.fs} finished with ${S.oppFinal.safe} of ${S.oppFinal.total} safe.`);
+  save();
+  if (S.phase === "over") { stopWatching(); render(); }
+}
+/* 1 = we win, -1 = they win, 0 = tie. More safe (as a share of the team), then more safe, then more correct, then finished first. */
+function compareFinal(a, b) {
+  return Math.sign(a.safe / a.total - b.safe / b.total) || Math.sign(a.safe - b.safe) || Math.sign(a.ok - b.ok) || Math.sign(b.rt - a.rt);
 }
 
 function beginTurn() {
@@ -609,10 +615,10 @@ function beginTurn() {
   if (S.result) return finish();
   S.players.forEach(p => { if (p.singed > 0) p.singed--; });
   if (S.mission === "rescue" && !["EMBER", "FLAME", "INFERNO"].some(k => S.piles[k].length)) {
-    S.result = "lost"; log(`The cards ran out. The fire keeps ${inFire().length} of ${S.name}.`); return finish();
+    S.result = "done"; log(`The cards ran out. ${S.name} finished with ${inCamp().length} of ${S.players.length} safe.`); return finish();
   }
   let eligible = eligiblePlayers(), lastStand = false;
-  if (!eligible.length && S.mission === "rescue" && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
+  if (!eligible.length && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
   if (!eligible.length) {
     S.turn = { stage: "skip", eligible: [], moves: [] };
     save(); return render();
@@ -626,7 +632,7 @@ function drawCard() {
   let tier = S.turn.tier;
   if (!S.piles[tier].length) {
     const alt = ["EMBER", "FLAME", "INFERNO"].find(k => S.piles[k].length);
-    if (!alt) { S.result = S.mission === "defend" ? (inFire().length < burnLimit() ? "won" : "lost") : "lost"; log("The cards ran out."); return finish(); }
+    if (!alt) { S.result = "done"; log("The cards ran out."); return finish(); }
     tier = alt; S.turn.tier = alt;
   }
   const item = S.piles[tier].shift();
@@ -706,14 +712,16 @@ async function resolve(raw, timeout) {
       if (c.tier === "INFERNO") move(a, "fire"); else singe(a);
     }
   } else {
-    ap.answered = true; S.defendIdx++;
+    ap.answered = true;
+    if (S.turn.lastStand) { if (correct) move(a, "camp"); }   /* answered from the fire: right = climbs out, miss = stays */
     if (correct) {
       if (c.tier === "INFERNO") { const fire = idxWhere(p => p.status === "fire"); if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp")); }
-    } else {
+    } else if (!S.turn.lastStand) {
       move(a, "fire");
       if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp").filter(i => i !== a); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire")); }
     }
   }
+  if (!S.turn.flare) S.defendIdx++;   /* counts the 5 problem cards for every mission */
   const after = inFire().length;
   const verdict = correct ? "solved" : timeout ? "ran out of time on" : "missed";
   const delta = after < before ? `, rescued ${before - after}` : after > before ? `, ${after - before} fell in` : "";
@@ -725,12 +733,8 @@ async function resolve(raw, timeout) {
 
 function checkMission() {
   if (S.result) return;
-  if (S.mission === "rescue" && inFire().length === 0) { S.result = "won"; log(`${S.name} emptied the fire!`); }
-  if (S.mission === "defend") {
-    if (inFire().length >= burnLimit()) { S.result = "lost"; log(`The fire took too many of ${S.name}.`); }
-    else if (S.defendIdx >= DEFEND_ORDER.length) { S.result = "won"; log(`${S.name} defended the camp!`); }
-  }
-  if (S.result && !S.resultAt) { S.resultAt = Date.now(); S.endBy = "self"; } /* stamp now so the opponent's game ends right away */
+  if (S.defendIdx >= CARDS_PER_GAME) { S.result = "done"; log(`${S.name} finished all 5 cards with ${inCamp().length} of ${S.players.length} safe.`); }
+  if (S.result && !S.resultAt) { S.resultAt = Date.now(); S.endBy = "self"; } /* stamp now so the opponent sees our final score right away */
 }
 
 async function bucket() {
@@ -748,7 +752,7 @@ function backToChoose() {
   const keepTier = S.turn.flareReturn ? S.turn.flareReturn.tier : S.turn.tier;
   const prevAns = S.turn.flareReturn ? S.turn.flareReturn.answerer : S.turn.answerer;
   let eligible = eligiblePlayers(), lastStand = false;
-  if (!eligible.length && S.mission === "rescue" && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
+  if (!eligible.length && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
   if (!eligible.length) return beginTurn();
   S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.includes(prevAns) ? prevAns : (eligible.length === 1 ? eligible[0] : null), tier: S.mission === "defend" ? DEFEND_ORDER[S.defendIdx] : keepTier, moves: [], drawAgain: true };
   save(); render();
@@ -789,11 +793,11 @@ function topBar(inGame) {
   </header>`;
 }
 
-const winText = () => S.mission === "defend" ? `Camp defended! ${inCamp().length} of ${S.players.length} saved` : "Mission complete! The fire's out";
+const cardNo = () => Math.min(CARDS_PER_GAME, (S.turn && S.turn.stage === "result" ? S.defendIdx : S.defendIdx + 1));
 function teamPanel() {
   const fire = S.players.filter(p => p.status === "fire"), camp = S.players.filter(p => p.status === "camp");
-  const status = S.result === "won" ? `<span class="pill won">${S.mission === "defend" ? "Camp defended" : "Mission complete"}</span>` : S.result === "lost" ? `<span class="pill lost">The fire won</span>` : `<span class="pill ${S.mission}">${S.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
-  const progress = S.mission === "defend" ? `Card ${Math.min(S.defendIdx + 1, 5)} of 5 · lose at ${burnLimit()} burning` : `${fire.length} still in the fire`;
+  const status = S.result ? `<span class="pill won">Finished · ${camp.length} of ${S.players.length} safe</span>` : `<span class="pill ${S.mission}">${S.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
+  const progress = `Card ${cardNo()} of ${CARDS_PER_GAME} · ${fire.length} in the fire`;
   return `<aside class="team active" aria-label="${esc(S.name)}">
     <h3>${esc(S.name)}</h3>
     <div class="meta">${S.lost ? "Lost" : "Won"} the tug-of-war vs ${esc(S.opp)} · ${campName()}</div>
@@ -823,7 +827,7 @@ function movesHTML() {
 
 function stageHTML() {
   const tr = S.turn;
-  const head = `<h2>${esc(S.name)}'s turn</h2><p class="sub">${S.mission === "rescue" ? "Rescue Mode" : `Defend the Camp · card ${Math.min(5, tr.stage === "result" ? S.defendIdx : S.defendIdx + 1)} of 5`} · vs ${esc(S.opp)}</p>`;
+  const head = `<h2>${esc(S.name)}'s turn</h2><p class="sub">${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · <b>card ${cardNo()} of ${CARDS_PER_GAME}</b> · vs ${esc(S.opp)}</p>`;
   if (tr.stage === "skip") return `${head}<p>Everyone in your Camp is singed, so you sit this turn out. Stand the pieces back up.</p><div class="actions"><button type="button" class="btn primary" data-act="next">Next turn</button></div>`;
 
   if (tr.stage === "choose") {
@@ -869,7 +873,7 @@ function stageHTML() {
       ${why ? `<p>${why}</p>` : ""}
       <div class="reveal">${c.alt ? `By ${c.how}: ` : ""}${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b>${c.alt ? `<br>By ${c.alt.how}: ${c.alt.f} &nbsp;&nbsp;<b>C = ${c.alt.show}</b><br><small>Both are right. The two antiderivatives differ by 1/6, so their C values differ too.</small>` : ""}</div>
       ${movesHTML()}
-      ${S.result ? `<p><b>${S.result === "won" ? winText() : "The fire won this one."}</b></p>` : ""}
+      ${S.result ? `<p><b>That was your 5th card! You finished with ${inCamp().length} of ${S.players.length} safe.</b></p>` : ""}
       <div class="actions"><button type="button" class="btn primary" data-act="${back ? "again" : "next"}">${back ? "Back to your turn" : S.result ? "See the results" : "Next turn"}</button></div>`;
   }
   return head;
@@ -887,19 +891,24 @@ function renderPlay() {
 }
 
 function overTitle() {
-  if (S.endBy === "opp") return S.result === "won" ? "You win the matchup!" : `${esc(S.oppFinal ? S.oppFinal.fs : S.opp)} finished first`;
-  return S.result === "won" ? winText() : "The fire won this time";
+  if (!S.oppFinal) return `All 5 cards done: ${inCamp().length} of ${S.players.length} safe`;
+  const r = compareFinal(myFinal(), S.oppFinal);
+  return r > 0 ? "You win the matchup!" : r < 0 ? `${esc(S.oppFinal.fs)} wins the matchup` : "It's a tie!";
 }
 function overLine() {
-  const o = esc(S.oppFinal ? S.oppFinal.fs : S.opp);
-  if (S.endBy === "opp") return S.result === "won" ? `The fire took ${o}, so the matchup goes to you.` : `${o} completed their mission before you did. The game is over for both Fellowships.`;
-  return S.result === "won" ? `You finished before ${o}. You win the matchup, and their game is over too.` : `The fire won, so ${o} wins the matchup.`;
+  const o = S.oppFinal, me = myFinal();
+  if (!o) return `Waiting for ${esc(S.opp)} to finish their 5 cards… Keep this screen open to see who wins.`;
+  const r = compareFinal(me, o);
+  const score = `${esc(S.name)}: ${me.safe} of ${me.total} safe · ${esc(o.fs)}: ${o.safe} of ${o.total} safe`;
+  const why = me.safe / me.total !== o.safe / o.total || me.safe !== o.safe ? "" : me.ok !== o.ok ? " Same number safe, so it came down to correct answers." : r !== 0 ? " Same number safe and correct, so the faster Fellowship wins." : "";
+  return score + "." + why;
 }
+const myFinal = () => ({ safe: inCamp().length, total: S.players.length, ok: S.stats.correct, rt: S.resultAt || Date.now() });
 function renderOver() {
   document.getElementById("app").innerHTML = `${topBar(true)}
     <section class="stage over">
       <h2>${overTitle()}</h2>
-      <p class="verdict ${S.result === "won" ? "good" : "bad"}" style="font-size:22px">${overLine()}</p>
+      <p class="verdict ${!S.oppFinal ? "" : compareFinal(myFinal(), S.oppFinal) >= 0 ? "good" : "bad"}" style="font-size:22px">${overLine()}</p>
       <p class="sub">${esc(S.name)} · ${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · vs ${esc(S.opp)}</p>
       <div class="res">
         <div><h3>${inCamp().length} of ${S.players.length}</h3><p>safe in Camp</p></div>
@@ -1006,7 +1015,7 @@ if (S.phase === "play" && S.turn && S.turn.stage === "checking") S.turn.stage = 
 if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
 render();
 if (S.phase === "check") openCheck();
-if (S.phase === "play") watchOpponent();
+if (S.phase === "play" || (S.phase === "over" && !S.oppFinal)) watchOpponent();
 if (S.phase === "waiting") watchReady();
 broadcast();
 </script>
