@@ -201,6 +201,7 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 @keyframes lick { from { transform: scaleY(.85) skewX(-6deg); } to { transform: scaleY(1.1) skewX(6deg); } }
 @media (prefers-reduced-motion: reduce) { .campfire i { animation: none; } }
 .choice small { font-weight: 400; color: var(--muted); }
+.handoff { background: var(--inferno); color: #fff; font-weight: 700; font-size: 18px; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; text-align: center; }
 .relay { font-size: 13px; font-weight: 700; color: var(--muted); }
 .relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
@@ -696,7 +697,7 @@ async function resolve(raw, timeout) {
   if (S.turn.flare) {
     if (!correct) {
       const camp = idxWhere(p => p.status === "camp");
-      if (camp.length) (await choosePlayers(camp, 1, `Flare-up missed! ${S.opp}, choose one of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire"));
+      if (camp.length) (await choosePlayers(camp, 1, `Flare-up missed! ${S.opp}, choose one of ${S.name}'s players to pull into the fire.`, true)).forEach(i => move(i, "fire"));
     } else {
       const fire = idxWhere(p => p.status === "fire");
       if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Flare-up beaten! Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp"));
@@ -718,7 +719,7 @@ async function resolve(raw, timeout) {
       if (c.tier === "INFERNO") { const fire = idxWhere(p => p.status === "fire"); if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp")); }
     } else if (!S.turn.lastStand) {
       move(a, "fire");
-      if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp").filter(i => i !== a); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`)).forEach(i => move(i, "fire")); }
+      if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp").filter(i => i !== a); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`, true)).forEach(i => move(i, "fire")); }
     }
   }
   if (!S.turn.flare) S.defendIdx++;   /* counts the 5 problem cards for every mission */
@@ -761,11 +762,12 @@ function backToChoose() {
 /* ------------------------------------------------------------------ */
 /* PICK-PLAYERS MODAL                                                  */
 /* ------------------------------------------------------------------ */
-function choosePlayers(options, count, title) {
+function choosePlayers(options, count, title, oppPicks) {
   return new Promise(res => {
     const sel = new Set(), root = document.getElementById("modal-root");
     const draw = () => {
       root.innerHTML = `<div class="modal-back" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modal">
+        ${oppPicks ? `<div class="handoff">Show <b>${esc(S.opp)}</b> your screen so they can pick who goes into the fire.</div>` : ""}
         <h3 id="mt">${esc(title)}</h3><p>Pick ${count}. Selected: ${sel.size} of ${count}</p>
         <div class="choices">${options.map(i => `<button type="button" class="choice ${sel.has(i) ? "on" : ""}" data-i="${i}">${esc(S.players[i].name)}</button>`).join("")}</div>
         <div class="actions"><button type="button" class="btn primary" id="mok" ${sel.size === count ? "" : "disabled"}>Confirm</button></div></div></div>`;
