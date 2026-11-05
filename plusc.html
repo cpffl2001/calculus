@@ -564,10 +564,12 @@ function startPlay() {
 /* ------------------------------------------------------------------ */
 /* TURN ENGINE                                                         */
 /* ------------------------------------------------------------------ */
+/* Everyone in Camp takes a turn before anyone goes twice (both missions). */
 function eligiblePlayers() {
+  if (!S.players.some(p => p.status === "camp" && !p.answered)) S.players.forEach(p => { p.answered = false; });   /* new round */
   const camp = idxWhere(p => p.status === "camp" && !(p.singed > 0));
-  if (S.mission === "defend") { const fresh = camp.filter(i => !S.players[i].answered); return fresh.length ? fresh : camp; }
-  return camp;
+  const fresh = camp.filter(i => !S.players[i].answered);
+  return fresh.length ? fresh : camp;   /* only players who already went are free (the rest are singed) */
 }
 function finish() {
   if (!S.resultAt) S.resultAt = Date.now();
@@ -713,7 +715,6 @@ async function resolve(raw, timeout) {
       if (c.tier === "INFERNO") move(a, "fire"); else singe(a);
     }
   } else {
-    ap.answered = true;
     if (S.turn.lastStand) { if (correct) move(a, "camp"); }   /* answered from the fire: right = climbs out, miss = stays */
     if (correct) {
       if (c.tier === "INFERNO") { const fire = idxWhere(p => p.status === "fire"); if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp")); }
@@ -722,7 +723,7 @@ async function resolve(raw, timeout) {
       if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp").filter(i => i !== a); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`, true)).forEach(i => move(i, "fire")); }
     }
   }
-  if (!S.turn.flare) S.defendIdx++;   /* counts the 5 problem cards for every mission */
+  if (!S.turn.flare) { S.defendIdx++; ap.answered = true; }   /* counts the 5 problem cards; this player has had their turn */
   const after = inFire().length;
   const verdict = correct ? "solved" : timeout ? "ran out of time on" : "missed";
   const delta = after < before ? `, rescued ${before - after}` : after > before ? `, ${after - before} fell in` : "";
@@ -806,7 +807,7 @@ function teamPanel() {
     ${status}
     <div class="meta" style="margin-top:6px">${S.result ? "" : progress}</div>
     <div class="zone-title">In Camp</div>
-    <div class="plist">${camp.length ? camp.map(p => `<span class="chip ${p.singed > 0 ? "singed" : "camp"} ${S.mission === "defend" && p.answered ? "done" : ""}">${esc(p.name)}${p.singed > 0 ? " · singed" : ""}${S.mission === "defend" && p.answered ? " ✓" : ""}</span>`).join("") : `<span class="empty">Camp is empty</span>`}</div>
+    <div class="plist">${camp.length ? camp.map(p => `<span class="chip ${p.singed > 0 ? "singed" : "camp"} ${p.answered ? "done" : ""}">${esc(p.name)}${p.singed > 0 ? " · singed" : ""}${p.answered ? " ✓" : ""}</span>`).join("") : `<span class="empty">Camp is empty</span>`}</div>
     <div class="zone-title">In the fire</div>
     <div class="plist">${fire.length ? fire.map(p => `<span class="chip fire">${esc(p.name)}</span>`).join("") : `<span class="empty">Nobody</span>`}</div>
     <div class="firebar" aria-hidden="true">${S.players.map(p => `<i class="${p.status === "fire" ? "f" : ""}"></i>`).join("")}</div>
@@ -841,6 +842,7 @@ function stageHTML() {
       ${tr.drawAgain ? `<p><b>Draw again.</b> Event cards don't use up your turn.</p>` : ""}
       ${tr.lastStand ? `<p><b>Last Stand!</b> Your Camp is empty, so a player answers from the edge of the fire. Get it right and they climb out, plus the card's payoff. Miss and they stay put.</p>` : ""}
       <div class="step-lbl">${tr.lastStand ? "Who makes the Last Stand?" : "Who answers?"}</div>
+      ${tr.lastStand ? "" : `<p class="hint" style="margin:0 0 6px">Everyone in Camp takes a turn before anyone goes twice. Players with ✓ already went.</p>`}
       <div class="choices">${players}</div>
       <div class="step-lbl">${S.mission === "rescue" ? "Pick a pile" : "Your card comes from"}</div>
       ${piles}
