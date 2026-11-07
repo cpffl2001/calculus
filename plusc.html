@@ -202,6 +202,9 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 @media (prefers-reduced-motion: reduce) { .campfire i { animation: none; } }
 .choice small { font-weight: 400; color: var(--muted); }
 .handoff { background: var(--inferno); color: #fff; font-weight: 700; font-size: 18px; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; text-align: center; }
+.event.cry .big { color: var(--sky); }
+.cryline { font-family: var(--display); font-size: clamp(24px, 3.4vw, 36px) !important; line-height: 1.2; color: var(--ink); max-width: 30ch !important; text-wrap: balance; }
+@media (prefers-reduced-motion: no-preference) { .cryline { animation: shout .6s ease-in-out infinite alternate; } @keyframes shout { from { transform: rotate(-1.2deg) scale(1); } to { transform: rotate(1.2deg) scale(1.04); } } }
 .relay { font-size: 13px; font-weight: 700; color: var(--muted); }
 .relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
@@ -235,10 +238,21 @@ const CARDS = [
   { id: 21, tier: "INFERNO", q: "f′(x) = (2x + 1)<sup>2</sup>", g: "f(0) = 6", f: "f(x) = (4/3)x³ + 2x² + x + 6", C: 6,
     alt: { C: 35 / 6, f: "f(x) = (1/6)(2x + 1)³ + 35/6", show: "35/6", how: "substitution (u = 2x + 1)" }, how: "expanding first" },
   { id: 22, tier: "INFERNO", long: true, q: "Bacteria grow at P′(t) = 200e<sup>0.5t</sup> cells per hour.", g: "P(0) = 1000. Find P(t).", f: "P(t) = 400e<sup>0.5t</sup> + 600", C: 600 },
-  { id: 23, tier: "INFERNO", long: true, q: "A seedling grows at h′(t) = 1.5√t cm per week.", g: "h(0) = 2 cm. Find h(t).<br><i>Bonus: how tall at week 4? (10 cm)</i>", f: "h(t) = t<sup>3/2</sup> + 2", C: 2 },
-  { id: 24, tier: "INFERNO", long: true, q: "A drug leaves the blood at A′(t) = −6e<sup>−0.3t</sup> mg per hour.", g: "A(0) = 25 mg. Find A(t).<br><i>Bonus: what level does A approach? (5 mg)</i>", f: "A(t) = 20e<sup>−0.3t</sup> + 5", C: 5 },
+  { id: 23, tier: "INFERNO", long: true, q: "A seedling grows at h′(t) = 1.5√t cm per week.", g: "h(0) = 2 cm. Find h(t).", f: "h(t) = t<sup>3/2</sup> + 2", C: 2 },
+  { id: 24, tier: "INFERNO", long: true, q: "A drug leaves the blood at A′(t) = −6e<sup>−0.3t</sup> mg per hour.", g: "A(0) = 25 mg. Find A(t).", f: "A(t) = 20e<sup>−0.3t</sup> + 5", C: 5 },
 ];
 const EVENTS = ["FLARE", "FLARE", "BUCKET", "BUCKET"];
+/* BATTLE CRY cards: just for fun. The whole Fellowship yells the line, then draws again (no turn used, no pieces move). */
+const CRIES = [
+  { pile: "EMBER",   how: "Everyone stands up and yells:", line: "DON'T. FORGET. THE PLUS C!!!" },
+  { pile: "EMBER",   how: "Chant it three times while drumming on the table:", line: "ADD ONE TO THE POWER! DIVIDE BY THE NEW POWER!" },
+  { pile: "EMBER",   how: "Like a sad Shakespeare actor, one hand on your heart:", line: "dx, dx… wherefore art thou, dx?!" },
+  { pile: "FLAME",   how: "Like a sports announcer:", line: "AND THE ANTIDERIVATIVE OF e TO THE x IS… e TO THE x! HE DOESN'T CHANGE, FOLKS!" },
+  { pile: "FLAME",   how: "Arms crossed, very serious:", line: "The integral of 1 over x is ln of x, AND I WILL NOT BE TAKING QUESTIONS." },
+  { pile: "FLAME",   how: "Like a superhero, fists on your hips:", line: "FUNDAMENTAL THEOREM OF CALCULUS… ASSEMBLE!" },
+  { pile: "INFERNO", how: "Point dramatically at the other Fellowship and yell:", line: "YOUR DERIVATIVE IS SHOWING!" },
+  { pile: "INFERNO", how: "Slowly, like a movie trailer voice:", line: "In a world… where every function… has infinitely many antiderivatives… only ONE C… can save them." },
+];
 const RESCUE_PAY = { EMBER: 1, FLAME: 2, INFERNO: 3 };
 const DEFEND_ORDER = ["EMBER", "EMBER", "FLAME", "FLAME", "INFERNO"];
 const CARDS_PER_GAME = 5;   /* every Fellowship answers exactly 5 problem cards (Flare-Ups and Bucket Brigades are extra) */
@@ -553,6 +567,7 @@ function startPlay() {
   const piles = { EMBER: [], FLAME: [], INFERNO: [] };
   CARDS.forEach(c => piles[c.tier].push(c.id));
   EVENTS.forEach(e => piles.EMBER.push(e));
+  CRIES.forEach((c, i) => piles[c.pile].push("CRY" + i));
   Object.values(piles).forEach(shuffle);
   S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
   Object.assign(S, { piles, phase: "play", announced: false, startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
@@ -641,6 +656,7 @@ function drawCard() {
   const item = S.piles[tier].shift();
   if (typeof item === "string") {
     S.turn.stage = "event"; S.turn.event = item;
+    if (item.startsWith("CRY")) { S.turn.cry = Number(item.slice(3)); } else
     log(`${S.name} drew ${item === "FLARE" ? "a Flare-Up!" : "the Bucket Brigade"}`);
   } else {
     Object.assign(S.turn, { stage: "card", cardId: item, flare: false, started: Date.now(), limit: 120 });
@@ -649,9 +665,10 @@ function drawCard() {
 }
 
 function startFlare() {
-  if (!S.piles.FLAME.length) { log("No Flame cards left, so the flare-up fizzles."); return backToChoose(); }
+  const fi = S.piles.FLAME.findIndex(x => typeof x === "number");   /* a math card, never a Battle Cry */
+  if (fi < 0) { log("No Flame cards left, so the flare-up fizzles."); return backToChoose(); }
   S.turn.flareReturn = { tier: S.turn.tier, answerer: S.turn.answerer };
-  Object.assign(S.turn, { stage: "card", cardId: S.piles.FLAME.shift(), flare: true, started: Date.now(), limit: 60 });
+  Object.assign(S.turn, { stage: "card", cardId: S.piles.FLAME.splice(fi, 1)[0], flare: true, started: Date.now(), limit: 60 });
   save(); render();
 }
 
@@ -850,6 +867,10 @@ function stageHTML() {
   }
 
   if (tr.stage === "event") {
+    if (String(tr.event).startsWith("CRY")) {
+      const c = CRIES[tr.cry] || CRIES[0];
+      return `${head}<div class="event cry"><div class="big">Battle Cry!</div><p>${esc(c.how)}</p><p class="cryline">“${esc(c.line)}”</p><p class="hint">Louder! ${esc(S.opp)} decides if it was loud enough. Then you draw again. This doesn't use up your turn.</p></div><div class="actions" style="justify-content:center"><button type="button" class="btn primary" data-act="cry">We yelled it!</button></div>`;
+    }
     if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. Your whole Fellowship solves a Flame card <b>together in 60 seconds</b>.</p><p><b>Get it right:</b> pull 1 player out of the fire. If nobody is in it, you earn a <b>Fire Shield</b> that blocks the next player who would go in.<br><b>Miss it:</b> ${esc(S.opp)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
     return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div><p>Free rescue! To claim it, the whole Fellowship says out loud:</p><p style="font-family:var(--math);font-size:24px">“The antiderivative of xⁿ is xⁿ⁺¹⁄(n+1) + C, for n ≠ −1.”</p></div><div class="actions"><button type="button" class="btn primary" data-act="bucket">We said it</button></div>`;
   }
@@ -1004,6 +1025,7 @@ document.addEventListener("click", e => {
   if (act === "draw") return drawCard();
   if (act === "flare") return startFlare();
   if (act === "bucket") return bucket();
+  if (act === "cry") { const c = CRIES[S.turn.cry] || CRIES[0]; log(`${S.name} yelled “${c.line}”`); save(); broadcast(); return backToChoose(); }
   if (act === "again") return backToChoose();
   if (act === "next") return beginTurn();
   if (act === "submit") {
