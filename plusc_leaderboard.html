@@ -97,7 +97,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
 .pill.rescue { color: #ff9b80; } .pill.defend { color: var(--good); }
 .pill.won { background: var(--gold); color: #2b1a00; } .pill.lost { background: var(--inferno); color: #fff; }
 
-.camp { position: relative; min-height: 86px; border-radius: 12px; background: radial-gradient(ellipse at 50% 120%, #2c5a41, var(--felt) 70%); border: 2px solid var(--felt-edge); padding: 8px 6px 4px; display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: flex-end; justify-content: center; }
+.camp { position: relative; min-height: 86px; border-radius: 12px; background: radial-gradient(ellipse at 50% 120%, #2c5a41, var(--felt) 70%); border: 2px solid var(--felt-edge); padding: 18px 6px 4px; display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: flex-end; justify-content: center; }
 .camp::before, .pit::before { content: attr(data-label); position: absolute; top: 4px; left: 8px; font-size: 10px; font-weight: 700; letter-spacing: .14em; color: rgba(255,255,255,.45); }
 .pit { position: relative; min-height: 104px; border-radius: 50% / 38%; background: radial-gradient(ellipse at 50% 70%, #ffb347 0%, #ff6a2b 22%, #8a1d10 52%, #2a120d 75%); border: 7px solid var(--stone); box-shadow: inset 0 0 0 3px #3f3a37, inset 0 -10px 24px rgba(0,0,0,.5), 0 0 30px rgba(255,90,30,.35); padding: 22px 12px 10px; display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: flex-end; justify-content: center; overflow: hidden; }
 .pit.out { background: radial-gradient(ellipse at 50% 70%, #4a4240 0%, #2b2523 55%, #1b1716 80%); box-shadow: inset 0 0 0 3px #3f3a37, inset 0 -10px 24px rgba(0,0,0,.5); }
@@ -178,6 +178,30 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
 .legend svg { width: 16px; height: 22px; }
 .legend .tilt { transform: rotate(78deg); }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
+
+/* PROJECTOR FIT: on a wide screen the page fills exactly one screen and the matchups shrink to fit (see fitScreen). */
+@media (min-width: 1000px) {
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  .wrap { height: 100%; display: flex; flex-direction: column; padding-block: 10px 10px; }
+  header { padding-bottom: 8px; }
+  .logo svg { width: 40px; height: 48px; }
+  h1 { font-size: clamp(28px, 3vw, 46px); }
+  .stats { margin: 4px 0 10px; }
+  .stat { padding: 6px 14px; }
+  .stat b { font-size: clamp(24px, 2.4vw, 38px); }
+  .board { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 380px); align-items: stretch; }
+  #mbox { min-height: 0; display: flex; flex-direction: column; }
+  #mfit { flex: 1; min-height: 0; overflow: hidden; padding-top: 14px; }
+  .matchups { grid-template-columns: repeat(var(--cols, 2), minmax(420px, 1fr)); }
+  .lastev { display: none; }                 /* the "Around the fire" feed already shows each move */
+  .tagrow .pill:not(.rescue):not(.defend):not(.wait):not(.done):not(.shield) { display: none; }   /* hide "Won/Lost tug-of-war" to save a line */
+  .legend { margin-top: 6px; }
+  .col { min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+  #standings { flex: none; overflow: hidden; }
+  .feedpanel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .feed { flex: 1; min-height: 0; max-height: none; overflow: hidden; }
+}
 </style>
 </head>
 <body>
@@ -227,9 +251,9 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
   </section>
 
   <div class="board">
-    <section aria-label="Matchups">
+    <section aria-label="Matchups" id="mbox">
       <h2>Matchups</h2>
-      <div id="matchups" class="matchups"></div>
+      <div id="mfit"><div id="matchups" class="matchups"></div></div>
       <div id="empty" class="empty">
         <div class="pit"><div class="flames"><i></i><i></i><i></i><i></i></div></div>
         <div>Set a class code and write it on the board.<br>Each Fellowship lands here the moment it lights its fire.</div>
@@ -241,12 +265,12 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
       </div>
     </section>
     <div class="col">
-      <section class="panel" aria-label="Standings">
+      <section class="panel" aria-label="Standings" id="standings">
         <h2>Standings</h2>
         <div class="podium" id="podium"></div>
         <ol class="ranks" id="rows"></ol>
       </section>
-      <section class="panel" aria-label="Live feed">
+      <section class="panel feedpanel" aria-label="Live feed">
         <h2>Around the fire</h2>
         <ul class="feed" id="feed"></ul>
       </section>
@@ -459,6 +483,7 @@ function render() {
     || `<li style="border:0;background:none;color:var(--muted)">Moves show up here as they happen.</li>`;
   newFeed = 0;
   flash.clear();
+  fitScreen();
 }
 
 /* ---------- drifting embers ---------- */
@@ -501,6 +526,31 @@ document.addEventListener("click", e => {
 });
 
 $("codeIn").value = B.code;
+/* Fit everything on one screen: try 1-4 columns of matchups and keep the layout that lets the cards be biggest. */
+function fitsAt(el, box, z) { el.style.zoom = z.toFixed(3); return box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1; }
+function bestZoom(el, box, lo, hi) {
+  if (fitsAt(el, box, hi)) return hi;
+  if (!fitsAt(el, box, lo)) return lo;
+  for (let k = 0; k < 9; k++) { const mid = (lo + hi) / 2; if (fitsAt(el, box, mid)) lo = mid; else hi = mid; }
+  return lo;
+}
+function fitScreen() {
+  const m = $("matchups"), box = $("mfit"), st = $("standings");
+  if (!matchMedia("(min-width: 1000px)").matches) { m.style.zoom = 1; m.style.removeProperty("--cols"); st.style.zoom = 1; return; }
+  const n = Math.max(1, m.children.length);
+  let best = { z: 0, c: 1 };
+  for (let c = 1; c <= Math.min(n, 4); c++) {
+    m.style.setProperty("--cols", c);
+    const z = bestZoom(m, box, 0.25, 1.15);
+    if (z > best.z + 0.01) best = { z, c };
+  }
+  m.style.setProperty("--cols", best.c); fitsAt(m, box, best.z);
+  st.style.zoom = 1; let z = 1;
+  while (z > 0.5 && st.getBoundingClientRect().height > st.parentElement.getBoundingClientRect().height * 0.62) { z -= 0.04; st.style.zoom = z.toFixed(2); }
+}
+addEventListener("resize", () => { clearTimeout(fitScreen.t); fitScreen.t = setTimeout(fitScreen, 150); });
+document.fonts && document.fonts.ready.then(fitScreen);
+
 render(); connect();
 </script>
 </body>
