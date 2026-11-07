@@ -205,6 +205,22 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .event.cry .big { color: var(--sky); }
 .cryline { font-family: var(--display); font-size: clamp(24px, 3.4vw, 36px) !important; line-height: 1.2; color: var(--ink); max-width: 30ch !important; text-wrap: balance; }
 @media (prefers-reduced-motion: no-preference) { .cryline { animation: shout .6s ease-in-out infinite alternate; } @keyframes shout { from { transform: rotate(-1.2deg) scale(1); } to { transform: rotate(1.2deg) scale(1.04); } } }
+.wonlost { border: 3px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+.wonlost.todo { border-color: var(--flame); background: var(--flame-soft); }
+.wonlost.set { border-color: var(--camp); }
+.wlq { font-size: 20px; font-family: var(--display); }
+.wlq b { color: var(--flame); }
+.req { display: inline-block; font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: var(--flame); color: #fff; padding: 3px 9px; border-radius: 99px; vertical-align: 3px; margin-left: 6px; }
+@media (prefers-reduced-motion: no-preference) { .wonlost.todo .req { animation: nudge 1.2s ease-in-out infinite; } @keyframes nudge { 50% { transform: scale(1.12); } } }
+.wlbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wl { border: 3px solid var(--line); background: var(--surface); border-radius: 12px; padding: 14px; font-size: 22px; font-weight: 700; letter-spacing: .04em; }
+.wl.won.on { background: var(--camp); border-color: var(--camp); color: #fff; }
+.wl.lost.on { background: var(--inferno); border-color: var(--inferno); color: #fff; }
+.wl:not(.on):hover { border-color: var(--ink); }
+.summary { background: var(--sunk); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; justify-items: start; text-align: left; width: 100%; }
+.summary .btn { margin-top: 6px; }
+.wonword { color: var(--camp); } .lostword { color: var(--inferno); }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--flame); font-weight: 700; text-decoration: underline; }
 .relay { font-size: 13px; font-weight: 700; color: var(--muted); }
 .relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
 </style>
@@ -278,7 +294,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 function freshSetup(prev) {
   return {
     phase: "setup", id: newId(), code: prev ? prev.code : "", name: prev ? prev.name : "", opp: prev ? prev.opp : "",
-    lost: prev ? prev.lost : false,
+    lost: prev ? prev.lost : null,   /* null = not picked yet; students must choose */
     players: prev ? prev.players.map(p => ({ name: p.name, status: "camp" })) : Array.from({ length: 5 }, () => ({ name: "", status: "camp" })),
     error: "",
   };
@@ -326,13 +342,13 @@ function renderSetup() {
     ${topBar(false)}
     <p class="intro">One computer per Fellowship. Enter the class code from the board, your Fellowship, and the Fellowship you played in the tug-of-war. Then mark each player <b>Survived</b> or <b>Burned</b>. Burned pieces start on The Fire on your physical board.</p>
     <section class="fs-card solo" aria-label="Your Fellowship">
-      <div class="two">
-        <div><label class="lbl" for="code">Class code</label><input type="text" id="code" data-field="code" value="${esc(S.code)}" placeholder="Code on the board" maxlength="20" autocomplete="off"></div>
-        <div><span class="lbl">Tug-of-war result</span>
-          <div class="seg" role="group" aria-label="Tug-of-war result">
-            <button type="button" class="${!S.lost ? "on" : ""}" data-act="result" data-val="won">We won</button>
-            <button type="button" class="${S.lost ? "on" : ""}" data-act="result" data-val="lost">We lost</button>
-          </div></div>
+      <div><label class="lbl" for="code">Class code</label><input type="text" id="code" data-field="code" value="${esc(S.code)}" placeholder="Code on the board" maxlength="20" autocomplete="off" style="max-width:320px"></div>
+      <div class="wonlost ${S.lost === null ? "todo" : "set"}" role="group" aria-labelledby="wlq">
+        <div id="wlq" class="wlq">Did your Fellowship <b>win</b> or <b>lose</b> the tug-of-war?${S.lost === null ? ` <span class="req">Pick one</span>` : ""}</div>
+        <div class="wlbtns">
+          <button type="button" class="wl won ${S.lost === false ? "on" : ""}" data-act="result" data-val="won" aria-pressed="${S.lost === false}">We WON</button>
+          <button type="button" class="wl lost ${S.lost === true ? "on" : ""}" data-act="result" data-val="lost" aria-pressed="${S.lost === true}">We LOST</button>
+        </div>
       </div>
       <div class="two">
         <div><label class="lbl" for="fname">Your Fellowship's name</label><input type="text" id="fname" data-field="name" value="${esc(S.name)}" placeholder="e.g. The Integrators" maxlength="40"></div>
@@ -375,6 +391,7 @@ function startGame() {
   if (!S.name) { S.error = "Enter your Fellowship's name."; return renderSetup(); }
   if (!S.opp) { S.error = "Enter your opponent's Fellowship."; return renderSetup(); }
   if (S.name.toLowerCase() === S.opp.toLowerCase()) { S.error = "Your opponent needs a different name than yours."; return renderSetup(); }
+  if (S.lost !== true && S.lost !== false) { S.error = "Pick whether your Fellowship won or lost the tug-of-war."; return renderSetup(); }
   if (S.players.some(p => !p.name.trim())) { S.error = "Every player needs a name."; return renderSetup(); }
   S.error = "";
   openCheck();
@@ -448,6 +465,14 @@ function suggestions() {
   }
   return out;
 }
+function setupSummary() {
+  const burned = S.players.filter(p => p.status === "fire"), safe = S.players.filter(p => p.status !== "fire");
+  return `<div class="summary"><span class="lbl">Double-check your setup</span>
+    <div>Tug-of-war: <b class="${S.lost ? "lostword" : "wonword"}">We ${S.lost ? "LOST" : "WON"}</b></div>
+    <div>Survived: <b>${safe.map(p => esc(p.name)).join(", ") || "nobody"}</b></div>
+    <div>Burned: <b>${burned.map(p => esc(p.name)).join(", ") || "nobody"}</b></div>
+    <button type="button" class="btn small" data-act="back">Something's wrong? Go back and fix it</button></div>`;
+}
 function renderCheck() {
   document.getElementById("app").innerHTML = `
     ${topBar(false)}
@@ -459,6 +484,7 @@ function renderCheck() {
         <div><label class="lbl" for="oname">Your opponent's Fellowship</label><input type="text" id="oname" data-field="opp" value="${esc(S.opp)}" maxlength="40"></div>
       </div>
       <div id="sugs" aria-live="polite"></div>
+      ${setupSummary()}
       <div class="setup-foot">
         <button type="button" class="btn" data-act="back">← Back</button>
         <span style="flex:1"></span>
@@ -489,6 +515,7 @@ function launch() {
   if (same(S.name, S.opp)) { S.error = "Your opponent needs a different name than yours."; return renderCheck(); }
   S.error = ""; delete S.check;
   S.players.forEach(p => { p.name = p.name.trim(); });
+  S.initial = S.players.map(p => p.status);
   Object.assign(S, { phase: "waiting", readyAt: Date.now(), mission: missionOf(), result: null, shield: 0, defendIdx: 0,
     stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length, log: [], announced: false });
   S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`;
@@ -499,8 +526,8 @@ function launch() {
 /* WAITING ROOM: both Fellowships in a matchup must light their fire  */
 /* (with matching names) before either game starts.                   */
 /* ------------------------------------------------------------------ */
-let readyES = null, waitingOthers = {}, readyClearedAt = 0;
-function stopReady() { if (readyES) { readyES.close(); readyES = null; } }
+let readyES = null, waitingOthers = {}, readyClearedAt = 0, pending = {};
+function stopReady() { Object.values(pending).forEach(clearTimeout); pending = {}; if (readyES) { readyES.close(); readyES = null; } }
 const isPartner = m => closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99;
 function watchReady() {
   stopReady(); waitingOthers = {}; readyClearedAt = 0;
@@ -516,9 +543,16 @@ function watchReady() {
       if (m.clear) { readyClearedAt = Math.max(readyClearedAt, Number(m.t) || 0); Object.keys(waitingOthers).forEach(id => { if (waitingOthers[id].t < readyClearedAt) delete waitingOthers[id]; }); return renderWaitSugs(); }
       if (m.hide) { delete waitingOthers[m.hide]; return renderWaitSugs(); }
       if (!m.id || m.id === S.id || !m.fs || m.result || m.t < readyClearedAt) return;
-      if (m.ready) waitingOthers[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), t: m.t };
+      /* a partner who already started (saw our ready first) counts as ready too */
+      const live = m.ready || (isPartner(m) && m.t > (S.readyAt || 0) && Array.isArray(m.p));
+      if (live) waitingOthers[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), t: m.t };
       else delete waitingOthers[m.id];
-      if (m.ready && isPartner(m)) return partnerReady(m);
+      if (live && isPartner(m)) {   /* wait a moment: the history replays first, and a later "went back" note cancels an old ready */
+        if (!pending[m.id]) pending[m.id] = setTimeout(() => {
+          delete pending[m.id]; const o = waitingOthers[m.id];
+          if (o && S.phase === "waiting" && isPartner(o)) partnerReady(o);
+        }, 1500);
+      }
       renderWaitSugs();
     } catch (err) {}
   };
@@ -529,10 +563,12 @@ function partnerReady(m) {
   S.partner = String(m.fs).slice(0, 40);
   startPlay();
 }
-function leaveWaiting() {   /* back to the name check; the old waiting entry leaves the leaderboard */
+function leaveWaiting(toSetup) {   /* the old waiting entry leaves the leaderboard */
   stopReady();
   fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
-  S.id = newId(); S.phase = "setup"; save(); openCheck();
+  S.id = newId(); S.phase = "setup"; S.error = "";
+  if (S.initial) { S.players.forEach((p, i) => { if (S.initial[i]) p.status = S.initial[i]; }); }
+  save(); if (toSetup) render(); else openCheck();
 }
 function renderWaiting() {
   document.getElementById("app").innerHTML = `
@@ -541,10 +577,13 @@ function renderWaiting() {
       <div class="campfire" aria-hidden="true"><i></i><i></i><i></i></div>
       <h2>Your fire is lit. Waiting for <span class="opp">${esc(S.opp)}</span>…</h2>
       <p class="intro" style="margin:0">Your game starts the moment <b>${esc(S.opp)}</b> clicks “Light our fire” on their computer with your name, <b>${esc(S.name)}</b>, as their opponent. Both games start together.</p>
+      ${S.notice ? `<div class="sug">${esc(S.notice)}</div>` : ""}
       <div class="preview">${previewText()}</div>
+      ${setupSummary().replace('data-act="back"', 'data-act="unwaitall"')}
       <div id="waitsugs" aria-live="polite"></div>
       <div class="setup-foot">
         <button type="button" class="btn" data-act="unwait">← Fix our names</button>
+        <button type="button" class="btn" data-act="unwaitall">← Fix our whole setup</button>
         <span style="flex:1"></span>
       </div>
     </section>`;
@@ -570,6 +609,7 @@ function startPlay() {
   CRIES.forEach((c, i) => piles[c.pile].push("CRY" + i));
   Object.values(piles).forEach(shuffle);
   S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
+  S.initial = S.players.map(p => p.status); S.notice = "";
   Object.assign(S, { piles, phase: "play", announced: false, startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
   watchOpponent();
   log(`${S.name} vs ${S.partner || S.opp}: the game is on! ${S.mission === "rescue" ? `Rescuing ${inFire().length}` : "Defending the camp"}.`);
@@ -608,6 +648,7 @@ function watchOpponent() {
     try {
       const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
       const m = JSON.parse(env.message);
+      if (m.restart && m.id !== S.id && m.t > S.startedAt && closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99) return opponentRestarted(m);
       if (!m.id || m.id === S.id || !m.fs || m.result !== "done" || !m.rt || !Array.isArray(m.p)) return;
       if (m.rt < S.startedAt) return;                                  /* an old game from earlier */
       if (closeness(m.fs, S.opp) >= 99) return;                        /* not our opponent */
@@ -615,6 +656,20 @@ function watchOpponent() {
       opponentFinished(m);
     } catch (err) {}
   };
+}
+function opponentRestarted(m) {   /* opponent went back to fix their setup: we go back to waiting with our setup kept */
+  if (S.phase !== "play") return;
+  stopWatching(); clearInterval(timerHandle); document.getElementById("modal-root").innerHTML = "";
+  if (S.initial) S.players.forEach((p, i) => { p.status = S.initial[i]; p.singed = 0; p.answered = false; });
+  S.notice = `${String(m.fs).slice(0, 40)} went back to fix their setup. Your game restarts when they light their fire again. Put your pieces back where they started.`;
+  launch();
+}
+function restartOurs() {   /* we made a setup mistake right after starting */
+  stopWatching(); clearInterval(timerHandle);
+  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ restart: true, id: S.id, fs: S.name, opp: S.opp, t: Date.now() }) }).catch(() => {});
+  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
+  if (S.initial) S.players.forEach((p, i) => { p.status = S.initial[i]; p.singed = 0; p.answered = false; });
+  S.id = newId(); S.phase = "setup"; S.error = ""; S.notice = ""; save(); render();
 }
 function opponentFinished(m) {
   if (S.oppFinal) return;
@@ -860,6 +915,7 @@ function stageHTML() {
       ${tr.lastStand ? `<p><b>Last Stand!</b> Your Camp is empty, so a player answers from the edge of the fire. Get it right and they climb out, plus the card's payoff. Miss and they stay put.</p>` : ""}
       <div class="step-lbl">${tr.lastStand ? "Who makes the Last Stand?" : "Who answers?"}</div>
       ${tr.lastStand ? "" : `<p class="hint" style="margin:0 0 6px">Everyone in Camp takes a turn before anyone goes twice. Players with ✓ already went.</p>`}
+      ${S.defendIdx === 0 && !S.stats.answered ? `<p class="hint" style="margin:0 0 6px">Made a mistake in your setup? <button type="button" class="linkbtn" data-act="restart">Go back and fix it</button> (only before your first card; ${esc(S.opp)} will wait for you).</p>` : ""}
       <div class="choices">${players}</div>
       <div class="step-lbl">${S.mission === "rescue" ? "Pick a pile" : "Your card comes from"}</div>
       ${piles}
@@ -993,7 +1049,8 @@ document.addEventListener("click", e => {
     setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
   }
   if (S.phase === "waiting") {
-    if (act === "unwait") return leaveWaiting();
+    if (act === "unwait") return leaveWaiting(false);
+    if (act === "unwaitall") return leaveWaiting(true);
     if (act === "playthem") { S.opp = b.dataset.val; S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`; save(); renderWaiting(); broadcast();
       const hit = Object.values(waitingOthers).find(o => same(o.fs, S.opp) && isPartner(o)); if (hit) partnerReady(hit); return; }
     if (act === "startanyway") { stopReady(); return startPlay(); }
@@ -1020,6 +1077,11 @@ document.addEventListener("click", e => {
     return;
   }
   if (S.phase !== "play") return;
+  if (act === "restart") {
+    if (b.dataset.armed === "1") return restartOurs();
+    b.dataset.armed = "1"; b.textContent = "Click again to go back to setup";
+    setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "Go back and fix it"; } }, 4000); return;
+  }
   if (act === "ans") { S.turn.answerer = Number(b.dataset.i); save(); return render(); }
   if (act === "tier") { S.turn.tier = b.dataset.k; save(); return render(); }
   if (act === "draw") return drawCard();
