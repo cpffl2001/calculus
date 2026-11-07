@@ -205,6 +205,7 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .event.cry .big { color: var(--sky); }
 .cryline { font-family: var(--display); font-size: clamp(24px, 3.4vw, 36px) !important; line-height: 1.2; color: var(--ink); max-width: 30ch !important; text-wrap: balance; }
 @media (prefers-reduced-motion: no-preference) { .cryline { animation: shout .6s ease-in-out infinite alternate; } @keyframes shout { from { transform: rotate(-1.2deg) scale(1); } to { transform: rotate(1.2deg) scale(1.04); } } }
+.prow.todo .seg { border: 2px solid var(--flame); background: var(--flame-soft); }
 .wonlost { border: 3px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
 .wonlost.todo { border-color: var(--flame); background: var(--flame-soft); }
 .wonlost.set { border-color: var(--camp); }
@@ -295,7 +296,7 @@ function freshSetup(prev) {
   return {
     phase: "setup", id: newId(), code: prev ? prev.code : "", name: prev ? prev.name : "", opp: prev ? prev.opp : "",
     lost: prev ? prev.lost : null,   /* null = not picked yet; students must choose */
-    players: prev ? prev.players.map(p => ({ name: p.name, status: "camp" })) : Array.from({ length: 5 }, () => ({ name: "", status: "camp" })),
+    players: prev ? prev.players.map(p => ({ name: p.name, status: null })) : Array.from({ length: 5 }, () => ({ name: "", status: null })),   /* null = not marked yet */
     error: "",
   };
 }
@@ -355,15 +356,15 @@ function renderSetup() {
         <div><label class="lbl" for="oname">Your opponent's Fellowship</label><input type="text" id="oname" data-field="opp" value="${esc(S.opp)}" placeholder="Who you played in tug-of-war" maxlength="40"></div>
       </div>
       <div>
-        <span class="lbl">Players</span>
+        <span class="lbl">Players · mark each one Survived or Burned${S.players.some(p => !p.status) ? ` <span class="req">${S.players.filter(p => !p.status).length} left to mark</span>` : ""}</span>
         <div style="display:grid;gap:8px">
           ${S.players.map((p, j) => `
-            <div class="prow">
+            <div class="prow ${p.status ? "" : "todo"}">
               <span class="num">${j + 1}</span>
               <input type="text" id="p${j}" data-p="${j}" data-field="pname" value="${esc(p.name)}" placeholder="Player name" maxlength="24" aria-label="Player ${j + 1} name">
               <div class="seg" role="group" aria-label="Player ${j + 1} tug-of-war status">
-                <button type="button" class="safe ${p.status === "camp" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="camp">Survived</button>
-                <button type="button" class="burn ${p.status === "fire" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="fire">Burned</button>
+                <button type="button" class="safe ${p.status === "camp" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="camp" aria-pressed="${p.status === "camp"}">Survived</button>
+                <button type="button" class="burn ${p.status === "fire" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="fire" aria-pressed="${p.status === "fire"}">Burned</button>
               </div>
               <button type="button" class="btn small quiet" data-act="del" data-p="${j}" aria-label="Remove player ${j + 1}" ${S.players.length <= 1 ? "disabled" : ""}>✕</button>
             </div>`).join("")}
@@ -379,6 +380,7 @@ function renderSetup() {
     </section>`;
 }
 function previewText() {
+  if (S.phase === "setup" && S.players.some(p => !p.status)) return `Mark every player <b>Survived</b> or <b>Burned</b> to see your mission.`;
   const burned = S.players.filter(p => p.status === "fire").length;
   return (missionOf() === "rescue"
     ? `<b>Your mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Pull as many out as you can. You pick Ember, Flame, or Inferno each turn.`
@@ -393,6 +395,7 @@ function startGame() {
   if (S.name.toLowerCase() === S.opp.toLowerCase()) { S.error = "Your opponent needs a different name than yours."; return renderSetup(); }
   if (S.lost !== true && S.lost !== false) { S.error = "Pick whether your Fellowship won or lost the tug-of-war."; return renderSetup(); }
   if (S.players.some(p => !p.name.trim())) { S.error = "Every player needs a name."; return renderSetup(); }
+  if (S.players.some(p => p.status !== "camp" && p.status !== "fire")) { S.error = "Mark every player Survived or Burned."; return renderSetup(); }
   S.error = "";
   openCheck();
 }
@@ -1068,7 +1071,7 @@ document.addEventListener("click", e => {
     if (act === "clearform") { S = freshSetup(); save(); renderSetup(); document.getElementById("code").focus(); return; }
     if (act === "result") S.lost = b.dataset.val === "lost";
     if (act === "pstat") S.players[b.dataset.p].status = b.dataset.val;
-    if (act === "add" && S.players.length < 8) S.players.push({ name: "", status: "camp" });
+    if (act === "add" && S.players.length < 8) S.players.push({ name: "", status: null });
     if (act === "del" && S.players.length > 1) S.players.splice(Number(b.dataset.p), 1);
     if (act === "start") return startGame();
     save(); renderSetup();
