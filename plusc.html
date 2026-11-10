@@ -3,410 +3,294 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The +C Rescue</title>
+<title>+C Rescue Leaderboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Young+Serif&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bungee&family=Young+Serif&display=swap">
 <style>
-/* Layout: projector-first three-column table (Fellowship | turn stage | Fellowship), stacking on narrow screens */
+/* Layout: a night campground on the projector. Each matchup is a little tabletop: two Fellowships, each with a Camp of
+   standing pawns and a stone fire pit holding its burning pawns. Standings are a podium + ranked list beside it.
+   Single dark look by choice: it is a projector wall. */
 :root {
-  --bg: #f7f1ec;
-  --surface: #fffdfb;
-  --sunk: #efe6df;
-  --ink: #2a1a14;
-  --muted: #76655c;
-  --line: #ddcfc6;
-  --ember: #c9861f;
-  --ember-soft: #fbedd4;
-  --flame: #d4582a;
-  --flame-soft: #f9dfd2;
-  --inferno: #9e1f1f;
-  --inferno-soft: #f3d5d1;
-  --camp: #3e7b5a;
-  --camp-soft: #dcefe4;
-  --sky: #3a6e9a;
-  --sky-soft: #dbe8f3;
-  --good: #2f7a4f;
-  --bad: #b3261e;
-  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --night: #0f0a12;
+  --night2: #1a1220;
+  --table: #2a1d18;
+  --table-edge: #4a3328;
+  --felt: #1f3a2c;
+  --felt-edge: #2f5a43;
+  --stone: #5b5552;
+  --ink: #fbefe4;
+  --muted: #b9a59a;
+  --ember: #ffb347;
+  --flame: #ff6a2b;
+  --inferno: #e8392f;
+  --gold: #ffd166;
+  --silver: #d9dde3;
+  --bronze: #d9925b;
+  --good: #7be0a6;
+  --display: "Bungee", "Impact", "Arial Black", sans-serif;
+  --serif: "Young Serif", Georgia, serif;
   --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
-  --math: "Cambria Math", "STIX Two Math", Cambria, Georgia, serif;
-  color-scheme: light;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #1b1311; --surface: #261a17; --sunk: #1f1513; --ink: #f4e9e2; --muted: #b9a59a; --line: #45332d;
-    --ember: #f0b14e; --ember-soft: #3a2a14; --flame: #f07a4a; --flame-soft: #3d2017;
-    --inferno: #f06a5f; --inferno-soft: #3d1816; --camp: #6cc196; --camp-soft: #173226;
-    --sky: #7fb3e0; --sky-soft: #172a3b; --good: #6cc196; --bad: #ff8a80;
-    color-scheme: dark;
-  }
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 17px; line-height: 1.45; }
-button, input, select { font: inherit; color: inherit; }
+body { background: var(--night); color: var(--ink); font-family: var(--body); font-size: 18px; line-height: 1.4; min-height: 100vh; overflow-x: hidden;
+  background-image: radial-gradient(ellipse 90% 50% at 50% 120%, rgba(255,106,43,.28), transparent 70%), radial-gradient(ellipse 60% 40% at 50% -10%, #241a33, transparent 70%); background-attachment: fixed; }
+#embers { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
-:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
-.wrap { max-width: 1400px; margin: 0 auto; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+:focus-visible { outline: 3px solid var(--ember); outline-offset: 2px; }
+.wrap { position: relative; z-index: 1; max-width: 1760px; margin: 0 auto; padding-block: 16px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 
-header.top { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 2px solid var(--flame); padding-bottom: 12px; margin-bottom: 18px; }
-header.top h1 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 4vw, 42px); margin: 0; letter-spacing: -0.01em; }
-header.top h1 span { color: var(--flame); }
-header.top .tag { color: var(--muted); font-size: 15px; }
-header.top .spacer { flex: 1; }
-.clock { font-variant-numeric: tabular-nums; font-weight: 700; padding: 6px 12px; border-radius: 8px; background: var(--sunk); }
-.clock.low { color: var(--bad); }
+/* header */
+header { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; padding-bottom: 14px; }
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo svg { width: 54px; height: 64px; flex: none; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(30px, 4.2vw, 58px); margin: 0; line-height: .95; letter-spacing: .01em;
+  background: linear-gradient(180deg, #fff3c4 0%, var(--ember) 45%, var(--flame) 75%, var(--inferno) 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 14px rgba(255,120,40,.45)); }
+h1 small { display: block; font-family: var(--body); font-size: 14px; letter-spacing: .3em; color: var(--muted); -webkit-text-fill-color: var(--muted); filter: none; margin-top: 4px; font-weight: 700; }
+.live { font-weight: 700; font-size: 14px; padding: 6px 12px; border-radius: 99px; background: rgba(255,255,255,.06); color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+.live.on { color: var(--good); }
+.live.on::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--good); margin-right: 7px; vertical-align: 1px; box-shadow: 0 0 10px var(--good); animation: blink 1.6s infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+.spacer { flex: 1; }
+.codebox { border: 2px solid var(--ember); border-radius: 12px; padding: 4px 18px; text-align: center; background: rgba(255,179,71,.08); box-shadow: 0 0 22px rgba(255,140,40,.2) inset; }
+.codebox small { display: block; font-size: 11px; letter-spacing: .2em; color: var(--ember); font-weight: 700; }
+.codebox b { font-family: var(--display); font-weight: 400; font-size: 30px; letter-spacing: .06em; }
+.ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctl input { width: 140px; padding: 7px 10px; border-radius: 9px; border: 1.5px solid #3c2e40; background: var(--night2); }
+.btn { border: 1.5px solid #3c2e40; background: var(--night2); padding: 7px 13px; border-radius: 9px; font-weight: 700; font-size: 15px; }
+.btn:hover { border-color: var(--ember); }
+#setBtn { background: var(--ember); border-color: var(--ember); color: #1a0f0c; }
 
-.btn { border: 2px solid var(--ink); background: var(--surface); padding: 9px 16px; border-radius: 10px; font-weight: 700; }
-.btn:hover { background: var(--sunk); }
-.btn.primary { background: var(--ink); color: var(--bg); }
-.btn.primary:hover { filter: brightness(1.15); }
-.btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn.small { padding: 5px 10px; font-size: 14px; border-width: 1.5px; }
-.btn.quiet { border-color: var(--line); color: var(--muted); }
+/* totals */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 6px 0 18px; }
+.stat { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 10px 16px; display: flex; align-items: center; gap: 14px; }
+.stat svg { width: 34px; height: 40px; flex: none; }
+.stat b { display: block; font-family: var(--display); font-weight: 400; font-size: clamp(30px, 3.2vw, 46px); line-height: 1; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .1em; font-weight: 700; }
+.stat.fire b { color: var(--flame); } .stat.safe b { color: var(--good); } .stat.done b { color: var(--gold); }
+.bump { animation: bump .6s ease-out; }
+@keyframes bump { 30% { transform: scale(1.25); } }
+@media (max-width: 760px) { .stats { grid-template-columns: 1fr 1fr; } }
 
-/* setup */
-.setup-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 20px; }
-.fs-card { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 14px; min-width: 0; }
-.fs-card h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; }
-label.lbl { display: block; font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin-bottom: 4px; }
-input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--bg); }
-.seg { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
-.seg button { border: 0; background: transparent; padding: 7px 14px; font-weight: 700; color: var(--muted); }
-.seg button.on { background: var(--ink); color: var(--bg); }
-.seg button.on.burn { background: var(--inferno); color: #fff; }
-.seg button.on.safe { background: var(--camp); color: #fff; }
-.prow { display: grid; grid-template-columns: 28px 1fr auto auto; gap: 8px; align-items: center; }
-.prow .num { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
-@media (max-width: 520px) { .prow { grid-template-columns: 24px 1fr auto; } .prow .seg { grid-column: 2 / 3; grid-row: 2; justify-self: start; } }
-.preview { background: var(--sunk); border-radius: 10px; padding: 10px 12px; font-size: 15px; }
-.preview b { font-weight: 700; }
-.setup-foot { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-top: 20px; }
-.err { color: var(--bad); font-weight: 700; }
-.intro { max-width: 70ch; color: var(--muted); margin: 0 0 18px; }
+.board { display: grid; grid-template-columns: minmax(0, 2.3fr) minmax(320px, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 1150px) { .board { grid-template-columns: 1fr; } }
+h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spacing: .14em; color: var(--ember); margin: 0 0 10px; }
 
-/* play */
-.table { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 2.1fr) minmax(220px, 1fr); gap: 18px; align-items: start; }
-@media (max-width: 1000px) { .table { grid-template-columns: 1fr 1fr; } .stage { grid-column: 1 / -1; order: -1; } }
-@media (max-width: 620px) { .table { grid-template-columns: 1fr; } }
-.team { background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
-.team.active { border-color: var(--flame); box-shadow: 0 0 0 3px var(--flame-soft); }
-.team h3 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0; overflow-wrap: anywhere; }
-.team .meta { font-size: 14px; color: var(--muted); margin: 2px 0 10px; }
-.pill { display: inline-block; font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; }
-.pill.rescue { background: var(--inferno-soft); color: var(--inferno); }
-.pill.defend { background: var(--camp-soft); color: var(--camp); }
-.pill.won { background: var(--camp); color: #fff; }
-.pill.lost { background: var(--inferno); color: #fff; }
-.zone-title { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; color: var(--muted); margin: 10px 0 5px; }
-.plist { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { padding: 4px 10px; border-radius: 99px; font-size: 15px; font-weight: 700; border: 1.5px solid transparent; overflow-wrap: anywhere; }
-.chip.camp { background: var(--camp-soft); color: var(--camp); }
-.chip.fire { background: var(--inferno-soft); color: var(--inferno); }
-.chip.singed { background: var(--ember-soft); color: var(--ember); border-style: dashed; border-color: var(--ember); }
-.chip.done { opacity: .6; }
-.empty { color: var(--muted); font-size: 14px; font-style: italic; }
-.firebar { display: flex; gap: 4px; margin-top: 10px; }
-.firebar i { flex: 1; height: 8px; border-radius: 4px; background: var(--camp); }
-.firebar i.f { background: var(--inferno); }
+/* matchup tabletop */
+.matchups { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 520px), 1fr)); gap: 16px; }
+.match { position: relative; background: linear-gradient(180deg, #33241d, var(--table)); border: 3px solid var(--table-edge); border-radius: 22px; padding: 12px; box-shadow: 0 14px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.08); display: grid; grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr); gap: 8px; min-width: 0; }
+.vs { align-self: center; justify-self: center; font-family: var(--display); font-size: 18px; color: #1a0f0c; background: var(--ember); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; box-shadow: 0 0 0 3px var(--table-edge), 0 0 16px rgba(255,150,50,.6); z-index: 2; }
+.side { position: relative; min-width: 0; display: grid; gap: 8px; align-content: start; background: rgba(0,0,0,.18); border-radius: 14px; padding: 10px; border: 1px solid rgba(255,255,255,.05); }
+.side.won { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold), 0 0 26px rgba(255,209,102,.35); }
+.side.lost { filter: saturate(.55); }
+.fname { font-family: var(--serif); font-size: 21px; line-height: 1.12; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; }
+.swatch { width: 14px; height: 14px; border-radius: 4px; flex: none; background: var(--team); box-shadow: 0 0 8px var(--team); }
+.tagrow { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,.08); color: var(--muted); }
+.pill.done { background: rgba(123,224,166,.16); color: var(--good); }
+.pill.wait { background: rgba(255,179,71,.16); color: var(--ember); animation: blink 2s infinite; }
+.pill.shield { background: rgba(76,201,240,.18); color: #8fdcff; }
+.pill.rescue { color: #ff9b80; } .pill.defend { color: var(--good); }
+.pill.won { background: var(--gold); color: #2b1a00; } .pill.lost { background: var(--inferno); color: #fff; }
 
-.stage { background: var(--surface); border: 2px solid var(--ink); border-radius: 16px; padding: 20px; min-width: 0; }
-.stage h2 { font-family: var(--display); font-weight: 400; font-size: clamp(24px, 3vw, 32px); margin: 0 0 4px; text-wrap: balance; }
-.stage .sub { color: var(--muted); margin: 0 0 16px; }
-.step-lbl { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; margin: 14px 0 6px; }
-.choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.choice { border: 2px solid var(--line); background: var(--bg); border-radius: 10px; padding: 8px 14px; font-weight: 700; }
-.choice.on { border-color: var(--ink); background: var(--ink); color: var(--bg); }
-.piles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.pile { border: 2px solid; border-radius: 12px; padding: 12px; text-align: left; background: var(--surface); display: grid; gap: 2px; }
-.pile .t { font-weight: 700; letter-spacing: .08em; }
-.pile .r { font-size: 14px; color: var(--muted); }
-.pile.EMBER { border-color: var(--ember); } .pile.EMBER .t { color: var(--ember); } .pile.EMBER.on { background: var(--ember-soft); box-shadow: 0 0 0 3px var(--ember); }
-.pile.FLAME { border-color: var(--flame); } .pile.FLAME .t { color: var(--flame); } .pile.FLAME.on { background: var(--flame-soft); box-shadow: 0 0 0 3px var(--flame); }
-.pile.INFERNO { border-color: var(--inferno); } .pile.INFERNO .t { color: var(--inferno); } .pile.INFERNO.on { background: var(--inferno-soft); box-shadow: 0 0 0 3px var(--inferno); }
-.pile:disabled { opacity: .35; }
-@media (max-width: 520px) { .piles { grid-template-columns: 1fr; } }
-.actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
+.camp { position: relative; min-height: 86px; border-radius: 12px; background: radial-gradient(ellipse at 50% 120%, #2c5a41, var(--felt) 70%); border: 2px solid var(--felt-edge); padding: 18px 6px 4px; display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: flex-end; justify-content: center; }
+.camp::before, .pit::before { content: attr(data-label); position: absolute; top: 4px; left: 8px; font-size: 10px; font-weight: 700; letter-spacing: .14em; color: rgba(255,255,255,.45); }
+.pit { position: relative; min-height: 104px; border-radius: 50% / 38%; background: radial-gradient(ellipse at 50% 70%, #ffb347 0%, #ff6a2b 22%, #8a1d10 52%, #2a120d 75%); border: 7px solid var(--stone); box-shadow: inset 0 0 0 3px #3f3a37, inset 0 -10px 24px rgba(0,0,0,.5), 0 0 30px rgba(255,90,30,.35); padding: 22px 12px 10px; display: flex; flex-wrap: wrap; gap: 2px 4px; align-items: flex-end; justify-content: center; overflow: hidden; }
+.pit.out { background: radial-gradient(ellipse at 50% 70%, #4a4240 0%, #2b2523 55%, #1b1716 80%); box-shadow: inset 0 0 0 3px #3f3a37, inset 0 -10px 24px rgba(0,0,0,.5); }
+.pit::before { left: 50%; transform: translateX(-50%); top: 6px; z-index: 2; color: rgba(255,240,220,.7); }
+.pit .flames { position: absolute; inset: auto 0 0 0; height: 70%; pointer-events: none; }
+.flames i { position: absolute; bottom: -10px; width: 34px; height: 64px; border-radius: 50% 50% 35% 35% / 65% 65% 35% 35%; background: radial-gradient(ellipse at 50% 80%, #fff3b0 0%, #ffb347 30%, rgba(255,106,43,.85) 60%, transparent 72%); filter: blur(1px); transform-origin: 50% 100%; animation: lick 1.1s ease-in-out infinite alternate; opacity: .9; mix-blend-mode: screen; }
+.flames i:nth-child(1) { left: 6%; animation-delay: -.2s; } .flames i:nth-child(2) { left: 28%; height: 80px; animation-delay: -.6s; }
+.flames i:nth-child(3) { left: 50%; animation-delay: -.4s; height: 72px; } .flames i:nth-child(4) { left: 72%; animation-delay: -.9s; }
+@keyframes lick { 0% { transform: scaleY(.8) skewX(-6deg); } 100% { transform: scaleY(1.12) skewX(7deg); } }
+.smoke { position: absolute; left: 50%; bottom: 30%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%; background: rgba(200,200,210,.18); filter: blur(4px); animation: smoke 3s ease-out infinite; }
+.smoke:nth-child(2) { animation-delay: 1.5s; }
+@keyframes smoke { from { transform: translateY(0) scale(.6); opacity: .8; } to { transform: translateY(-60px) scale(1.8); opacity: 0; } }
+.pit .none { position: relative; color: rgba(255,255,255,.6); font-size: 13px; font-style: italic; align-self: center; }
 
-.card { border-radius: 14px; border: 3px solid var(--tier); overflow: hidden; margin: 6px 0 14px; background: var(--surface); }
-.card .band { background: var(--tier); color: #fff; padding: 8px 14px; display: flex; justify-content: space-between; font-weight: 700; letter-spacing: .06em; }
-.card .body { padding: 22px 18px; text-align: center; }
-.card .q { font-family: var(--math); font-size: clamp(26px, 3.6vw, 40px); line-height: 1.3; }
-.card .q.long { font-size: clamp(20px, 2.6vw, 28px); }
-.card .g { font-family: var(--math); font-size: clamp(20px, 2.6vw, 28px); margin-top: 10px; }
-.card .g i { font-size: .75em; color: var(--muted); }
-.card .foot { background: var(--sunk); padding: 7px 14px; font-size: 14px; text-align: center; }
-.EMBERc { --tier: var(--ember); } .FLAMEc { --tier: var(--flame); } .INFERNOc { --tier: var(--inferno); }
-.timer { font-variant-numeric: tabular-nums; font-size: 34px; font-weight: 700; font-family: var(--body); }
-.timer.out { color: var(--bad); }
-.steps4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; font-size: 14px; margin-bottom: 14px; }
-.steps4 div { background: var(--sunk); border-radius: 8px; padding: 6px 8px; }
-@media (max-width: 620px) { .steps4 { grid-template-columns: 1fr 1fr; } }
-.answers { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }
-.ansbox { background: var(--sunk); border-radius: 12px; padding: 12px; }
-.ansbox input[type=text] { font-size: 22px; font-family: var(--math); }
-.check { display: flex; gap: 8px; align-items: center; margin-top: 10px; font-weight: 700; color: var(--inferno); }
-.check input { width: 20px; height: 20px; accent-color: var(--inferno); }
-.hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* pawns */
+.pawn { position: relative; width: 44px; display: grid; justify-items: center; gap: 1px; z-index: 1; }
+.pawn svg { width: 30px; height: 42px; overflow: visible; filter: drop-shadow(0 3px 2px rgba(0,0,0,.5)); }
+.pawn .nm { font-size: 10.5px; font-weight: 700; max-width: 44px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255,255,255,.88); text-shadow: 0 1px 2px #000; }
+.pawn.singed svg { transform: rotate(78deg) translate(10px, 4px); }
+.pawn.singed .nm { color: var(--ember); }
+.pawn.burn svg { animation: shiver .5s ease-in-out infinite alternate; filter: drop-shadow(0 0 6px #ff7a2b) drop-shadow(0 3px 2px rgba(0,0,0,.5)); }
+.pawn.burn .nm { color: #fff3c4; }
+@keyframes shiver { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-2px) rotate(3deg); } }
+.pawn.pop { animation: pop .7s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop { from { transform: translateY(18px) scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
 
-.verdict { font-family: var(--display); font-size: clamp(26px, 3.4vw, 36px); margin: 0 0 6px; }
-.verdict.good { color: var(--good); } .verdict.bad { color: var(--bad); }
-.reveal { background: var(--sunk); border-radius: 12px; padding: 12px 14px; font-family: var(--math); font-size: 20px; }
-.moves { border: 2.5px dashed var(--flame); border-radius: 12px; padding: 12px 16px; margin-top: 14px; }
-.moves h4 { margin: 0 0 6px; font-size: 14px; text-transform: uppercase; letter-spacing: .08em; color: var(--flame); }
-.moves ul { margin: 0; padding-left: 20px; font-size: 19px; }
-.moves li { margin: 3px 0; }
-.event { text-align: center; padding: 10px 0 4px; }
-.event .big { font-family: var(--display); font-size: clamp(32px, 4.4vw, 48px); }
-.event.flare .big { color: var(--inferno); } .event.bucket .big { color: var(--sky); }
-.event p { max-width: 52ch; margin: 8px auto; font-size: 19px; }
+.nums { display: flex; gap: 12px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex-wrap: wrap; }
+.nums b { color: var(--ink); font-size: 16px; }
+.lastev { font-size: 13.5px; color: var(--muted); font-style: italic; overflow-wrap: anywhere; border-top: 1px dashed rgba(255,255,255,.1); padding-top: 6px; }
+.waiting { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px; text-align: center; color: var(--muted); font-style: italic; padding: 24px 10px; border: 2px dashed rgba(255,255,255,.12); border-radius: 14px; }
+.x { position: absolute; top: 4px; right: 6px; border: 0; background: none; color: var(--muted); font-size: 13px; opacity: .25; padding: 2px 6px; z-index: 3; }
+.x:hover { opacity: 1; }
+.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { from { box-shadow: 0 0 0 4px var(--ember), 0 0 30px rgba(255,150,50,.7); } to { box-shadow: 0 0 0 0 transparent; } }
+.banner { position: absolute; top: -12px; right: 10px; font-family: var(--display); font-size: 12px; letter-spacing: .08em; background: var(--gold); color: #2b1a00; padding: 3px 10px; border-radius: 6px; transform: rotate(3deg); box-shadow: 0 4px 10px rgba(0,0,0,.4); z-index: 3; }
+.banner.lost { background: var(--inferno); color: #fff; }
+.banner { white-space: nowrap; max-width: calc(100% - 16px); overflow: hidden; text-overflow: ellipsis; }
+.tiebreak { font-size: 13px; font-weight: 700; color: var(--gold); }
+.side.won .banner::before { content: ""; display: inline-block; width: 14px; height: 11px; margin-right: 6px; vertical-align: -1px;
+  background: #2b1a00; clip-path: polygon(0 100%, 0 20%, 25% 55%, 50% 0, 75% 55%, 100% 20%, 100% 100%); }
+.match.final { border-color: var(--gold); }
+.final-tag { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-size: 13px; letter-spacing: .2em;
+  background: #120c0a; color: var(--gold); border: 2px solid var(--gold); padding: 2px 12px; border-radius: 8px; z-index: 4; }
 
-.log { margin-top: 18px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 16px; }
-.log summary { cursor: pointer; font-weight: 700; }
-.log ol { margin: 8px 0 0; padding-left: 22px; font-size: 15px; color: var(--muted); max-height: 260px; overflow: auto; }
+/* standings */
+.col { display: grid; gap: 18px; }
+.panel { background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 14px; }
+.podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 8px; margin: 4px 0 14px; min-height: 40px; }
+.step { text-align: center; display: grid; gap: 6px; justify-items: center; min-width: 0; }
+.step .who { font-family: var(--serif); font-size: 15px; line-height: 1.15; overflow-wrap: anywhere; }
+.step .blk { width: 100%; border-radius: 10px 10px 4px 4px; display: grid; place-items: center; font-family: var(--display); font-size: 28px; color: #1a0f0c; box-shadow: inset 0 -6px 0 rgba(0,0,0,.18); }
+.step.p1 .blk { height: 92px; background: linear-gradient(180deg, #fff0b3, var(--gold)); }
+.step.p2 .blk { height: 66px; background: linear-gradient(180deg, #fff, var(--silver)); }
+.step.p3 .blk { height: 48px; background: linear-gradient(180deg, #ffd1a8, var(--bronze)); }
+.step svg { width: 30px; height: 42px; filter: drop-shadow(0 3px 2px rgba(0,0,0,.5)); }
+.step.p1 svg { width: 38px; height: 52px; }
+.step .sc { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ranks { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ranks li { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; background: rgba(0,0,0,.2); font-variant-numeric: tabular-nums; }
+.ranks .n { font-family: var(--display); font-size: 18px; color: var(--muted); text-align: center; }
+.ranks .tn { font-weight: 700; overflow-wrap: anywhere; display: flex; align-items: center; gap: 8px; }
+.ranks .meter { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; margin-top: 4px; }
+.ranks .meter i { display: block; height: 100%; background: linear-gradient(90deg, var(--good), #c8f7dc); }
+.ranks .r { font-size: 14px; color: var(--muted); text-align: right; }
+.ranks .r b { color: var(--ink); font-size: 16px; }
 
-.modal-back { position: fixed; inset: 0; background: rgba(20,10,8,.55); display: grid; place-items: center; padding: 16px; z-index: 50; }
-.modal { background: var(--surface); border-radius: 16px; padding: 20px; max-width: 520px; width: 100%; border: 2px solid var(--ink); }
-.modal h3 { font-family: var(--display); font-weight: 400; margin: 0 0 4px; font-size: 24px; }
-.modal p { margin: 0 0 12px; color: var(--muted); }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 460px; overflow: auto; }
+.feed li { font-size: 15px; padding: 7px 10px; border-radius: 10px; background: rgba(0,0,0,.2); border-left: 4px solid var(--team, var(--flame)); }
+.feed time { color: var(--muted); font-size: 12px; margin-right: 6px; font-variant-numeric: tabular-nums; }
+.feed b { color: var(--ember); }
+.feed li.new { animation: slidein .5s ease-out; }
+@keyframes slidein { from { transform: translateX(20px); opacity: 0; } }
 
-.over { text-align: center; }
-.over .res { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; margin: 18px 0; }
-.over .res div { background: var(--sunk); border-radius: 12px; padding: 16px; }
-.over .res h3 { font-family: var(--display); font-weight: 400; margin: 0 0 6px; font-size: 24px; }
-@media (prefers-reduced-motion: no-preference) { .verdict, .event .big { animation: pop .35s ease-out; } @keyframes pop { from { transform: scale(.9); opacity: .4; } to { transform: none; opacity: 1; } } }
+.empty { position: relative; display: grid; justify-items: center; gap: 10px; color: var(--muted); padding: 36px 20px; text-align: center; border: 2px dashed rgba(255,255,255,.14); border-radius: 22px; }
+.empty .pit { width: 220px; min-height: 90px; }
+.legend { color: var(--muted); font-size: 14px; display: flex; gap: 18px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { width: 16px; height: 22px; }
+.legend .tilt { transform: rotate(78deg); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; } }
 
-.fs-card.solo { max-width: 900px; }
-.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 14px; }
-.table.solo { grid-template-columns: minmax(240px, 1fr) minmax(0, 2.4fr); }
-@media (max-width: 1000px) { .table.solo { grid-template-columns: 1fr; } }
-.vs { color: var(--flame); font-weight: 700; }
-.fs-card h2 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; }
-.sug { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--ember-soft); border: 2px solid var(--ember); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
-.sug.ok { background: var(--camp-soft); border-color: var(--camp); color: var(--ink); display: block; }
-.already { margin-top: 10px; }
-.shield { margin-top: 10px; background: var(--sky-soft); color: var(--sky); border: 2px solid var(--sky); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 14px; }
-.waitroom { text-align: center; justify-items: center; }
-.waitroom h2 { font-size: clamp(24px, 3vw, 32px); text-wrap: balance; }
-.waitroom .opp { color: var(--flame); }
-.waitroom .preview, .waitroom #waitsugs { width: 100%; text-align: left; }
-.waitroom .setup-foot { width: 100%; }
-.campfire { position: relative; width: 120px; height: 110px; margin: 6px auto 0; }
-.campfire::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: 0; height: 16px; border-radius: 8px; background: repeating-linear-gradient(90deg, #6b4423 0 22px, #4a2e17 22px 26px); }
-.campfire i { position: absolute; bottom: 10px; left: 50%; width: 46px; height: 80px; margin-left: -23px; border-radius: 50% 50% 35% 35% / 65% 65% 35% 35%;
-  background: radial-gradient(ellipse at 50% 80%, #fff3b0 0%, #ffb347 35%, #ff6a2b 65%, transparent 72%); transform-origin: 50% 100%; animation: lick 1s ease-in-out infinite alternate; }
-.campfire i:nth-child(2) { margin-left: -42px; height: 58px; animation-delay: -.4s; }
-.campfire i:nth-child(3) { margin-left: -4px; height: 64px; animation-delay: -.7s; }
-@keyframes lick { from { transform: scaleY(.85) skewX(-6deg); } to { transform: scaleY(1.1) skewX(6deg); } }
-@media (prefers-reduced-motion: reduce) { .campfire i { animation: none; } }
-.choice small { font-weight: 400; color: var(--muted); }
-.handoff { background: var(--inferno); color: #fff; font-weight: 700; font-size: 18px; border-radius: 10px; padding: 12px 14px; margin-bottom: 12px; text-align: center; }
-.event.cry .big { color: var(--sky); }
-.cryline { font-family: var(--display); font-size: clamp(24px, 3.4vw, 36px) !important; line-height: 1.2; color: var(--ink); max-width: 30ch !important; text-wrap: balance; }
-@media (prefers-reduced-motion: no-preference) { .cryline { animation: shout .6s ease-in-out infinite alternate; } @keyframes shout { from { transform: rotate(-1.2deg) scale(1); } to { transform: rotate(1.2deg) scale(1.04); } } }
-.prow.todo .seg { border: 2px solid var(--flame); background: var(--flame-soft); }
-.wonlost { border: 3px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
-.wonlost.todo { border-color: var(--flame); background: var(--flame-soft); }
-.wonlost.set { border-color: var(--camp); }
-.wlq { font-size: 20px; font-family: var(--display); }
-.wlq b { color: var(--flame); }
-.req { display: inline-block; font-family: var(--body); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; background: var(--flame); color: #fff; padding: 3px 9px; border-radius: 99px; vertical-align: 3px; margin-left: 6px; }
-@media (prefers-reduced-motion: no-preference) { .wonlost.todo .req { animation: nudge 1.2s ease-in-out infinite; } @keyframes nudge { 50% { transform: scale(1.12); } } }
-.wlbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.wl { border: 3px solid var(--line); background: var(--surface); border-radius: 12px; padding: 14px; font-size: 22px; font-weight: 700; letter-spacing: .04em; }
-.wl.won.on { background: var(--camp); border-color: var(--camp); color: #fff; }
-.wl.lost.on { background: var(--inferno); border-color: var(--inferno); color: #fff; }
-.wl:not(.on):hover { border-color: var(--ink); }
-.summary { background: var(--sunk); border-radius: 12px; padding: 12px 14px; display: grid; gap: 4px; justify-items: start; text-align: left; width: 100%; }
-.summary .btn { margin-top: 6px; }
-.wonword { color: var(--camp); } .lostword { color: var(--inferno); }
-.linkbtn { border: 0; background: none; padding: 0; color: var(--flame); font-weight: 700; text-decoration: underline; }
-.relay { font-size: 13px; font-weight: 700; color: var(--muted); }
-.relay.ok { color: var(--good); } .relay.limit, .relay.err { color: var(--ember); }
+/* PROJECTOR FIT: on a wide screen the page fills exactly one screen and the matchups shrink to fit (see fitScreen). */
+@media (min-width: 1000px) {
+  html, body { height: 100%; }
+  body { overflow: hidden; }
+  .wrap { height: 100%; display: flex; flex-direction: column; padding-block: 10px 10px; }
+  header { padding-bottom: 8px; }
+  .logo svg { width: 40px; height: 48px; }
+  h1 { font-size: clamp(28px, 3vw, 46px); }
+  .stats { margin: 4px 0 10px; }
+  .stat { padding: 6px 14px; }
+  .stat b { font-size: clamp(24px, 2.4vw, 38px); }
+  .board { flex: 1; min-height: 0; grid-template-columns: minmax(0, 1fr) clamp(300px, 22vw, 380px); align-items: stretch; }
+  #mbox { min-height: 0; display: flex; flex-direction: column; }
+  #mfit { flex: 1; min-height: 0; overflow: hidden; padding-top: 14px; }
+  .matchups { grid-template-columns: repeat(var(--cols, 2), minmax(420px, 1fr)); }
+  .lastev { display: none; }                 /* the "Around the fire" feed already shows each move */
+  .tagrow .pill:not(.rescue):not(.defend):not(.wait):not(.done):not(.shield) { display: none; }   /* hide "Won/Lost tug-of-war" to save a line */
+  .legend { margin-top: 6px; }
+  .col { min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+  #standings { flex: none; overflow: hidden; }
+  .feedpanel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .feed { flex: 1; min-height: 0; max-height: none; overflow: hidden; }
+}
 </style>
 </head>
 <body>
-<div class="wrap" id="app"></div>
-<div id="modal-root"></div>
+<canvas id="embers" aria-hidden="true"></canvas>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="shine" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <symbol id="pawn" viewBox="0 0 30 42">
+      <circle cx="15" cy="8" r="6.5"/>
+      <path d="M10.5 15.5 h9 l-1.2 3 c2.6 3 4 8 4.2 13.5 h-14 c.2-5.5 1.6-10.5 4.2-13.5z"/>
+      <rect x="4" y="32" width="22" height="5" rx="2"/>
+      <rect x="2" y="36.5" width="26" height="5" rx="2.5"/>
+    </symbol>
+    <symbol id="pawnshine" viewBox="0 0 30 42">
+      <circle cx="13" cy="6.5" r="3" fill="url(#shine)"/>
+      <path d="M12 19 c-2 3 -3 7 -3.2 12 h3 c.2-5 1-9 2.2-12z" fill="#fff" opacity=".28"/>
+    </symbol>
+    <symbol id="flamei" viewBox="0 0 30 40">
+      <path d="M15 1 C18 9 27 13 27 25 a12 12 0 0 1-24 0 C3 17 9 14 10 7 c3 4 3 8 5 10 C16 13 14 7 15 1z" fill="#ff6a2b"/>
+      <path d="M15 16 c3 4 7 6 7 12 a7 7 0 0 1-14 0 c0-4 3-6 4-9 1 2 2 3 3 4z" fill="#ffd166"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="logo">
+      <svg viewBox="0 0 30 40" aria-hidden="true"><use href="#flamei"/></svg>
+      <h1>The +C Rescue<small>LIVE FROM THE FIRE</small></h1>
+    </div>
+    <span class="live" id="live">Not connected</span>
+    <span class="spacer"></span>
+    <div class="codebox"><small>CLASS CODE</small><b id="codeShow">—</b></div>
+    <div class="ctl">
+      <label for="codeIn" style="position:absolute;left:-9999px">Class code</label>
+      <input id="codeIn" placeholder="Class code" autocomplete="off">
+      <button class="btn" id="setBtn" type="button">Set code</button>
+      <button class="btn" id="clearBtn" type="button">Clear board</button>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Class totals">
+    <div class="stat"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#b9a59a"><use href="#pawn"/></svg><div><b id="sFs">0</b><span>Fellowships</span></div></div>
+    <div class="stat safe"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#7be0a6"><use href="#pawn"/></svg><div><b id="sOut">0</b><span>Pulled from the fire</span></div></div>
+    <div class="stat fire"><svg viewBox="0 0 30 40" aria-hidden="true"><use href="#flamei"/></svg><div><b id="sIn">0</b><span>Still burning</span></div></div>
+    <div class="stat done"><svg viewBox="0 0 30 42" aria-hidden="true" fill="#ffd166"><use href="#pawn"/></svg><div><b id="sDone">0</b><span>Matchups won</span></div></div>
+  </section>
+
+  <div class="board">
+    <section aria-label="Matchups" id="mbox">
+      <h2>Matchups</h2>
+      <div id="mfit"><div id="matchups" class="matchups"></div></div>
+      <div id="empty" class="empty">
+        <div class="pit"><div class="flames"><i></i><i></i><i></i><i></i></div></div>
+        <div>Set a class code and write it on the board.<br>Each Fellowship lands here the moment it lights its fire.</div>
+      </div>
+      <div class="legend">
+        <span><svg viewBox="0 0 30 42" fill="#7be0a6"><use href="#pawn"/></svg>Standing in Camp</span>
+        <span><svg class="tilt" viewBox="0 0 30 42" fill="#ffb347"><use href="#pawn"/></svg>Singed (sits out a turn)</span>
+        <span><svg viewBox="0 0 30 40"><use href="#flamei"/></svg>In the fire</span>
+      </div>
+    </section>
+    <div class="col">
+      <section class="panel" aria-label="Standings" id="standings">
+        <h2>Standings</h2>
+        <div class="podium" id="podium"></div>
+        <ol class="ranks" id="rows"></ol>
+      </section>
+      <section class="panel feedpanel" aria-label="Live feed">
+        <h2>Around the fire</h2>
+        <ul class="feed" id="feed"></ul>
+      </section>
+    </div>
+  </div>
+</div>
+
 <script>
 "use strict";
-const CARDS = [
-  { id: 1,  tier: "EMBER", q: "f′(x) = 6x", g: "f(0) = 4", f: "f(x) = 3x² + 4", C: 4 },
-  { id: 2,  tier: "EMBER", q: "f′(x) = 4x<sup>3</sup>", g: "f(1) = 7", f: "f(x) = x⁴ + 6", C: 6 },
-  { id: 3,  tier: "EMBER", q: "f′(x) = 2x + 5", g: "f(1) = 10", f: "f(x) = x² + 5x + 4", C: 4 },
-  { id: 4,  tier: "EMBER", q: "f′(x) = 3x<sup>2</sup> − 4", g: "f(2) = 5", f: "f(x) = x³ − 4x + 5", C: 5 },
-  { id: 5,  tier: "EMBER", q: "f′(x) = 10", g: "f(3) = 26", f: "f(x) = 10x − 4", C: -4 },
-  { id: 6,  tier: "EMBER", q: "f′(x) = 8x<sup>3</sup> − 6x", g: "f(−1) = 3", f: "f(x) = 2x⁴ − 3x² + 4", C: 4 },
-  { id: 7,  tier: "EMBER", q: "f′(x) = x<sup>2</sup> + 1", g: "f(3) = 15", f: "f(x) = x³/3 + x + 3", C: 3 },
-  { id: 8,  tier: "EMBER", q: "f′(x) = 12x<sup>2</sup> − 2x + 1", g: "f(0) = −5", f: "f(x) = 4x³ − x² + x − 5", C: -5 },
-  { id: 9,  tier: "FLAME", q: "f′(x) = 3√x", g: "f(4) = 20", f: "f(x) = 2x<sup>3/2</sup> + 4", C: 4 },
-  { id: 10, tier: "FLAME", q: "f′(x) = 1/x<sup>2</sup>, &nbsp;x &gt; 0", g: "f(1) = 3", f: "f(x) = −1/x + 4", C: 4 },
-  { id: 11, tier: "FLAME", q: "f′(x) = e<sup>x</sup>", g: "f(0) = 6", f: "f(x) = e<sup>x</sup> + 5", C: 5 },
-  { id: 12, tier: "FLAME", q: "f′(x) = 2/x, &nbsp;x &gt; 0", g: "f(1) = −3", f: "f(x) = 2 ln x − 3", C: -3 },
-  { id: 13, tier: "FLAME", q: "f′(x) = cos x", g: "f(0) = 2", f: "f(x) = sin x + 2", C: 2 },
-  { id: 14, tier: "FLAME", q: "f′(x) = sin x", g: "f(0) = 4", f: "f(x) = −cos x + 5", C: 5 },
-  { id: 15, tier: "FLAME", q: "f′(x) = 4e<sup>x</sup> − 2x", g: "f(0) = 1", f: "f(x) = 4e<sup>x</sup> − x² − 3", C: -3 },
-  { id: 16, tier: "FLAME", q: "f′(x) = 1/√x", g: "f(9) = 10", f: "f(x) = 2√x + 4", C: 4 },
-  { id: 17, tier: "INFERNO", q: "f′(x) = (x + 1)(x − 1)", g: "f(3) = 10", f: "f(x) = x³/3 − x + 4", C: 4 },
-  { id: 18, tier: "INFERNO", q: "f′(x) = (x<sup>2</sup> + 3) / x<sup>2</sup>, &nbsp;x &gt; 0", g: "f(1) = 2", f: "f(x) = x − 3/x + 4", C: 4 },
-  { id: 19, tier: "INFERNO", q: "f′(x) = e<sup>2x</sup>", g: "f(0) = 3", f: "f(x) = ½e<sup>2x</sup> + 5/2", C: 2.5 },
-  { id: 20, tier: "INFERNO", q: "f′(x) = cos(3x)", g: "f(0) = −1", f: "f(x) = ⅓ sin(3x) − 1", C: -1 },
-  { id: 21, tier: "INFERNO", q: "f′(x) = (2x + 1)<sup>2</sup>", g: "f(0) = 6", f: "f(x) = (4/3)x³ + 2x² + x + 6", C: 6,
-    alt: { C: 35 / 6, f: "f(x) = (1/6)(2x + 1)³ + 35/6", show: "35/6", how: "substitution (u = 2x + 1)" }, how: "expanding first" },
-  { id: 22, tier: "INFERNO", long: true, q: "Bacteria grow at P′(t) = 200e<sup>0.5t</sup> cells per hour.", g: "P(0) = 1000. Find P(t).", f: "P(t) = 400e<sup>0.5t</sup> + 600", C: 600 },
-  { id: 23, tier: "INFERNO", long: true, q: "A seedling grows at h′(t) = 1.5√t cm per week.", g: "h(0) = 2 cm. Find h(t).", f: "h(t) = t<sup>3/2</sup> + 2", C: 2 },
-  { id: 24, tier: "INFERNO", long: true, q: "A drug leaves the blood at A′(t) = −6e<sup>−0.3t</sup> mg per hour.", g: "A(0) = 25 mg. Find A(t).", f: "A(t) = 20e<sup>−0.3t</sup> + 5", C: 5 },
-];
-const EVENTS = ["FLARE", "FLARE", "BUCKET", "BUCKET"];
-/* BATTLE CRY cards: just for fun. The whole Fellowship yells the line, then draws again (no turn used, no pieces move). */
-const CRIES = [
-  { pile: "EMBER",   how: "Everyone stands up and yells:", line: "DON'T. FORGET. THE PLUS C!!!" },
-  { pile: "EMBER",   how: "Chant it three times while drumming on the table:", line: "ADD ONE TO THE POWER! DIVIDE BY THE NEW POWER!" },
-  { pile: "EMBER",   how: "Like a sad Shakespeare actor, one hand on your heart:", line: "dx, dx… wherefore art thou, dx?!" },
-  { pile: "FLAME",   how: "Like a sports announcer:", line: "AND THE ANTIDERIVATIVE OF e TO THE x IS… e TO THE x! HE DOESN'T CHANGE, FOLKS!" },
-  { pile: "FLAME",   how: "Arms crossed, very serious:", line: "The integral of 1 over x is ln of x, AND I WILL NOT BE TAKING QUESTIONS." },
-  { pile: "FLAME",   how: "Like a superhero, fists on your hips:", line: "FUNDAMENTAL THEOREM OF CALCULUS… ASSEMBLE!" },
-  { pile: "INFERNO", how: "Point dramatically at the other Fellowship and yell:", line: "YOUR DERIVATIVE IS SHOWING!" },
-  { pile: "INFERNO", how: "Slowly, like a movie trailer voice:", line: "In a world… where every function… has infinitely many antiderivatives… only ONE C… can save them." },
-];
-const RESCUE_PAY = { EMBER: 1, FLAME: 2, INFERNO: 3 };
-const DEFEND_ORDER = ["EMBER", "EMBER", "FLAME", "FLAME", "INFERNO"];
-const CARDS_PER_GAME = 5;   /* every Fellowship answers exactly 5 problem cards (Flare-Ups and Bucket Brigades are extra) */
-const TIER_NOTE = {
-  rescue: { EMBER: "Correct: rescue 1 · Miss: singed", FLAME: "Correct: rescue 2 · Miss: singed", INFERNO: "Correct: rescue 3 · Miss: you fall in" },
-  defend: { EMBER: "Correct: stay in Camp · Miss: into the fire", FLAME: "Correct: stay in Camp · Miss: into the fire", INFERNO: "Correct: pull 1 out · Miss: you + 1 more fall in" },
-};
-
 const RELAY = "https://ntfy.sh/";
 function topicFor(code) { return "cpffl2001-plusc-" + String(code).toLowerCase().replace(/[^a-z0-9]/g, ""); }
-const KEY = "plusC-fellowship-v2";
-
-/* ------------------------------------------------------------------ */
-/* STATE: one Fellowship per device                                   */
-/* ------------------------------------------------------------------ */
-let S = null;
-let timerHandle = null;
+const KEY = "plusC_board_v1";
+let B = { code: "", teams: {}, hidden: {}, feed: [], clearedAt: 0 };
+try { B = Object.assign(B, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(B)); } catch (e) {} }
+const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const card = id => CARDS.find(c => c.id === id);
-const newId = () => Math.random().toString(36).slice(2, 10);
-
-function freshSetup(prev) {
-  return {
-    phase: "setup", id: newId(), code: prev ? prev.code : "", name: prev ? prev.name : "", opp: prev ? prev.opp : "",
-    lost: prev ? prev.lost : null,   /* null = not picked yet; students must choose */
-    players: prev ? prev.players.map(p => ({ name: p.name, status: null })) : Array.from({ length: 5 }, () => ({ name: "", status: null })),   /* null = not marked yet */
-    error: "",
-  };
-}
-function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
-function load() { try { const r = localStorage.getItem(KEY); if (r) return JSON.parse(r); } catch (e) {} return null; }
-
-const campName = () => S.lost ? "Losers' Camp" : "Winners' Camp";
-function missionOf() { return S.players.some(p => p.status === "fire") ? "rescue" : "defend"; }
-const inFire = () => S.players.filter(p => p.status === "fire");
-const inCamp = () => S.players.filter(p => p.status === "camp");
-const idxWhere = f => S.players.map((p, i) => i).filter(i => f(S.players[i]));
-const burnLimit = () => Math.floor(S.players.length / 2) + 1;
-function log(msg) { S.log.push(msg); S.last = msg; }
-
-/* ------------------------------------------------------------------ */
-/* LIVE LEADERBOARD: same relay pattern as the Calculus OR game        */
-/* ------------------------------------------------------------------ */
-function broadcast() {
-  if (!S || !S.code || S.phase === "setup") return;
-  const msg = JSON.stringify({
-    id: S.id, fs: S.name, opp: S.opp, lost: S.lost, mission: S.mission, result: S.result, ready: S.phase === "waiting",
-    p: S.players.map(p => [p.name, p.status === "fire" ? 1 : 0, p.singed > 0 ? 1 : 0]),
-    b0: S.b0 || 0, sh: S.shield || 0, rt: S.resultAt || 0, end: S.endBy || "", ans: S.stats.answered, ok: S.stats.correct, di: S.defendIdx, last: S.last || "", t: Date.now(),
-  });
-  const send = tries => fetch(RELAY + topicFor(S.code), { method: "POST", body: msg })
-    .then(r => setRelay(r.ok ? "ok" : r.status === 429 ? "limit" : "err"))
-    .catch(() => { setRelay("err"); if (tries > 0) setTimeout(() => send(tries - 1), 4000); });
-  send(3);
-}
-let relayState = "ok";
-let relayErrSince = 0;
-function setRelay(st) { const changed = relayState !== st; relayState = st; relayErrSince = st === "ok" ? 0 : (relayErrSince || Date.now()); const el = document.getElementById("relay"); if (el) paintRelay(el); if (changed && S && S.phase === "waiting") renderWaitSugs(); }
-function paintRelay(el) {
-  el.className = "relay " + relayState;
-  el.textContent = relayState === "ok" ? "● Sending to leaderboard" : relayState === "limit" ? "● Leaderboard relay busy. Keep playing." : "● Reconnecting to leaderboard…";
-}
-/* No heartbeat: ntfy.sh keeps 12 hours of messages, so a leaderboard opened late still replays every Fellowship. Fewer posts also keeps a whole classroom (one shared network) under the relay's free daily limit. */
-
-/* ------------------------------------------------------------------ */
-/* SETUP                                                               */
-/* ------------------------------------------------------------------ */
-function renderSetup() {
-  document.getElementById("app").innerHTML = `
-    ${topBar(false)}
-    <p class="intro">One computer per Fellowship. Enter the class code from the board, your Fellowship, and the Fellowship you played in the tug-of-war. Then mark each player <b>Survived</b> or <b>Burned</b>. Burned pieces start on The Fire on your physical board.</p>
-    <section class="fs-card solo" aria-label="Your Fellowship">
-      <div><label class="lbl" for="code">Class code</label><input type="text" id="code" data-field="code" value="${esc(S.code)}" placeholder="Code on the board" maxlength="20" autocomplete="off" style="max-width:320px"></div>
-      <div class="wonlost ${S.lost === null ? "todo" : "set"}" role="group" aria-labelledby="wlq">
-        <div id="wlq" class="wlq">Did your Fellowship <b>win</b> or <b>lose</b> the tug-of-war?${S.lost === null ? ` <span class="req">Pick one</span>` : ""}</div>
-        <div class="wlbtns">
-          <button type="button" class="wl won ${S.lost === false ? "on" : ""}" data-act="result" data-val="won" aria-pressed="${S.lost === false}">We WON</button>
-          <button type="button" class="wl lost ${S.lost === true ? "on" : ""}" data-act="result" data-val="lost" aria-pressed="${S.lost === true}">We LOST</button>
-        </div>
-      </div>
-      <div class="two">
-        <div><label class="lbl" for="fname">Your Fellowship's name</label><input type="text" id="fname" data-field="name" value="${esc(S.name)}" placeholder="e.g. The Integrators" maxlength="40"></div>
-        <div><label class="lbl" for="oname">Your opponent's Fellowship</label><input type="text" id="oname" data-field="opp" value="${esc(S.opp)}" placeholder="Who you played in tug-of-war" maxlength="40"></div>
-      </div>
-      <div>
-        <span class="lbl">Players · mark each one Survived or Burned${S.players.some(p => !p.status) ? ` <span class="req">${S.players.filter(p => !p.status).length} left to mark</span>` : ""}</span>
-        <div style="display:grid;gap:8px">
-          ${S.players.map((p, j) => `
-            <div class="prow ${p.status ? "" : "todo"}">
-              <span class="num">${j + 1}</span>
-              <input type="text" id="p${j}" data-p="${j}" data-field="pname" value="${esc(p.name)}" placeholder="Player name" maxlength="24" aria-label="Player ${j + 1} name">
-              <div class="seg" role="group" aria-label="Player ${j + 1} tug-of-war status">
-                <button type="button" class="safe ${p.status === "camp" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="camp" aria-pressed="${p.status === "camp"}">Survived</button>
-                <button type="button" class="burn ${p.status === "fire" ? "on" : ""}" data-act="pstat" data-p="${j}" data-val="fire" aria-pressed="${p.status === "fire"}">Burned</button>
-              </div>
-              <button type="button" class="btn small quiet" data-act="del" data-p="${j}" aria-label="Remove player ${j + 1}" ${S.players.length <= 1 ? "disabled" : ""}>✕</button>
-            </div>`).join("")}
-        </div>
-        <div style="margin-top:8px"><button type="button" class="btn small" data-act="add" ${S.players.length >= 8 ? "disabled" : ""}>+ Add player</button></div>
-      </div>
-      <div class="preview" id="preview">${previewText()}</div>
-      <div class="setup-foot">
-        <span style="flex:1"></span>
-        ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
-        <button type="button" class="btn primary" data-act="start">Light the fire</button>
-      </div>
-    </section>`;
-}
-function previewText() {
-  if (S.phase === "setup" && S.players.some(p => !p.status)) return `Mark every player <b>Survived</b> or <b>Burned</b> to see your mission.`;
-  const burned = S.players.filter(p => p.status === "fire").length;
-  return (missionOf() === "rescue"
-    ? `<b>Your mission: Rescue.</b> ${burned} burned ${burned === 1 ? "player is" : "players are"} in the fire. Pull as many out as you can. You pick Ember, Flame, or Inferno each turn.`
-    : `<b>Your mission: Defend the Camp.</b> Nobody burned. Keep everyone out of the fire. Your cards come in order: Ember, Ember, Flame, Flame, Inferno.`)
-    + ` <b>Everyone answers 5 cards.</b> After both Fellowships finish, the one with more players safe in Camp wins.`;
-}
-function startGame() {
-  S.code = S.code.trim(); S.name = S.name.trim(); S.opp = S.opp.trim();
-  if (!S.code) { S.error = "Enter the class code from the board."; return renderSetup(); }
-  if (!S.name) { S.error = "Enter your Fellowship's name."; return renderSetup(); }
-  if (!S.opp) { S.error = "Enter your opponent's Fellowship."; return renderSetup(); }
-  if (S.name.toLowerCase() === S.opp.toLowerCase()) { S.error = "Your opponent needs a different name than yours."; return renderSetup(); }
-  if (S.lost !== true && S.lost !== false) { S.error = "Pick whether your Fellowship won or lost the tug-of-war."; return renderSetup(); }
-  if (S.players.some(p => !p.name.trim())) { S.error = "Every player needs a name."; return renderSetup(); }
-  if (S.players.some(p => p.status !== "camp" && p.status !== "fire")) { S.error = "Mark every player Survived or Burned."; return renderSetup(); }
-  S.error = "";
-  openCheck();
-}
-
-/* ------------------------------------------------------------------ */
-/* NAME CHECK: compare with Fellowships already playing in this class */
-/* so both computers spell the matchup the same way.                  */
-/* ------------------------------------------------------------------ */
+const norm = s => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
 const nameKey = s => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(the|team)\b/g, " ")
   .split(/\s+/).filter(Boolean).map(w => w.length > 3 ? w.replace(/s$/, "") : w).join(" ");
-const same = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
 function editDist(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
   for (let j = 1; j <= b.length; j++) d[0][j] = j;
@@ -414,7 +298,7 @@ function editDist(a, b) {
     d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
   return d[a.length][b.length];
 }
-function closeness(a, b) { /* 0 = identical spelling idea; bigger = further apart */
+function closeness(a, b) {
   const x = nameKey(a), y = nameKey(b);
   if (!x || !y) return 99;
   if (x === y) return 0;
@@ -422,693 +306,252 @@ function closeness(a, b) { /* 0 = identical spelling idea; bigger = further apar
   const dd = editDist(x, y);
   return dd <= Math.max(2, Math.floor(Math.max(x.length, y.length) * 0.3)) ? 1 + dd : 99;
 }
-async function fetchClass(code) {
-  const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 6000);
-  try {
-    const r = await fetch(RELAY + topicFor(code) + "/json?poll=1&since=12h", { signal: ctl.signal });
-    const latest = {}, hidden = new Set(); let clearedAt = 0;
-    (await r.text()).split("\n").forEach(line => {
-      try {
-        const env = JSON.parse(line); if (env.event && env.event !== "message") return;
-        const m = JSON.parse(env.message);
-        if (m.clear) { clearedAt = Math.max(clearedAt, Number(m.t) || 0); return; }   /* teacher pressed Clear board */
-        if (m.hide) { hidden.add(String(m.hide)); return; }                             /* teacher removed one with ✕ */
-        if (!m.id || !m.fs || m.id === S.id) return;
-        if (!latest[m.id] || latest[m.id].t < m.t) latest[m.id] = m;
-      } catch (e) {}
-    });
-    const seen = new Set();
-    return Object.values(latest).filter(m => m.t >= clearedAt && !hidden.has(m.id)).sort((a, b) => b.t - a.t)
-      .map(m => ({ fs: String(m.fs).trim().slice(0, 40), opp: String(m.opp || "").trim().slice(0, 40) }))
-      .filter(o => { const k = o.fs.toLowerCase(); if (seen.has(k) || same(o.fs, S.name)) return false; seen.add(k); return true; });
-  } catch (e) { return null; } finally { clearTimeout(tm); }
-}
-async function openCheck() {
-  S.phase = "check"; S.check = { loading: true, others: [] };
-  save(); render();
-  const others = await fetchClass(S.code);
-  if (S.phase !== "check") return;
-  S.check = { loading: false, offline: others === null, others: others || [] };
-  save(); renderSugs();
-}
-function suggestions() {
-  const others = S.check.others;
-  const out = { opp: null, name: null, oppOk: false, nameOk: false };
-  const oppTeam = others.find(o => same(o.fs, S.opp));
-  out.oppOk = !!oppTeam;
-  if (!oppTeam) {
-    const best = others.map(o => ({ o, c: closeness(o.fs, S.opp) })).filter(x => x.c < 99).sort((a, b) => a.c - b.c)[0];
-    if (best) out.opp = best.o.fs;
-  }
-  /* how did our opponent spell OUR name? */
-  const opTeam = oppTeam || others.find(o => out.opp && same(o.fs, out.opp));
-  if (opTeam && opTeam.opp) {
-    if (same(opTeam.opp, S.name)) out.nameOk = true;
-    else if (closeness(opTeam.opp, S.name) < 99) out.name = { spell: opTeam.opp, by: opTeam.fs };
-  }
-  return out;
-}
-function setupSummary() {
-  const burned = S.players.filter(p => p.status === "fire"), safe = S.players.filter(p => p.status !== "fire");
-  return `<div class="summary"><span class="lbl">Double-check your setup</span>
-    <div>Tug-of-war: <b class="${S.lost ? "lostword" : "wonword"}">We ${S.lost ? "LOST" : "WON"}</b></div>
-    <div>Survived: <b>${safe.map(p => esc(p.name)).join(", ") || "nobody"}</b></div>
-    <div>Burned: <b>${burned.map(p => esc(p.name)).join(", ") || "nobody"}</b></div>
-    <button type="button" class="btn small" data-act="back">Something's wrong? Go back and fix it</button></div>`;
-}
-function renderCheck() {
-  document.getElementById("app").innerHTML = `
-    ${topBar(false)}
-    <section class="fs-card solo" aria-label="Check your names">
-      <h2>Check your names</h2>
-      <p class="intro" style="margin:0">The leaderboard pairs you with your opponent only when <b>both computers spell both names the same way</b>. Look across the table and compare with the other Fellowship before you start.</p>
-      <div class="two">
-        <div><label class="lbl" for="fname">Your Fellowship's name</label><input type="text" id="fname" data-field="name" value="${esc(S.name)}" maxlength="40"></div>
-        <div><label class="lbl" for="oname">Your opponent's Fellowship</label><input type="text" id="oname" data-field="opp" value="${esc(S.opp)}" maxlength="40"></div>
-      </div>
-      <div id="sugs" aria-live="polite"></div>
-      ${setupSummary()}
-      <div class="setup-foot">
-        <button type="button" class="btn" data-act="back">← Back</button>
-        <span style="flex:1"></span>
-        ${S.error ? `<span class="err" role="alert">${esc(S.error)}</span>` : ""}
-        <button type="button" class="btn primary" data-act="launch">Names match. Light our fire</button>
-      </div>
-    </section>`;
-  renderSugs();
-}
-function renderSugs() {
-  const el = document.getElementById("sugs"); if (!el || !S.check) return;
-  if (S.check.loading) { el.innerHTML = `<div class="preview">Checking which Fellowships in class <b>${esc(S.code)}</b> have already started…</div>`; return; }
-  const g = suggestions(), others = S.check.others, rows = [];
-  if (g.name) rows.push(`<div class="sug"><span><b>${esc(g.name.by)}</b> already started and spelled your name <b>“${esc(g.name.spell)}”</b>.</span><button type="button" class="btn small" data-act="usename" data-val="${esc(g.name.spell)}">Use “${esc(g.name.spell)}”</button></div>`);
-  if (g.opp) rows.push(`<div class="sug"><span>Did you mean <b>“${esc(g.opp)}”</b>? That Fellowship has already started.</span><button type="button" class="btn small" data-act="useopp" data-val="${esc(g.opp)}">Use “${esc(g.opp)}”</button></div>`);
-  if (g.oppOk && (g.nameOk || !g.name)) rows.push(`<div class="sug ok">✓ <b>${esc(S.opp)}</b> is already playing, and your names line up. You'll be paired on the leaderboard.</div>`);
-  if (!rows.length) rows.push(S.check.offline
-    ? `<div class="preview">Couldn't reach the leaderboard to compare names. Double-check the spelling with your opponent, then start.</div>`
-    : others.length === 0
-      ? `<div class="preview">You're the first Fellowship in class <b>${esc(S.code)}</b> to start. Show the other Fellowship exactly how you spelled <b>both</b> names so they can type them the same way.</div>`
-      : `<div class="preview"><b>${esc(S.opp)}</b> hasn't started yet. Show them exactly how you spelled both names.</div>`);
-  if (others.length) rows.push(`<div class="already"><span class="lbl">Already playing in class ${esc(S.code)} · tap to use as your opponent</span><div class="choices">${others.map(o => `<button type="button" class="choice ${same(o.fs, S.opp) ? "on" : ""}" data-act="useopp" data-val="${esc(o.fs)}">${esc(o.fs)}</button>`).join("")}</div></div>`);
-  el.innerHTML = rows.join("");
-}
-function launch() {
-  S.name = S.name.trim(); S.opp = S.opp.trim();
-  if (!S.name || !S.opp) { S.error = "Both names need to be filled in."; return renderCheck(); }
-  if (same(S.name, S.opp)) { S.error = "Your opponent needs a different name than yours."; return renderCheck(); }
-  S.error = ""; delete S.check;
-  S.players.forEach(p => { p.name = p.name.trim(); });
-  S.initial = S.players.map(p => p.status);
-  Object.assign(S, { phase: "waiting", readyAt: Date.now(), mission: missionOf(), result: null, shield: 0, defendIdx: 0,
-    stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length, log: [], announced: false });
-  S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`;
-  save(); render(); broadcast(); watchReady();
-}
+let es = null, retryT = null, retryMs = 3000, flash = new Set(), newFeed = 0;
+const prevSpot = {}; /* "teamId|player" -> "c"|"f"|"s", to pop pieces that just moved */
 
-/* ------------------------------------------------------------------ */
-/* WAITING ROOM: both Fellowships in a matchup must light their fire  */
-/* (with matching names) before either game starts.                   */
-/* ------------------------------------------------------------------ */
-let readyES = null, waitingOthers = {}, readyClearedAt = 0, pending = {};
-function stopReady() { Object.values(pending).forEach(clearTimeout); pending = {}; if (readyES) { readyES.close(); readyES = null; } }
-const isPartner = m => closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99;
-function watchReady() {
-  stopReady(); waitingOthers = {}; readyClearedAt = 0;
-  if (!S || S.phase !== "waiting" || typeof EventSource === "undefined") return;
-  const since = Math.floor(Date.now() / 1000) - 30 * 60;   /* a partner who got ready in the last 30 minutes */
-  readyES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + since);
-  readyES.onopen = () => setRelay("ok");
-  readyES.onerror = () => setRelay("err");
-  readyES.onmessage = e => {
-    try {
-      const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
-      const m = JSON.parse(env.message);
-      if (m.clear) { readyClearedAt = Math.max(readyClearedAt, Number(m.t) || 0); Object.keys(waitingOthers).forEach(id => { if (waitingOthers[id].t < readyClearedAt) delete waitingOthers[id]; }); return renderWaitSugs(); }
-      if (m.hide) { delete waitingOthers[m.hide]; return renderWaitSugs(); }
-      if (!m.id || m.id === S.id || !m.fs || m.result || m.t < readyClearedAt) return;
-      /* a partner who already started (saw our ready first) counts as ready too */
-      const live = m.ready || (isPartner(m) && m.t > (S.readyAt || 0) && Array.isArray(m.p));
-      if (live) waitingOthers[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), t: m.t };
-      else delete waitingOthers[m.id];
-      if (live && isPartner(m)) {   /* wait a moment: the history replays first, and a later "went back" note cancels an old ready */
-        if (!pending[m.id]) pending[m.id] = setTimeout(() => {
-          delete pending[m.id]; const o = waitingOthers[m.id];
-          if (o && S.phase === "waiting" && isPartner(o)) partnerReady(o);
-        }, 1500);
-      }
-      renderWaitSugs();
-    } catch (err) {}
+/* each Fellowship gets its own piece color, picked from its name */
+const PIECES = ["#4cc9f0", "#f72585", "#b5e48c", "#ffd166", "#c77dff", "#06d6a0", "#ff9f1c", "#90e0ef", "#ff70a6", "#a3b18a", "#e0aaff", "#fca311"];
+function colorFor(name) { let h = 7; for (const c of norm(name)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return PIECES[h % PIECES.length]; }
+
+/* ---------- live connection (same relay as the Calculus OR game) ---------- */
+function setCode() {
+  const c = $("codeIn").value.trim(); if (!c) return;
+  if (c !== B.code) { B.code = c; B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = 0; save(); }
+  connect(); render();
+}
+function connect() {
+  $("codeShow").textContent = B.code || "—";
+  if (es) { es.close(); es = null; }
+  clearTimeout(retryT);
+  if (!B.code) { setLive(false); return; }
+  const since = Math.max(Math.floor(B.clearedAt / 1000), Math.floor(Date.now() / 1000) - 12 * 3600);
+  es = new EventSource(RELAY + topicFor(B.code) + "/sse?since=" + since);
+  es.onopen = () => { retryMs = 3000; setLive(true); };
+  es.onerror = () => { setLive("retry"); if (es && es.readyState === 2) { clearTimeout(retryT); retryT = setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); } };
+  es.onmessage = e => {
+    try { const env = JSON.parse(e.data); if (env.event && env.event !== "message") return; take(JSON.parse(env.message)); } catch (err) {}
   };
 }
-function partnerReady(m) {
-  if (S.phase !== "waiting") return;
-  stopReady();
-  S.partner = String(m.fs).slice(0, 40);
-  startPlay();
-}
-function leaveWaiting(toSetup) {   /* the old waiting entry leaves the leaderboard */
-  stopReady();
-  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
-  S.id = newId(); S.phase = "setup"; S.error = "";
-  if (S.initial) { S.players.forEach((p, i) => { if (S.initial[i]) p.status = S.initial[i]; }); }
-  save(); if (toSetup) render(); else openCheck();
-}
-function renderWaiting() {
-  document.getElementById("app").innerHTML = `
-    ${topBar(true)}
-    <section class="fs-card solo waitroom" aria-label="Waiting for your opponent">
-      <div class="campfire" aria-hidden="true"><i></i><i></i><i></i></div>
-      <h2>Your fire is lit. Waiting for <span class="opp">${esc(S.opp)}</span>…</h2>
-      <p class="intro" style="margin:0">Your game starts the moment <b>${esc(S.opp)}</b> clicks “Light our fire” on their computer with your name, <b>${esc(S.name)}</b>, as their opponent. Both games start together.</p>
-      ${S.notice ? `<div class="sug">${esc(S.notice)}</div>` : ""}
-      <div class="preview">${previewText()}</div>
-      ${setupSummary().replace('data-act="back"', 'data-act="unwaitall"')}
-      <div id="waitsugs" aria-live="polite"></div>
-      <div class="setup-foot">
-        <button type="button" class="btn" data-act="unwait">← Fix our names</button>
-        <button type="button" class="btn" data-act="unwaitall">← Fix our whole setup</button>
-        <span style="flex:1"></span>
-      </div>
-    </section>`;
-  const r = document.getElementById("relay"); if (r) paintRelay(r);
-  renderWaitSugs();
-}
-function renderWaitSugs() {
-  const el = document.getElementById("waitsugs"); if (!el || S.phase !== "waiting") return;
-  const others = Object.values(waitingOthers).filter(o => !same(o.fs, S.name));
-  const wantUs = others.filter(o => closeness(o.opp, S.name) < 99 && closeness(o.fs, S.opp) >= 99);
-  const rows = wantUs.map(o => `<div class="sug"><span><b>${esc(o.fs)}</b> is waiting and says they're playing <b>you</b>. Is that your opponent?</span><button type="button" class="btn small" data-act="playthem" data-val="${esc(o.fs)}">Play ${esc(o.fs)}</button></div>`);
-  if (others.length) rows.push(`<div class="already"><span class="lbl">Also waiting in class ${esc(S.code)}</span><div class="choices">${others.map(o => `<span class="choice">${esc(o.fs)} <small>vs ${esc(o.opp)}</small></span>`).join("")}</div></div>`);
-  if (relayErrSince && Date.now() - relayErrSince > 30000) rows.push(`<div class="sug"><span>Can't reach the leaderboard right now. If it doesn't come back, your teacher can let you start without waiting.</span><button type="button" class="btn small" data-act="startanyway">Start without waiting</button></div>`);
-  el.innerHTML = rows.join("");
-}
-
-setInterval(() => { if (S && S.phase === "waiting") renderWaitSugs(); }, 5000);
-
-function startPlay() {
-  const piles = { EMBER: [], FLAME: [], INFERNO: [] };
-  CARDS.forEach(c => piles[c.tier].push(c.id));
-  EVENTS.forEach(e => piles.EMBER.push(e));
-  CRIES.forEach((c, i) => piles[c.pile].push("CRY" + i));
-  Object.values(piles).forEach(shuffle);
-  S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
-  S.initial = S.players.map(p => p.status); S.notice = "";
-  Object.assign(S, { piles, phase: "play", announced: false, startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
-  watchOpponent();
-  log(`${S.name} vs ${S.partner || S.opp}: the game is on! ${S.mission === "rescue" ? `Rescuing ${inFire().length}` : "Defending the camp"}.`);
-  beginTurn();
-}
-
-/* ------------------------------------------------------------------ */
-/* TURN ENGINE                                                         */
-/* ------------------------------------------------------------------ */
-/* Everyone in Camp takes a turn before anyone goes twice (both missions). */
-function eligiblePlayers() {
-  if (!S.players.some(p => p.status === "camp" && !p.answered)) S.players.forEach(p => { p.answered = false; });   /* new round */
-  const camp = idxWhere(p => p.status === "camp" && !(p.singed > 0));
-  const fresh = camp.filter(i => !S.players[i].answered);
-  return fresh.length ? fresh : camp;   /* only players who already went are free (the rest are singed) */
-}
-function finish() {
-  if (!S.resultAt) S.resultAt = Date.now();
-  if (!S.endBy) S.endBy = "self";
-  S.phase = "over"; document.getElementById("modal-root").innerHTML = "";
-  save(); broadcast(); render();
-  if (S.oppFinal) stopWatching(); else if (!oppES) watchOpponent();
-}
-
-/* ------------------------------------------------------------------ */
-/* MATCHUP: listen for our opponent's final score. When both have    */
-/* finished 5 cards, more players safe wins.                          */
-/* ------------------------------------------------------------------ */
-let oppES = null;
-function stopWatching() { if (oppES) { oppES.close(); oppES = null; } }
-function watchOpponent() {
-  stopWatching();
-  if (!S || (S.phase !== "play" && S.phase !== "over") || S.oppFinal || !S.code || !S.startedAt || typeof EventSource === "undefined") return;
-  oppES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + Math.floor(S.startedAt / 1000));
-  oppES.onmessage = e => {
-    try {
-      const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
-      const m = JSON.parse(env.message);
-      if (m.restart && m.id !== S.id && m.t > S.startedAt && closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99) return opponentRestarted(m);
-      if (!m.id || m.id === S.id || !m.fs || m.result !== "done" || !m.rt || !Array.isArray(m.p)) return;
-      if (m.rt < S.startedAt) return;                                  /* an old game from earlier */
-      if (closeness(m.fs, S.opp) >= 99) return;                        /* not our opponent */
-      if (m.opp && closeness(m.opp, S.name) >= 99) return;
-      opponentFinished(m);
-    } catch (err) {}
-  };
-}
-function opponentRestarted(m) {   /* opponent went back to fix their setup: we go back to waiting with our setup kept */
-  if (S.phase !== "play") return;
-  stopWatching(); clearInterval(timerHandle); document.getElementById("modal-root").innerHTML = "";
-  if (S.initial) S.players.forEach((p, i) => { p.status = S.initial[i]; p.singed = 0; p.answered = false; });
-  S.notice = `${String(m.fs).slice(0, 40)} went back to fix their setup. Your game restarts when they light their fire again. Put your pieces back where they started.`;
-  launch();
-}
-function restartOurs() {   /* we made a setup mistake right after starting */
-  stopWatching(); clearInterval(timerHandle);
-  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ restart: true, id: S.id, fs: S.name, opp: S.opp, t: Date.now() }) }).catch(() => {});
-  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
-  if (S.initial) S.players.forEach((p, i) => { p.status = S.initial[i]; p.singed = 0; p.answered = false; });
-  S.id = newId(); S.phase = "setup"; S.error = ""; S.notice = ""; save(); render();
-}
-function opponentFinished(m) {
-  if (S.oppFinal) return;
-  S.oppFinal = { fs: String(m.fs).slice(0, 40), safe: m.p.filter(x => !x[1]).length, total: m.p.length, ok: Number(m.ok) || 0, rt: Number(m.rt) };
-  log(`${S.oppFinal.fs} finished with ${S.oppFinal.safe} of ${S.oppFinal.total} safe.`);
-  save();
-  if (S.phase === "over") { stopWatching(); render(); }
-}
-/* 1 = we win, -1 = they win, 0 = tie. More safe (as a share of the team), then more safe, then more correct, then finished first. */
-function compareFinal(a, b) {
-  return Math.sign(a.safe / a.total - b.safe / b.total) || Math.sign(a.safe - b.safe) || Math.sign(a.ok - b.ok) || Math.sign(b.rt - a.rt);
-}
-
-function beginTurn() {
-  clearInterval(timerHandle);
-  if (S.result) return finish();
-  S.players.forEach(p => { if (p.singed > 0) p.singed--; });
-  if (S.mission === "rescue" && !["EMBER", "FLAME", "INFERNO"].some(k => S.piles[k].length)) {
-    S.result = "done"; log(`The cards ran out. ${S.name} finished with ${inCamp().length} of ${S.players.length} safe.`); return finish();
+function take(m) {
+  if (m && m.clear && Number(m.t) > B.clearedAt) { /* Clear board pressed (here or on another computer) */
+    B.clearedAt = Number(m.t);
+    Object.keys(B.teams).forEach(id => { if (B.teams[id].t < B.clearedAt) delete B.teams[id]; });
+    B.feed = B.feed.filter(f => f.t >= B.clearedAt); save(); schedule(); return;
   }
-  let eligible = eligiblePlayers(), lastStand = false;
-  if (!eligible.length && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
-  if (!eligible.length) {
-    S.turn = { stage: "skip", eligible: [], moves: [] };
-    save(); return render();
+  if (m && m.hide && typeof m.hide === "string") { B.hidden[m.hide] = true; save(); schedule(); return; }
+  if (!m || !m.id || !m.fs || !Array.isArray(m.p)) return;
+  if (m.t < B.clearedAt) return;
+  const old = B.teams[m.id];
+  if (old && old.t >= m.t) return;
+  B.teams[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), lost: !!m.lost, mission: m.mission === "defend" ? "defend" : "rescue",
+    result: m.result === "done" ? "done" : null, p: m.p.slice(0, 8).map(x => [String(x[0]).slice(0, 24), x[1] ? 1 : 0, x[2] ? 1 : 0]),
+    wait: !!m.ready, b0: Number(m.b0) || 0, sh: Number(m.sh) || 0, rt: Number(m.rt) || 0, end: m.end === "opp" ? "opp" : "self", ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
+  if (m.last && (!old || old.last !== m.last) && !B.hidden[m.id]) {
+    B.feed.unshift({ t: m.t, id: m.id, fs: B.teams[m.id].fs, msg: B.teams[m.id].last });
+    B.feed.sort((a, b) => b.t - a.t); B.feed = B.feed.slice(0, 40); newFeed++;
   }
-  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.length === 1 ? eligible[0] : null, tier: S.mission === "defend" ? DEFEND_ORDER[S.defendIdx] : null, moves: [] };
-  if (!S.announced) { S.announced = true; save(); broadcast(); }
-  save(); render();
+  flash.add(m.id); save(); schedule();
+}
+function setLive(on) {
+  const l = $("live");
+  l.className = "live" + (on === true ? " on" : "");
+  l.textContent = on === true ? "Live" : on === "limit" ? "Relay busy, retrying" : on === "retry" ? "Reconnecting…" : "Not connected";
+}
+setInterval(() => {
+  if (!B.code) return;
+  fetch(RELAY + topicFor(B.code) + "/json?poll=1&since=1s").then(r => {
+    if (r.status === 429) setLive("limit"); else if (r.ok && (!es || es.readyState === 2)) connect();
+  }).catch(() => {});
+}, 30000);
+
+/* ---------- scoring ---------- */
+const safe = t => t.p.filter(x => !x[1]).length;
+const burning = t => t.p.filter(x => x[1]).length;
+const statusRank = t => t.outcome === "win" ? 3 : t.outcome === "tie" ? 2 : t.outcome === "lose" ? 0 : 1;
+const finishedAt = t => t.result ? (t.rt || t.t) : Infinity;
+function ranked(list) {
+  return list.sort((a, b) => statusRank(b) - statusRank(a)
+    || (a.outcome === "win" && b.outcome === "win" ? finishedAt(a) - finishedAt(b) : 0)   /* faster winners rank higher */
+    || safe(b) / b.p.length - safe(a) / a.p.length || b.ok - a.ok || a.ans - b.ans || a.t - b.t);
+}
+/* Everyone answers 5 cards. When both Fellowships in a matchup have finished, more players safe wins
+   (as a share of the team, then the count), then more correct answers, then whoever finished first. */
+function cmp(a, b) {
+  return Math.sign(safe(a) / a.p.length - safe(b) / b.p.length) || Math.sign(safe(a) - safe(b)) || Math.sign(a.ok - b.ok) || Math.sign(finishedAt(b) - finishedAt(a));
+}
+function decide(a, b) {
+  if (a && a.result && !(b && b.result)) a.outcome = "", a.how = "waiting";
+  if (b && b.result && !(a && a.result)) b.outcome = "", b.how = "waiting";
+  if (!a || !b || !a.result || !b.result) return;
+  const r = cmp(a, b);
+  const why = (safe(a) / a.p.length !== safe(b) / b.p.length || safe(a) !== safe(b)) ? "safe" : a.ok !== b.ok ? "correct" : "time";
+  if (r === 0) { a.outcome = b.outcome = "tie"; return; }
+  const w = r > 0 ? a : b, l = r > 0 ? b : a;
+  w.outcome = "win"; l.outcome = "lose"; w.how = l.how = why;
 }
 
-function drawCard() {
-  let tier = S.turn.tier;
-  if (!S.piles[tier].length) {
-    const alt = ["EMBER", "FLAME", "INFERNO"].find(k => S.piles[k].length);
-    if (!alt) { S.result = "done"; log("The cards ran out."); return finish(); }
-    tier = alt; S.turn.tier = alt;
-  }
-  const item = S.piles[tier].shift();
-  if (typeof item === "string") {
-    S.turn.stage = "event"; S.turn.event = item;
-    if (item.startsWith("CRY")) { S.turn.cry = Number(item.slice(3)); } else
-    log(`${S.name} drew ${item === "FLARE" ? "a Flare-Up!" : "the Bucket Brigade"}`);
-  } else {
-    Object.assign(S.turn, { stage: "card", cardId: item, flare: false, started: Date.now(), limit: 120 });
-  }
-  save(); render();
+/* ---------- render ---------- */
+let pending = false;
+function schedule() { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); }
+
+function pawnSVG(color, extra = "") {
+  return `<svg viewBox="0 0 30 42" ${extra}><use href="#pawn" fill="${color}"/><use href="#pawnshine"/></svg>`;
+}
+function pawnHTML(t, x, where) {
+  const key = t.id + "|" + x[0], now = where === "f" ? "f" : x[2] ? "s" : "c";
+  const moved = prevSpot[key] && prevSpot[key] !== now; prevSpot[key] = now;
+  const cls = where === "f" ? "burn" : x[2] ? "singed" : "";
+  const color = where === "f" ? "#3a1a12" : t.color;
+  const tip = `${x[0]}${where === "f" ? ": in the fire" : x[2] ? ": singed" : ": in Camp"}`;
+  return `<div class="pawn ${cls} ${moved ? "pop" : ""}" title="${esc(tip)}">${pawnSVG(color, where === "f" ? 'style="--glow:1"' : "")}<span class="nm">${esc(x[0])}</span></div>`;
 }
 
-function startFlare() {
-  const fi = S.piles.FLAME.findIndex(x => typeof x === "number");   /* a math card, never a Battle Cry */
-  if (fi < 0) { log("No Flame cards left, so the flare-up fizzles."); return backToChoose(); }
-  S.turn.flareReturn = { tier: S.turn.tier, answerer: S.turn.answerer };
-  Object.assign(S.turn, { stage: "card", cardId: S.piles.FLAME.splice(fi, 1)[0], flare: true, started: Date.now(), limit: 60 });
-  save(); render();
-}
-
-function parseC(raw) {
-  if (raw == null) return NaN;
-  const s = String(raw).trim().toLowerCase().replace(/[−–—]/g, "-").replace(/\s+/g, "").replace(/^c=/, "");
-  if (!s) return NaN;
-  if (/^[-+]?\d+(\.\d+)?\/[-+]?\d+(\.\d+)?$/.test(s)) { const [a, b] = s.split("/").map(Number); return b ? a / b : NaN; }
-  if (/^[-+]?(\d+\.?\d*|\.\d+)$/.test(s)) return Number(s);
-  return NaN;
-}
-const sameC = (x, C) => Number.isFinite(x) && Math.abs(x - C) < 0.006;   /* lets 35/6 be typed as 5.83 */
-const fmtC = C => { const sign = C < 0 ? "−" : ""; const a = Math.abs(C); return sign + (Number.isInteger(a) ? a : Number.isInteger(a * 2) ? `${a * 2}/2` : a); };
-
-function move(i, to) {
-  const p = S.players[i], from = p.status;
-  if (to === "fire" && S.shield > 0) {
-    S.shield--;
-    S.turn.moves.push(`<b>Fire Shield!</b> It blocks the fire. <b>${esc(p.name)}</b> stays in ${campName()}.`);
-    S.log.push(`Fire Shield saved ${p.name}.`);
-    return;
-  }
-  p.status = to;
-  if (to === "fire") p.singed = 0;
-  const w = st => st === "fire" ? "The Fire" : campName();
-  S.turn.moves.push(`<b>${esc(p.name)}</b>: ${w(from)} → ${w(to)}`);
-  S.log.push(`${p.name}: ${w(from)} → ${w(to)}`);
-}
-function singe(i) {
-  const p = S.players[i]; p.singed = 2;
-  S.turn.moves.push(`<b>${esc(p.name)}</b> is singed. Lay the piece on its side; it sits out your next turn.`);
-  S.log.push(`${p.name} is singed.`);
-}
-
-async function resolve(raw, timeout) {
-  if (!S.turn || S.turn.stage !== "card") return;   /* already checked (timer and button can't both count) */
-  S.turn.stage = "checking";
-  clearInterval(timerHandle);
-  const c = card(S.turn.cardId), a = S.turn.answerer, ap = S.players[a];
-  const correct = !timeout && (sameC(parseC(raw), c.C) || (c.alt && sameC(parseC(raw), c.alt.C)));
-  Object.assign(S.turn, { correct, timeout, raw });
-  S.stats.answered++; if (correct) S.stats.correct++;
-  const before = inFire().length;
-
-  if (S.turn.flare) {
-    if (!correct) {
-      const camp = idxWhere(p => p.status === "camp");
-      if (camp.length) (await choosePlayers(camp, 1, `Flare-up missed! ${S.opp}, choose one of ${S.name}'s players to pull into the fire.`, true)).forEach(i => move(i, "fire"));
-    } else {
-      const fire = idxWhere(p => p.status === "fire");
-      if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Flare-up beaten! Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp"));
-      else { S.shield = (S.shield || 0) + 1; S.turn.moves.push(`Nobody is in your fire, so you earn a <b>Fire Shield</b>. It blocks the next player who would go into the fire.`); S.log.push(`${S.name} earned a Fire Shield.`); }
-    }
-  } else if (S.mission === "rescue") {
-    if (correct) {
-      const pay = RESCUE_PAY[c.tier];
-      if (S.turn.lastStand) move(a, "camp");
-      const fire = idxWhere(p => p.status === "fire");
-      if (fire.length) (fire.length <= pay ? fire : await choosePlayers(fire, pay, `Choose ${pay} player${pay > 1 ? "s" : ""} to pull out of the fire.`)).forEach(i => move(i, "camp"));
-    } else if (!S.turn.lastStand) {
-      if (c.tier === "INFERNO") move(a, "fire"); else singe(a);
-    }
-  } else {
-    if (S.turn.lastStand) { if (correct) move(a, "camp"); }   /* answered from the fire: right = climbs out, miss = stays */
-    if (correct) {
-      if (c.tier === "INFERNO") { const fire = idxWhere(p => p.status === "fire"); if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp")); }
-    } else if (!S.turn.lastStand) {
-      move(a, "fire");
-      if (c.tier === "INFERNO") { const camp = idxWhere(p => p.status === "camp").filter(i => i !== a); if (camp.length) (camp.length === 1 ? camp : await choosePlayers(camp, 1, `${S.opp}, choose one more of ${S.name}'s players to pull into the fire.`, true)).forEach(i => move(i, "fire")); }
-    }
-  }
-  if (!S.turn.flare) { S.defendIdx++; ap.answered = true; }   /* counts the 5 problem cards; this player has had their turn */
-  const after = inFire().length;
-  const verdict = correct ? "solved" : timeout ? "ran out of time on" : "missed";
-  const delta = after < before ? `, rescued ${before - after}` : after > before ? `, ${after - before} fell in` : "";
-  log(`${ap.name} ${verdict} ${S.turn.flare ? "a Flare-Up" : `an ${c.tier === "EMBER" ? "Ember" : c.tier === "FLAME" ? "Flame" : "Inferno"}`} card${delta}.`.replace("an Flame", "a Flame"));
-  checkMission();
-  S.turn.stage = S.turn.flare ? "flareResult" : "result";
-  save(); broadcast(); render();
-}
-
-function checkMission() {
-  if (S.result) return;
-  if (S.defendIdx >= CARDS_PER_GAME) { S.result = "done"; log(`${S.name} finished all 5 cards with ${inCamp().length} of ${S.players.length} safe.`); }
-  if (S.result && !S.resultAt) { S.resultAt = Date.now(); S.endBy = "self"; } /* stamp now so the opponent sees our final score right away */
-}
-
-async function bucket() {
-  const fire = idxWhere(p => p.status === "fire");
-  if (fire.length) (fire.length === 1 ? fire : await choosePlayers(fire, 1, "Choose 1 player to pull out of the fire.")).forEach(i => move(i, "camp"));
-  else S.turn.moves.push("Nobody is in your fire, so the bucket has nothing to put out.");
-  log(`${S.name} used the Bucket Brigade.`);
-  checkMission();
-  S.turn.stage = "eventDone";
-  save(); broadcast(); render();
-}
-
-function backToChoose() {
-  if (S.result) return finish();
-  const keepTier = S.turn.flareReturn ? S.turn.flareReturn.tier : S.turn.tier;
-  const prevAns = S.turn.flareReturn ? S.turn.flareReturn.answerer : S.turn.answerer;
-  let eligible = eligiblePlayers(), lastStand = false;
-  if (!eligible.length && inCamp().length === 0) { eligible = idxWhere(p => p.status === "fire"); lastStand = true; }
-  if (!eligible.length) return beginTurn();
-  S.turn = { stage: "choose", eligible, lastStand, answerer: eligible.includes(prevAns) ? prevAns : (eligible.length === 1 ? eligible[0] : null), tier: S.mission === "defend" ? DEFEND_ORDER[S.defendIdx] : keepTier, moves: [], drawAgain: true };
-  save(); render();
-}
-
-/* ------------------------------------------------------------------ */
-/* PICK-PLAYERS MODAL                                                  */
-/* ------------------------------------------------------------------ */
-function choosePlayers(options, count, title, oppPicks) {
-  return new Promise(res => {
-    const sel = new Set(), root = document.getElementById("modal-root");
-    const draw = () => {
-      root.innerHTML = `<div class="modal-back" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="modal">
-        ${oppPicks ? `<div class="handoff">Show <b>${esc(S.opp)}</b> your screen so they can pick who goes into the fire.</div>` : ""}
-        <h3 id="mt">${esc(title)}</h3><p>Pick ${count}. Selected: ${sel.size} of ${count}</p>
-        <div class="choices">${options.map(i => `<button type="button" class="choice ${sel.has(i) ? "on" : ""}" data-i="${i}">${esc(S.players[i].name)}</button>`).join("")}</div>
-        <div class="actions"><button type="button" class="btn primary" id="mok" ${sel.size === count ? "" : "disabled"}>Confirm</button></div></div></div>`;
-      root.querySelectorAll(".choice").forEach(b => b.onclick = () => {
-        const i = Number(b.dataset.i);
-        if (sel.has(i)) sel.delete(i); else if (sel.size < count) sel.add(i);
-        draw(); const again = root.querySelector(`.choice[data-i="${i}"]`); if (again) again.focus();
-      });
-      root.querySelector("#mok").onclick = () => { root.innerHTML = ""; res([...sel]); };
-    };
-    draw();
-    const first = root.querySelector(".choice"); if (first) first.focus();
-  });
-}
-
-/* ------------------------------------------------------------------ */
-/* RENDER                                                              */
-/* ------------------------------------------------------------------ */
-function topBar(inGame) {
-  return `<header class="top">
-    <h1>The <span>+C</span> Rescue</h1>
-    <span class="tag">${inGame ? `${esc(S.name)} <span class="vs">vs</span> ${esc(S.opp)} · class ${esc(S.code)}` : "Antiderivative follow-up game"}</span>
-    <span class="spacer"></span>
-    ${inGame ? `<span class="relay ok" id="relay" aria-live="polite"></span><button type="button" class="btn small quiet" data-act="reset">New game</button>` : `<button type="button" class="btn small quiet" data-act="clearform">Clear all boxes</button>`}
-  </header>`;
-}
-
-const cardNo = () => Math.min(CARDS_PER_GAME, (S.turn && S.turn.stage === "result" ? S.defendIdx : S.defendIdx + 1));
-function teamPanel() {
-  const fire = S.players.filter(p => p.status === "fire"), camp = S.players.filter(p => p.status === "camp");
-  const status = S.result ? `<span class="pill won">Finished · ${camp.length} of ${S.players.length} safe</span>` : `<span class="pill ${S.mission}">${S.mission === "rescue" ? "Rescue" : "Defend the Camp"}</span>`;
-  const progress = `Card ${cardNo()} of ${CARDS_PER_GAME} · ${fire.length} in the fire`;
-  return `<aside class="team active" aria-label="${esc(S.name)}">
-    <h3>${esc(S.name)}</h3>
-    <div class="meta">${S.lost ? "Lost" : "Won"} the tug-of-war vs ${esc(S.opp)} · ${campName()}</div>
-    ${status}
-    <div class="meta" style="margin-top:6px">${S.result ? "" : progress}</div>
-    <div class="zone-title">In Camp</div>
-    <div class="plist">${camp.length ? camp.map(p => `<span class="chip ${p.singed > 0 ? "singed" : "camp"} ${p.answered ? "done" : ""}">${esc(p.name)}${p.singed > 0 ? " · singed" : ""}${p.answered ? " ✓" : ""}</span>`).join("") : `<span class="empty">Camp is empty</span>`}</div>
-    <div class="zone-title">In the fire</div>
-    <div class="plist">${fire.length ? fire.map(p => `<span class="chip fire">${esc(p.name)}</span>`).join("") : `<span class="empty">Nobody</span>`}</div>
-    <div class="firebar" aria-hidden="true">${S.players.map(p => `<i class="${p.status === "fire" ? "f" : ""}"></i>`).join("")}</div>
-    ${S.shield > 0 ? `<div class="shield">🛡 Fire Shield${S.shield > 1 ? ` ×${S.shield}` : ""}: blocks the next player who would go into the fire</div>` : ""}
-    <div class="meta" style="margin-top:10px">${S.stats.correct} of ${S.stats.answered} cards correct</div>
-  </aside>`;
-}
-
-function cardHTML(c) {
-  return `<div class="card ${c.tier}c">
-    <div class="band"><span>${c.tier}</span><span>Card ${c.id}</span></div>
-    <div class="body"><div class="q ${c.long ? "long" : ""}">${c.q}</div><div class="g">${c.g}</div></div>
-    <div class="foot">${S.turn.flare ? "Flare-up: solve as a team in 60 seconds. Right: pull 1 player out of the fire (or earn a Fire Shield). Miss: your opponent pulls one of you in." : TIER_NOTE[S.mission][c.tier]}</div>
+function sideHTML(t) {
+  const camp = t.p.filter(x => !x[1]), fire = t.p.filter(x => x[1]);
+  const status = t.outcome ? "" : t.wait ? `<span class="pill wait">Ready · waiting for opponent</span>`
+    : t.result ? `<span class="pill done">Finished · waiting for opponent</span>`
+    : `<span class="pill ${t.mission}">${t.mission === "rescue" ? "Rescue" : "Defend"} · card ${Math.min(t.di + 1, 5)} of 5</span>`;
+  const tail = t.outcome === "win" && t.how === "correct" ? "Same number saved; won on correct answers" : t.outcome === "win" && t.how === "time" ? "Tied on saved and correct; finished first" : "";
+  const banner = t.outcome === "win" ? `Winner · ${safe(t)} of ${t.p.length} saved`
+    : t.outcome === "lose" ? `${safe(t)} of ${t.p.length} saved` : t.outcome === "tie" ? `Tie · ${safe(t)} of ${t.p.length} saved` : "";
+  return `<div class="side ${t.outcome === "win" ? "won" : t.outcome === "lose" ? "lost" : ""} ${flash.has(t.id) ? "flash" : ""}" style="--team:${t.color}">
+    ${banner ? `<span class="banner ${t.outcome === "win" || t.outcome === "tie" ? "won" : "lost"}">${banner}</span>` : ""}
+    <button class="x" type="button" data-hide="${esc(t.id)}" title="Remove ${esc(t.fs)} from the board" aria-label="Remove ${esc(t.fs)}">✕</button>
+    <div class="fname"><span class="swatch"></span>${esc(t.fs)}</div>
+    <div class="tagrow">${status}${t.sh > 0 && !t.outcome ? `<span class="pill shield">🛡 Fire Shield${t.sh > 1 ? " ×" + t.sh : ""}</span>` : ""}<span class="pill">${t.lost ? "Lost" : "Won"} tug-of-war</span></div>
+    <div class="camp" data-label="CAMP" aria-label="${camp.length} in Camp">${camp.map(x => pawnHTML(t, x, "c")).join("")}</div>
+    <div class="pit ${fire.length ? "" : "out"}" data-label="THE FIRE" aria-label="${fire.length} in the fire">
+      ${fire.length ? `<div class="flames"><i></i><i></i><i></i><i></i></div>${fire.map(x => pawnHTML(t, x, "f")).join("")}` : `<span class="smoke"></span><span class="smoke"></span><span class="none">Fire's out</span>`}
+    </div>
+    <div class="nums"><span><b>${safe(t)}/${t.p.length}</b> safe</span><span><b>${t.ok}/${t.ans}</b> cards correct</span></div>
+    ${tail ? `<div class="tiebreak">${tail}</div>` : ""}
+    ${t.last ? `<div class="lastev">${esc(t.last)}</div>` : ""}
   </div>`;
 }
-function movesHTML() {
-  if (!S.turn.moves.length) return `<div class="moves"><h4>Your board</h4><ul><li>No pieces move this time.</li></ul></div>`;
-  return `<div class="moves"><h4>Move these pieces on your board</h4><ul>${S.turn.moves.map(m => `<li>${m}</li>`).join("")}</ul></div>`;
-}
 
-function stageHTML() {
-  const tr = S.turn;
-  const head = `<h2>${esc(S.name)}'s turn</h2><p class="sub">${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · <b>card ${cardNo()} of ${CARDS_PER_GAME}</b> · vs ${esc(S.opp)}</p>`;
-  if (tr.stage === "skip") return `${head}<p>Everyone in your Camp is singed, so you sit this turn out. Stand the pieces back up.</p><div class="actions"><button type="button" class="btn primary" data-act="next">Next turn</button></div>`;
-
-  if (tr.stage === "choose") {
-    const players = tr.eligible.map(i => `<button type="button" class="choice ${tr.answerer === i ? "on" : ""}" data-act="ans" data-i="${i}">${esc(S.players[i].name)}</button>`).join("");
-    const piles = S.mission === "rescue"
-      ? `<div class="piles">${["EMBER", "FLAME", "INFERNO"].map(k => `<button type="button" class="pile ${k} ${tr.tier === k ? "on" : ""}" data-act="tier" data-k="${k}" ${S.piles[k].length ? "" : "disabled"}><span class="t">${k}</span><span class="r">${TIER_NOTE.rescue[k]}</span><span class="r">${S.piles[k].length} left</span></button>`).join("")}</div>`
-      : `<div class="piles"><div class="pile ${tr.tier} on"><span class="t">${tr.tier}</span><span class="r">${TIER_NOTE.defend[tr.tier]}</span><span class="r">Order: ${DEFEND_ORDER.map((d, k) => k === S.defendIdx ? `<b>${d}</b>` : d).join(" · ")}</span></div></div>`;
-    return `${head}
-      ${tr.drawAgain ? `<p><b>Draw again.</b> Event cards don't use up your turn.</p>` : ""}
-      ${tr.lastStand ? `<p><b>Last Stand!</b> Your Camp is empty, so a player answers from the edge of the fire. Get it right and they climb out, plus the card's payoff. Miss and they stay put.</p>` : ""}
-      <div class="step-lbl">${tr.lastStand ? "Who makes the Last Stand?" : "Who answers?"}</div>
-      ${tr.lastStand ? "" : `<p class="hint" style="margin:0 0 6px">Everyone in Camp takes a turn before anyone goes twice. Players with ✓ already went.</p>`}
-      ${S.defendIdx === 0 && !S.stats.answered ? `<p class="hint" style="margin:0 0 6px">Made a mistake in your setup? <button type="button" class="linkbtn" data-act="restart">Go back and fix it</button> (only before your first card; ${esc(S.opp)} will wait for you).</p>` : ""}
-      <div class="choices">${players}</div>
-      <div class="step-lbl">${S.mission === "rescue" ? "Pick a pile" : "Your card comes from"}</div>
-      ${piles}
-      <div class="actions"><button type="button" class="btn primary" data-act="draw" ${tr.answerer != null && tr.tier ? "" : "disabled"}>Draw the card</button></div>`;
-  }
-
-  if (tr.stage === "event") {
-    if (String(tr.event).startsWith("CRY")) {
-      const c = CRIES[tr.cry] || CRIES[0];
-      return `${head}<div class="event cry"><div class="big">Battle Cry!</div><p>${esc(c.how)}</p><p class="cryline">“${esc(c.line)}”</p><p class="hint">Louder! ${esc(S.opp)} decides if it was loud enough. Then you draw again. This doesn't use up your turn.</p></div><div class="actions" style="justify-content:center"><button type="button" class="btn primary" data-act="cry">We yelled it!</button></div>`;
-    }
-    if (tr.event === "FLARE") return `${head}<div class="event flare"><div class="big">Flare-Up!</div><p>The fire jumps. Your whole Fellowship solves a Flame card <b>together in 60 seconds</b>.</p><p><b>Get it right:</b> pull 1 player out of the fire. If nobody is in it, you earn a <b>Fire Shield</b> that blocks the next player who would go in.<br><b>Miss it:</b> ${esc(S.opp)} pulls one of your Camp players into the fire.</p></div><div class="actions"><button type="button" class="btn primary" data-act="flare">Draw the Flame card</button></div>`;
-    return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div><p>Free rescue! To claim it, the whole Fellowship says out loud:</p><p style="font-family:var(--math);font-size:24px">“The antiderivative of xⁿ is xⁿ⁺¹⁄(n+1) + C, for n ≠ −1.”</p></div><div class="actions"><button type="button" class="btn primary" data-act="bucket">We said it</button></div>`;
-  }
-  if (tr.stage === "eventDone") return `${head}<div class="event bucket"><div class="big">Bucket Brigade</div></div>${movesHTML()}<div class="actions"><button type="button" class="btn primary" data-act="again">Draw again</button></div>`;
-
-  if (tr.stage === "card") {
-    const c = card(tr.cardId), ap = S.players[tr.answerer];
-    return `${head}
-      <p><b>${esc(ap.name)}</b>${tr.flare ? " and the whole Fellowship" : ""} ${tr.lastStand && !tr.flare ? "makes a Last Stand on" : "answer" + (tr.flare ? "" : "s")}:</p>
-      ${cardHTML(c)}
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span class="timer" id="timer" role="timer">--:--</span><span class="hint">Show all four steps on the whiteboard</span></div>
-      <div class="steps4"><div>1. Integrate. Write <b>+C</b>!</div><div>2. Plug in the point</div><div>3. Solve for C</div><div>4. Write the finished function</div></div>
-      <div class="ansbox"><label class="lbl" for="aC">C =</label><input type="text" id="aC" inputmode="decimal" autocomplete="off" placeholder="e.g. 4, −3, 5/2"><div class="hint">Fractions and decimals both work.</div></div>
-      <div class="actions">
-        <button type="button" class="btn primary" data-act="submit">Check the answer</button>
-      </div>`;
-  }
-
-  if (tr.stage === "result" || tr.stage === "flareResult") {
-    const c = card(tr.cardId);
-    const why = tr.timeout ? "Out of time." : tr.correct ? "" : `You said C = ${esc(tr.raw || "nothing")}.`;
-    const back = tr.stage === "flareResult" && !S.result;
-    return `${head}
-      <p class="verdict ${tr.correct ? "good" : "bad"}">${tr.correct ? (tr.flare ? "Flare-up beaten!" : "Correct!") : "Miss."}</p>
-      ${why ? `<p>${why}</p>` : ""}
-      <div class="reveal">${c.alt ? `By ${c.how}: ` : ""}${c.f} &nbsp;&nbsp;<b>C = ${fmtC(c.C)}</b>${c.alt ? `<br>By ${c.alt.how}: ${c.alt.f} &nbsp;&nbsp;<b>C = ${c.alt.show}</b><br><small>Both are right. The two antiderivatives differ by 1/6, so their C values differ too.</small>` : ""}</div>
-      ${movesHTML()}
-      ${S.result ? `<p><b>That was your 5th card! You finished with ${inCamp().length} of ${S.players.length} safe.</b></p>` : ""}
-      <div class="actions"><button type="button" class="btn primary" data-act="${back ? "again" : "next"}">${back ? "Back to your turn" : S.result ? "See the results" : "Next turn"}</button></div>`;
-  }
-  return head;
-}
-
-function renderPlay() {
-  document.getElementById("app").innerHTML = `${topBar(true)}
-    <div class="table solo">
-      ${teamPanel()}
-      <section class="stage" aria-live="polite">${stageHTML()}</section>
-    </div>
-    <details class="log"><summary>Game log (${S.log.length})</summary><ol>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ol></details>`;
-  const r = document.getElementById("relay"); if (r) paintRelay(r);
-  if (S.turn && S.turn.stage === "card") startTimer();
-}
-
-function overTitle() {
-  if (!S.oppFinal) return `All 5 cards done: ${inCamp().length} of ${S.players.length} safe`;
-  const r = compareFinal(myFinal(), S.oppFinal);
-  return r > 0 ? "You win the matchup!" : r < 0 ? `${esc(S.oppFinal.fs)} wins the matchup` : "It's a tie!";
-}
-function overLine() {
-  const o = S.oppFinal, me = myFinal();
-  if (!o) return `Waiting for ${esc(S.opp)} to finish their 5 cards… Keep this screen open to see who wins.`;
-  const r = compareFinal(me, o);
-  const score = `${esc(S.name)}: ${me.safe} of ${me.total} safe · ${esc(o.fs)}: ${o.safe} of ${o.total} safe`;
-  const why = me.safe / me.total !== o.safe / o.total || me.safe !== o.safe ? "" : me.ok !== o.ok ? " Same number safe, so it came down to correct answers." : r !== 0 ? " Same number safe and correct, so the faster Fellowship wins." : "";
-  return score + "." + why;
-}
-const myFinal = () => ({ safe: inCamp().length, total: S.players.length, ok: S.stats.correct, rt: S.resultAt || Date.now() });
-function renderOver() {
-  document.getElementById("app").innerHTML = `${topBar(true)}
-    <section class="stage over">
-      <h2>${overTitle()}</h2>
-      <p class="verdict ${!S.oppFinal ? "" : compareFinal(myFinal(), S.oppFinal) >= 0 ? "good" : "bad"}" style="font-size:22px">${overLine()}</p>
-      <p class="sub">${esc(S.name)} · ${S.mission === "rescue" ? "Rescue Mode" : "Defend the Camp"} · vs ${esc(S.opp)}</p>
-      <div class="res">
-        <div><h3>${inCamp().length} of ${S.players.length}</h3><p>safe in Camp</p></div>
-        <div><h3>${S.stats.correct} of ${S.stats.answered}</h3><p>cards correct</p></div>
-      </div>
-      <p>Check the leaderboard to see how every Fellowship is doing.</p>
-      <div class="actions" style="justify-content:center"><button type="button" class="btn primary" data-act="reset">Play again</button></div>
-    </section>
-    <details class="log" open><summary>Game log (${S.log.length})</summary><ol>${S.log.map(l => `<li>${esc(l)}</li>`).join("")}</ol></details>`;
-  const r = document.getElementById("relay"); if (r) paintRelay(r);
-}
+let lastTotals = {};
+function setTotal(id, v) { const el = $(id); if (String(lastTotals[id]) !== String(v)) { el.textContent = v; if (lastTotals[id] !== undefined) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); } lastTotals[id] = v; } }
 
 function render() {
-  clearInterval(timerHandle);
-  if (S.phase === "setup") renderSetup(); else if (S.phase === "check") renderCheck(); else if (S.phase === "waiting") renderWaiting(); else if (S.phase === "play") renderPlay(); else renderOver();
+  const list = Object.entries(B.teams).filter(([id]) => !B.hidden[id]).map(([id, t]) => ({ id, ...t, outcome: null, how: "" }));
+  list.forEach(t => { t.color = colorFor(t.fs); });
+  $("empty").style.display = list.length ? "none" : "grid";
+  $("codeShow").textContent = B.code || "—";
+
+  setTotal("sFs", list.length);
+  setTotal("sIn", list.reduce((a, t) => a + burning(t), 0));
+  setTotal("sOut", list.reduce((a, t) => a + Math.max(0, t.b0 - burning(t)), 0));
+
+  /* matchups: pair each Fellowship with the opponent it named. Exact spelling first, then close
+     spellings ("Derivative Bee" vs "Derivative Bees", "The Integrator" vs "Integrators"). */
+  const used = new Set(), pairs = [];
+  const score = (t, o) => closeness(t.opp, o.fs) + closeness(o.opp, t.fs);
+  list.forEach(t => {
+    if (used.has(t.id)) return;
+    used.add(t.id);
+    const mate = list.filter(o => !used.has(o.id)).map(o => ({ o, s: score(t, o) }))
+      .filter(x => closeness(t.opp, x.o.fs) < 99 || closeness(x.o.opp, t.fs) < 99).sort((a, b) => a.s - b.s)[0];
+    if (mate) used.add(mate.o.id);
+    pairs.push([t, mate ? mate.o : null]);
+  });
+  pairs.forEach(([a, b]) => decide(a, b));
+  ranked(list);
+  setTotal("sDone", list.filter(t => t.outcome === "win").length);
+  $("matchups").innerHTML = pairs.map(([a, b]) => `<article class="match ${a.outcome ? "final" : ""}">
+      ${a.outcome ? `<span class="final-tag">FINAL</span>` : ""}
+      ${sideHTML(a)}
+      <div class="vs" aria-hidden="true">VS</div>
+      ${b ? sideHTML(b) : `<div class="waiting"><span>Waiting for</span><b>${esc(a.opp || "an opponent")}</b><span>to light their fire…</span></div>`}
+    </article>`).join("");
+
+  /* podium + ranks */
+  const top = list.slice(0, 3);
+  const step = (t, place) => t ? `<div class="step p${place}">
+      <div class="who">${esc(t.fs)}</div>${pawnSVG(t.color)}
+      <div class="blk">${place}</div><div class="sc">${safe(t)}/${t.p.length} safe${t.outcome === "win" ? " · won" : ""}</div></div>` : `<div class="step p${place}"></div>`;
+  $("podium").innerHTML = list.length ? step(top[1], 2) + step(top[0], 1) + step(top[2], 3) : "";
+  $("rows").innerHTML = list.slice(3).map((t, i) => `<li>
+      <span class="n">${i + 4}</span>
+      <div><div class="tn"><span class="swatch" style="--team:${t.color}"></span>${esc(t.fs)}</div><div class="meter"><i style="width:${Math.round(100 * safe(t) / t.p.length)}%"></i></div></div>
+      <span class="r"><b>${safe(t)}/${t.p.length}</b> safe<br>${t.outcome === "win" ? "won matchup" : t.outcome === "lose" ? "lost matchup" : t.outcome === "tie" ? "tied" : `${t.ok}/${t.ans} correct`}</span></li>`).join("");
+
+  /* feed */
+  const hiddenNames = new Set(Object.keys(B.hidden).map(id => B.teams[id] && B.teams[id].fs).filter(Boolean));
+  const fmt = ms => new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const shown = B.feed.filter(f => !hiddenNames.has(f.fs)).slice(0, 25);
+  $("feed").innerHTML = shown.map((f, i) => `<li class="${i < newFeed ? "new" : ""}" style="--team:${colorFor(f.fs)}"><time>${fmt(f.t)}</time><b>${esc(f.fs)}</b> ${esc(f.msg.startsWith(f.fs) ? f.msg.slice(f.fs.length) : "· " + f.msg)}</li>`).join("")
+    || `<li style="border:0;background:none;color:var(--muted)">Moves show up here as they happen.</li>`;
+  newFeed = 0;
+  flash.clear();
+  fitScreen();
 }
 
-function startTimer() {
-  const el = document.getElementById("timer");
-  const tick = () => {
-    const left = Math.max(0, S.turn.limit - Math.floor((Date.now() - S.turn.started) / 1000));
-    el.textContent = left ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : "Time!";
-    el.classList.toggle("out", left === 0);
-    if (left === 0 && S.turn.stage === "card") {
-      const box = document.getElementById("aC"); if (box) box.disabled = true;
-      const btn = document.querySelector('[data-act="submit"]'); if (btn) btn.disabled = true;
-      clearInterval(timerHandle);
-      setTimeout(() => resolve("", true), 900);   /* a moment to see "Time!" */
+/* ---------- drifting embers ---------- */
+(function () {
+  const cv = $("embers"), ctx = cv.getContext("2d");
+  if (!ctx || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  let W, H, P = [];
+  const size = () => { W = cv.width = innerWidth; H = cv.height = innerHeight; };
+  size(); addEventListener("resize", size);
+  const spawn = () => ({ x: Math.random() * W, y: H + 10, r: 1 + Math.random() * 2.4, vy: .4 + Math.random() * 1.1, vx: (Math.random() - .5) * .4, life: 0, max: 260 + Math.random() * 320, hue: 20 + Math.random() * 25 });
+  for (let i = 0; i < 70; i++) { const p = spawn(); p.y = Math.random() * H; P.push(p); }
+  (function loop() {
+    ctx.clearRect(0, 0, W, H);
+    for (const p of P) {
+      p.life++; p.y -= p.vy; p.x += p.vx + Math.sin((p.life + p.max) / 40) * .35;
+      const a = Math.max(0, 1 - p.life / p.max) * .85;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${p.hue},100%,62%,${a})`; ctx.shadowColor = `hsla(${p.hue},100%,55%,${a})`; ctx.shadowBlur = 8; ctx.fill();
+      if (p.life > p.max || p.y < -10) Object.assign(p, spawn());
     }
-  };
-  tick(); timerHandle = setInterval(tick, 500);
-}
+    requestAnimationFrame(loop);
+  })();
+})();
 
-/* ------------------------------------------------------------------ */
-/* EVENTS                                                              */
-/* ------------------------------------------------------------------ */
-document.addEventListener("input", e => {
-  if (!S || (S.phase !== "setup" && S.phase !== "check")) return;
-  const el = e.target, f = el.dataset.field;
-  if (S.phase === "check") { if (f === "name") S.name = el.value; if (f === "opp") S.opp = el.value; save(); renderSugs(); return; }
-  if (f === "code") S.code = el.value;
-  if (f === "name") S.name = el.value;
-  if (f === "opp") S.opp = el.value;
-  if (f === "pname") S.players[el.dataset.p].name = el.value;
-  save();
-});
-document.addEventListener("keydown", e => {
-  if (e.key === "Enter" && S && S.phase === "play" && S.turn && S.turn.stage === "card" && e.target.id === "aC") { e.preventDefault(); document.querySelector('[data-act="submit"]').click(); }
-});
+/* ---------- controls ---------- */
+$("setBtn").onclick = setCode;
+$("codeIn").addEventListener("keydown", e => { if (e.key === "Enter") setCode(); });
+function announce(obj) { if (B.code) fetch(RELAY + topicFor(B.code), { method: "POST", body: JSON.stringify(obj) }).catch(() => {}); }
+$("clearBtn").onclick = function () {
+  const b = this;
+  if (b.dataset.armed === "1") { B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = Date.now(); announce({ clear: true, t: B.clearedAt }); save(); connect(); render(); b.dataset.armed = ""; b.textContent = "Clear board"; return; }
+  b.dataset.armed = "1"; b.textContent = "Click again to clear";
+  setTimeout(() => { b.dataset.armed = ""; b.textContent = "Clear board"; }, 4000);
+};
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-act]");
-  if (!b || b.disabled) return;
-  const act = b.dataset.act;
-  if (act === "reset") {
-    if (b.dataset.armed === "1" || S.phase === "over") { stopWatching(); stopReady(); S = freshSetup(); save(); return render(); }
-    b.dataset.armed = "1"; b.textContent = "Click again to start over";
-    setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "New game"; } }, 4000); return;
-  }
-  if (S.phase === "waiting") {
-    if (act === "unwait") return leaveWaiting(false);
-    if (act === "unwaitall") return leaveWaiting(true);
-    if (act === "playthem") { S.opp = b.dataset.val; S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`; save(); renderWaiting(); broadcast();
-      const hit = Object.values(waitingOthers).find(o => same(o.fs, S.opp) && isPartner(o)); if (hit) partnerReady(hit); return; }
-    if (act === "startanyway") { stopReady(); return startPlay(); }
-    return;
-  }
-  if (S.phase === "check") {
-    if (act === "clearform") { S = freshSetup(); save(); return render(); }
-    if (act === "back") { S.phase = "setup"; delete S.check; S.error = ""; save(); return render(); }
-    if (act === "useopp") { S.opp = b.dataset.val; document.getElementById("oname").value = S.opp; save(); return renderSugs(); }
-    if (act === "usename") { S.name = b.dataset.val; document.getElementById("fname").value = S.name; save(); return renderSugs(); }
-    if (act === "launch") return launch();
-    return;
-  }
-  if (S.phase === "setup") {
-    if (act === "clearform") { S = freshSetup(); save(); renderSetup(); document.getElementById("code").focus(); return; }
-    if (act === "result") S.lost = b.dataset.val === "lost";
-    if (act === "pstat") S.players[b.dataset.p].status = b.dataset.val;
-    if (act === "add" && S.players.length < 8) S.players.push({ name: "", status: null });
-    if (act === "del" && S.players.length > 1) S.players.splice(Number(b.dataset.p), 1);
-    if (act === "start") return startGame();
-    save(); renderSetup();
-    const again = document.querySelector(`[data-act="${act}"]${b.dataset.p != null && act !== "del" ? `[data-p="${b.dataset.p}"]` : ""}${b.dataset.val ? `[data-val="${b.dataset.val}"]` : ""}`);
-    if (again) again.focus();
-    return;
-  }
-  if (S.phase !== "play") return;
-  if (act === "restart") {
-    if (b.dataset.armed === "1") return restartOurs();
-    b.dataset.armed = "1"; b.textContent = "Click again to go back to setup";
-    setTimeout(() => { if (b.isConnected) { b.dataset.armed = ""; b.textContent = "Go back and fix it"; } }, 4000); return;
-  }
-  if (act === "ans") { S.turn.answerer = Number(b.dataset.i); save(); return render(); }
-  if (act === "tier") { S.turn.tier = b.dataset.k; save(); return render(); }
-  if (act === "draw") return drawCard();
-  if (act === "flare") return startFlare();
-  if (act === "bucket") return bucket();
-  if (act === "cry") { const c = CRIES[S.turn.cry] || CRIES[0]; log(`${S.name} yelled “${c.line}”`); save(); broadcast(); return backToChoose(); }
-  if (act === "again") return backToChoose();
-  if (act === "next") return beginTurn();
-  if (act === "submit") {
-    const a = document.getElementById("aC").value;
-    if (!a.trim()) { document.getElementById("aC").focus(); return; }
-    return resolve(a, false);
-  }
+  const h = e.target.closest("[data-hide]"); if (!h) return;
+  if (h.dataset.armed === "1") { B.hidden[h.dataset.hide] = true; announce({ hide: h.dataset.hide, t: Date.now() }); save(); render(); return; }
+  h.dataset.armed = "1"; h.textContent = "Remove?"; h.style.opacity = 1;
+  setTimeout(() => { if (h.isConnected) { h.dataset.armed = ""; h.textContent = "✕"; h.style.opacity = ""; } }, 3000);
 });
 
-/* boot */
-S = load() || freshSetup();
-if (S.phase === "play" && S.turn && S.turn.stage === "checking") S.turn.stage = "card";   /* reloaded mid-check */
-if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
-render();
-if (S.phase === "check") openCheck();
-if (S.phase === "play" || (S.phase === "over" && !S.oppFinal)) watchOpponent();
-if (S.phase === "waiting") watchReady();
-broadcast();
+$("codeIn").value = B.code;
+/* Fit everything on one screen: try 1-4 columns of matchups and keep the layout that lets the cards be biggest. */
+function fitsAt(el, box, z) { el.style.zoom = z.toFixed(3); return box.scrollHeight <= box.clientHeight + 1 && box.scrollWidth <= box.clientWidth + 1; }
+function bestZoom(el, box, lo, hi) {
+  if (fitsAt(el, box, hi)) return hi;
+  if (!fitsAt(el, box, lo)) return lo;
+  for (let k = 0; k < 9; k++) { const mid = (lo + hi) / 2; if (fitsAt(el, box, mid)) lo = mid; else hi = mid; }
+  return lo;
+}
+function fitScreen() {
+  const m = $("matchups"), box = $("mfit"), st = $("standings");
+  if (!matchMedia("(min-width: 1000px)").matches) { m.style.zoom = 1; m.style.removeProperty("--cols"); st.style.zoom = 1; return; }
+  const n = Math.max(1, m.children.length);
+  let best = { z: 0, c: 1 };
+  for (let c = 1; c <= Math.min(n, 4); c++) {
+    m.style.setProperty("--cols", c);
+    const z = bestZoom(m, box, 0.25, 1.15);
+    if (z > best.z + 0.01) best = { z, c };
+  }
+  m.style.setProperty("--cols", best.c); fitsAt(m, box, best.z);
+  st.style.zoom = 1; let z = 1;
+  while (z > 0.5 && st.getBoundingClientRect().height > st.parentElement.getBoundingClientRect().height * 0.62) { z -= 0.04; st.style.zoom = z.toFixed(2); }
+}
+addEventListener("resize", () => { clearTimeout(fitScreen.t); fitScreen.t = setTimeout(fitScreen, 150); });
+document.fonts && document.fonts.ready.then(fitScreen);
+
+render(); connect();
 </script>
 </body>
 </html>
