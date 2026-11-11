@@ -184,6 +184,9 @@ input[type=text] { width: 100%; padding: 9px 11px; border: 1.5px solid var(--lin
 .vs { color: var(--flame); font-weight: 700; }
 .fs-card h2 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; }
 .sug { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; background: var(--ember-soft); border: 2px solid var(--ember); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.stuck { background: var(--ember-soft); border: 2px solid var(--ember); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+.stuck ul { margin: 6px 0 10px; padding-left: 20px; }
+.stuck li { margin: 3px 0; }
 .sug.ok { background: var(--camp-soft); border-color: var(--camp); color: var(--ink); display: block; }
 .already { margin-top: 10px; }
 .shield { margin-top: 10px; background: var(--sky-soft); color: var(--sky); border: 2px solid var(--sky); border-radius: 10px; padding: 6px 10px; font-weight: 700; font-size: 14px; }
@@ -281,6 +284,10 @@ const TIER_NOTE = {
 const RELAY = "https://ntfy.sh/";
 function topicFor(code) { return "cpffl2001-plusc-" + String(code).toLowerCase().replace(/[^a-z0-9]/g, ""); }
 const KEY = "plusC-fellowship-v2";
+/* The class code is built in, so nobody types it. To use a different code for another section,
+   open the game as plusc.html?code=period3 (and the leaderboard as plusc_leaderboard.html?code=period3). */
+const DEFAULT_CODE = "plusC";
+const CLASS_CODE = (() => { try { return (new URLSearchParams(location.search).get("code") || "").trim().slice(0, 20) || DEFAULT_CODE; } catch (e) { return DEFAULT_CODE; } })();
 
 /* ------------------------------------------------------------------ */
 /* STATE: one Fellowship per device                                   */
@@ -294,7 +301,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
 function freshSetup(prev) {
   return {
-    phase: "setup", id: newId(), code: prev ? prev.code : "", name: prev ? prev.name : "", opp: prev ? prev.opp : "",
+    phase: "setup", id: newId(), code: CLASS_CODE, name: prev ? prev.name : "", opp: prev ? prev.opp : "",
     lost: prev ? prev.lost : null,   /* null = not picked yet; students must choose */
     players: prev ? prev.players.map(p => ({ name: p.name, status: null })) : Array.from({ length: 5 }, () => ({ name: "", status: null })),   /* null = not marked yet */
     error: "",
@@ -314,24 +321,53 @@ function log(msg) { S.log.push(msg); S.last = msg; }
 /* ------------------------------------------------------------------ */
 /* LIVE LEADERBOARD: same relay pattern as the Calculus OR game        */
 /* ------------------------------------------------------------------ */
+/* Every computer's clock is a little different (sometimes by minutes), so all "which came first"
+   checks use the relay's own clock: env.time on messages we receive, and skew for our own. */
+let skew = 0, skewKnown = false, lastSt = 0;   /* relay clock minus this computer's clock; newest relay time seen */
+const srvNow = () => Date.now() + skew;
+const stamp = (env, m) => { const st = env && env.time ? env.time * 1000 : Number(m && m.t) || 0; if (env && env.time && st > lastSt) lastSt = st; return st; };
+/* "now" on the relay clock: exact once we've posted something; before that, the newest relay message we've seen */
+const relayNow = () => skewKnown ? srvNow() : lastSt || null;
+function learnSkew(r) { r.json().then(j => { if (j && j.time) { skew = j.time * 1000 - Date.now() + 500; skewKnown = true; } }).catch(() => {}); }
+
+/* Only the newest update matters. If the relay is busy (a whole classroom shares one network,
+   and the relay limits each network) or Wi-Fi blips, keep retrying the newest update until it lands.
+   Before, a "busy" reply silently dropped the update, so the other Fellowship never heard "we're ready". */
+let outbox = null, outBusy = false, outTimer = null, outTries = 0;
+function flush() {
+  if (!outbox || outBusy) return;
+  clearTimeout(outTimer); outBusy = true;
+  const item = outbox;
+  fetch(RELAY + topicFor(item.code), { method: "POST", body: item.body })
+    .then(r => { if (r.ok) { learnSkew(r); return "ok"; } return r.status === 429 ? "limit" : "err"; }, () => "err")
+    .then(st => {
+      outBusy = false; setRelay(st);
+      if (st === "ok") { outTries = 0; if (outbox === item) outbox = null; else flush(); return; }
+      outTries++; outTimer = setTimeout(flush, Math.min(20000, 2000 * outTries) + Math.random() * 2500);
+    });
+}
+addEventListener("online", flush);
+function post(obj, tries = 4) {   /* one-off notes (went back, hide); retried a few times */
+  const code = S.code;
+  fetch(RELAY + topicFor(code), { method: "POST", body: JSON.stringify(obj) })
+    .then(r => { if (!r.ok) throw 0; learnSkew(r); })
+    .catch(() => { if (tries > 1) setTimeout(() => post(obj, tries - 1), 3000 + Math.random() * 2000); });
+}
 function broadcast() {
-  if (!S || !S.code || S.phase === "setup") return;
+  if (!S || !S.code || S.phase === "setup" || S.phase === "check" || !S.stats) return;
   const msg = JSON.stringify({
     id: S.id, fs: S.name, opp: S.opp, lost: S.lost, mission: S.mission, result: S.result, ready: S.phase === "waiting",
     p: S.players.map(p => [p.name, p.status === "fire" ? 1 : 0, p.singed > 0 ? 1 : 0]),
     b0: S.b0 || 0, sh: S.shield || 0, rt: S.resultAt || 0, end: S.endBy || "", ans: S.stats.answered, ok: S.stats.correct, di: S.defendIdx, last: S.last || "", t: Date.now(),
   });
-  const send = tries => fetch(RELAY + topicFor(S.code), { method: "POST", body: msg })
-    .then(r => setRelay(r.ok ? "ok" : r.status === 429 ? "limit" : "err"))
-    .catch(() => { setRelay("err"); if (tries > 0) setTimeout(() => send(tries - 1), 4000); });
-  send(3);
+  outbox = { code: S.code, body: msg }; outTries = 0; flush();
 }
 let relayState = "ok";
 let relayErrSince = 0;
 function setRelay(st) { const changed = relayState !== st; relayState = st; relayErrSince = st === "ok" ? 0 : (relayErrSince || Date.now()); const el = document.getElementById("relay"); if (el) paintRelay(el); if (changed && S && S.phase === "waiting") renderWaitSugs(); }
 function paintRelay(el) {
   el.className = "relay " + relayState;
-  el.textContent = relayState === "ok" ? "● Sending to leaderboard" : relayState === "limit" ? "● Leaderboard relay busy. Keep playing." : "● Reconnecting to leaderboard…";
+  el.textContent = relayState === "ok" ? "● Sending to leaderboard" : relayState === "limit" ? "● Leaderboard relay busy, retrying. Keep playing." : "● Reconnecting to leaderboard…";
 }
 /* No heartbeat: ntfy.sh keeps 12 hours of messages, so a leaderboard opened late still replays every Fellowship. Fewer posts also keeps a whole classroom (one shared network) under the relay's free daily limit. */
 
@@ -341,9 +377,8 @@ function paintRelay(el) {
 function renderSetup() {
   document.getElementById("app").innerHTML = `
     ${topBar(false)}
-    <p class="intro">One computer per Fellowship. Enter the class code from the board, your Fellowship, and the Fellowship you played in the tug-of-war. Then mark each player <b>Survived</b> or <b>Burned</b>. Burned pieces start on The Fire on your physical board.</p>
+    <p class="intro">One computer per Fellowship. Enter your Fellowship, and the Fellowship you played in the tug-of-war. Then mark each player <b>Survived</b> or <b>Burned</b>. Burned pieces start on The Fire on your physical board.</p>
     <section class="fs-card solo" aria-label="Your Fellowship">
-      <div><label class="lbl" for="code">Class code</label><input type="text" id="code" data-field="code" value="${esc(S.code)}" placeholder="Code on the board" maxlength="20" autocomplete="off" style="max-width:320px"></div>
       <div class="wonlost ${S.lost === null ? "todo" : "set"}" role="group" aria-labelledby="wlq">
         <div id="wlq" class="wlq">Did your Fellowship <b>win</b> or <b>lose</b> the tug-of-war?${S.lost === null ? ` <span class="req">Pick one</span>` : ""}</div>
         <div class="wlbtns">
@@ -388,8 +423,7 @@ function previewText() {
     + ` <b>Everyone answers 5 cards.</b> After both Fellowships finish, the one with more players safe in Camp wins.`;
 }
 function startGame() {
-  S.code = S.code.trim(); S.name = S.name.trim(); S.opp = S.opp.trim();
-  if (!S.code) { S.error = "Enter the class code from the board."; return renderSetup(); }
+  S.code = CLASS_CODE; S.name = S.name.trim(); S.opp = S.opp.trim();
   if (!S.name) { S.error = "Enter your Fellowship's name."; return renderSetup(); }
   if (!S.opp) { S.error = "Enter your opponent's Fellowship."; return renderSetup(); }
   if (S.name.toLowerCase() === S.opp.toLowerCase()) { S.error = "Your opponent needs a different name than yours."; return renderSetup(); }
@@ -406,7 +440,8 @@ function startGame() {
 /* ------------------------------------------------------------------ */
 const nameKey = s => String(s || "").toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\b(the|team)\b/g, " ")
   .split(/\s+/).filter(Boolean).map(w => w.length > 3 ? w.replace(/s$/, "") : w).join(" ");
-const same = (a, b) => String(a || "").trim().toLowerCase() === String(b || "").trim().toLowerCase();
+const plain = s => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
+const same = (a, b) => plain(a) === plain(b);
 function editDist(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
   for (let j = 1; j <= b.length; j++) d[0][j] = j;
@@ -416,8 +451,10 @@ function editDist(a, b) {
 }
 function closeness(a, b) { /* 0 = identical spelling idea; bigger = further apart */
   const x = nameKey(a), y = nameKey(b);
-  if (!x || !y) return 99;
+  if (!x || !y) return plain(a) && same(a, b) ? 0 : 99;   /* names like "The Team" or emoji-only names */
   if (x === y) return 0;
+  if (x.replace(/\D/g, "") !== y.replace(/\D/g, "")) return 99;   /* "Team 1" is never "Team 2" */
+  if (Math.min(x.length, y.length) <= 3) return 99;                 /* short names ("A", "Pi") must match exactly */
   if (x.length > 4 && y.length > 4 && (x.includes(y) || y.includes(x))) return 1;
   const dd = editDist(x, y);
   return dd <= Math.max(2, Math.floor(Math.max(x.length, y.length) * 0.3)) ? 1 + dd : 99;
@@ -430,15 +467,15 @@ async function fetchClass(code) {
     (await r.text()).split("\n").forEach(line => {
       try {
         const env = JSON.parse(line); if (env.event && env.event !== "message") return;
-        const m = JSON.parse(env.message);
-        if (m.clear) { clearedAt = Math.max(clearedAt, Number(m.t) || 0); return; }   /* teacher pressed Clear board */
-        if (m.hide) { hidden.add(String(m.hide)); return; }                             /* teacher removed one with ✕ */
+        const m = JSON.parse(env.message), st = stamp(env, m);
+        if (m.clear) { clearedAt = Math.max(clearedAt, st); return; }   /* teacher pressed Clear board */
+        if (m.hide) { hidden.add(String(m.hide)); return; }             /* teacher removed one with ✕ */
         if (!m.id || !m.fs || m.id === S.id) return;
-        if (!latest[m.id] || latest[m.id].t < m.t) latest[m.id] = m;
+        if (!latest[m.id] || latest[m.id].t < m.t) latest[m.id] = Object.assign(m, { st });
       } catch (e) {}
     });
     const seen = new Set();
-    return Object.values(latest).filter(m => m.t >= clearedAt && !hidden.has(m.id)).sort((a, b) => b.t - a.t)
+    return Object.values(latest).filter(m => m.st >= clearedAt && !hidden.has(m.id)).sort((a, b) => b.st - a.st)
       .map(m => ({ fs: String(m.fs).trim().slice(0, 40), opp: String(m.opp || "").trim().slice(0, 40) }))
       .filter(o => { const k = o.fs.toLowerCase(); if (seen.has(k) || same(o.fs, S.name)) return false; seen.add(k); return true; });
   } catch (e) { return null; } finally { clearTimeout(tm); }
@@ -519,7 +556,7 @@ function launch() {
   S.error = ""; delete S.check;
   S.players.forEach(p => { p.name = p.name.trim(); });
   S.initial = S.players.map(p => p.status);
-  Object.assign(S, { phase: "waiting", readyAt: Date.now(), mission: missionOf(), result: null, shield: 0, defendIdx: 0,
+  Object.assign(S, { phase: "waiting", readyAt: Date.now(), readySrv: skewKnown ? srvNow() : null, mission: missionOf(), result: null, shield: 0, defendIdx: 0,
     stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length, log: [], announced: false });
   S.last = `${S.name} lit their fire and is waiting for ${S.opp}.`;
   save(); render(); broadcast(); watchReady();
@@ -535,20 +572,25 @@ const isPartner = m => closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) <
 function watchReady() {
   stopReady(); waitingOthers = {}; readyClearedAt = 0;
   if (!S || S.phase !== "waiting" || typeof EventSource === "undefined") return;
-  const since = Math.floor(Date.now() / 1000) - 30 * 60;   /* a partner who got ready in the last 30 minutes */
-  readyES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + since);
+  /* "since=30m" is measured on the relay's clock, so a computer with a wrong clock still sees everyone */
+  const es = readyES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=30m");
   readyES.onopen = () => setRelay("ok");
-  readyES.onerror = () => setRelay("err");
+  readyES.onerror = () => {
+    setRelay("err");
+    /* the browser gives up for good on some errors (like "relay busy"); open it again ourselves */
+    if (es.readyState === 2 && readyES === es) setTimeout(() => { if (readyES === es && S.phase === "waiting") watchReady(); }, 4000 + Math.random() * 3000);
+  };
   readyES.onmessage = e => {
     try {
       const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
-      const m = JSON.parse(env.message);
-      if (m.clear) { readyClearedAt = Math.max(readyClearedAt, Number(m.t) || 0); Object.keys(waitingOthers).forEach(id => { if (waitingOthers[id].t < readyClearedAt) delete waitingOthers[id]; }); return renderWaitSugs(); }
+      const m = JSON.parse(env.message), st = stamp(env, m);
+      if (m.clear) { readyClearedAt = Math.max(readyClearedAt, st); Object.keys(waitingOthers).forEach(id => { if (waitingOthers[id].t < readyClearedAt) delete waitingOthers[id]; }); return renderWaitSugs(); }
       if (m.hide) { delete waitingOthers[m.hide]; return renderWaitSugs(); }
-      if (!m.id || m.id === S.id || !m.fs || m.result || m.t < readyClearedAt) return;
+      if (m.id === S.id && m.ready) { S.readySrv = st; return; }   /* our own "ready", stamped by the relay */
+      if (!m.id || m.id === S.id || !m.fs || m.result || st < readyClearedAt) return;
       /* a partner who already started (saw our ready first) counts as ready too */
-      const live = m.ready || (isPartner(m) && m.t > (S.readyAt || 0) && Array.isArray(m.p));
-      if (live) waitingOthers[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), t: m.t };
+      const live = m.ready || (isPartner(m) && st >= (S.readySrv || 0) - 3000 && Array.isArray(m.p));
+      if (live) waitingOthers[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), t: st };
       else delete waitingOthers[m.id];
       if (live && isPartner(m)) {   /* wait a moment: the history replays first, and a later "went back" note cancels an old ready */
         if (!pending[m.id]) pending[m.id] = setTimeout(() => {
@@ -563,12 +605,13 @@ function watchReady() {
 function partnerReady(m) {
   if (S.phase !== "waiting") return;
   stopReady();
-  S.partner = String(m.fs).slice(0, 40);
+  S.partner = String(m.fs).slice(0, 40); S.pairSrv = m.t;
   startPlay();
 }
 function leaveWaiting(toSetup) {   /* the old waiting entry leaves the leaderboard */
   stopReady();
-  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
+  post({ hide: S.id, t: Date.now() });
+  outbox = null;   /* don't let a queued "ready" go out after we've left */
   S.id = newId(); S.phase = "setup"; S.error = "";
   if (S.initial) { S.players.forEach((p, i) => { if (S.initial[i]) p.status = S.initial[i]; }); }
   save(); if (toSetup) render(); else openCheck();
@@ -599,7 +642,13 @@ function renderWaitSugs() {
   const wantUs = others.filter(o => closeness(o.opp, S.name) < 99 && closeness(o.fs, S.opp) >= 99);
   const rows = wantUs.map(o => `<div class="sug"><span><b>${esc(o.fs)}</b> is waiting and says they're playing <b>you</b>. Is that your opponent?</span><button type="button" class="btn small" data-act="playthem" data-val="${esc(o.fs)}">Play ${esc(o.fs)}</button></div>`);
   if (others.length) rows.push(`<div class="already"><span class="lbl">Also waiting in class ${esc(S.code)}</span><div class="choices">${others.map(o => `<span class="choice">${esc(o.fs)} <small>vs ${esc(o.opp)}</small></span>`).join("")}</div></div>`);
+  const waited = Date.now() - (S.readyAt || Date.now());
   if (relayErrSince && Date.now() - relayErrSince > 30000) rows.push(`<div class="sug"><span>Can't reach the leaderboard right now. If it doesn't come back, your teacher can let you start without waiting.</span><button type="button" class="btn small" data-act="startanyway">Start without waiting</button></div>`);
+  else if (waited > 45000) rows.push(`<div class="stuck"><b>Still waiting?</b> Look at <b>${esc(S.opp)}</b>'s screen:
+      <ul><li>Still filling in names? Give them a minute.</li>
+      <li>Waiting for a <b>different</b> name than <b>${esc(S.name)}</b>? They click <b>← Fix our names</b> and type it the way you did.</li>
+      <li>Both screens are waiting for each other with the same names? Check with your teacher, then both click <b>Start without waiting</b>. Your scores still get compared at the end.</li></ul>
+      <button type="button" class="btn small" data-act="startanyway">Start without waiting</button></div>`);
   el.innerHTML = rows.join("");
 }
 
@@ -613,7 +662,8 @@ function startPlay() {
   Object.values(piles).forEach(shuffle);
   S.players.forEach(p => { p.name = p.name.trim(); p.singed = 0; p.answered = false; });
   S.initial = S.players.map(p => p.status); S.notice = "";
-  Object.assign(S, { piles, phase: "play", announced: false, startedAt: Date.now(), resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
+  outbox = null;   /* the "ready" note is old news now */
+  Object.assign(S, { piles, phase: "play", announced: false, startedAt: Date.now(), startedSrv: relayNow() || S.pairSrv || S.readySrv || 0, resultAt: 0, endBy: "", log: [], mission: missionOf(), result: null, shield: 0, defendIdx: 0, stats: { answered: 0, correct: 0 }, b0: S.players.filter(p => p.status === "fire").length });
   watchOpponent();
   log(`${S.name} vs ${S.partner || S.opp}: the game is on! ${S.mission === "rescue" ? `Rescuing ${inFire().length}` : "Defending the camp"}.`);
   beginTurn();
@@ -646,14 +696,16 @@ function stopWatching() { if (oppES) { oppES.close(); oppES = null; } }
 function watchOpponent() {
   stopWatching();
   if (!S || (S.phase !== "play" && S.phase !== "over") || S.oppFinal || !S.code || !S.startedAt || typeof EventSource === "undefined") return;
-  oppES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + Math.floor(S.startedAt / 1000));
+  const start = S.startedSrv != null ? S.startedSrv : S.startedAt;   /* relay clock (0 = unknown; older saved games: this computer's clock) */
+  const es = oppES = new EventSource(RELAY + topicFor(S.code) + "/sse?since=" + (start ? Math.floor(start / 1000 - 120) : "30m"));
+  oppES.onerror = () => { if (es.readyState === 2 && oppES === es) setTimeout(() => { if (oppES === es) watchOpponent(); }, 4000 + Math.random() * 3000); };
   oppES.onmessage = e => {
     try {
       const env = JSON.parse(e.data); if (env.event && env.event !== "message") return;
-      const m = JSON.parse(env.message);
-      if (m.restart && m.id !== S.id && m.t > S.startedAt && closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99) return opponentRestarted(m);
+      const m = JSON.parse(env.message), st = stamp(env, m);
+      if (m.restart && m.id !== S.id && start && st > start + 1000 && closeness(m.fs, S.opp) < 99 && closeness(m.opp, S.name) < 99) return opponentRestarted(m);
       if (!m.id || m.id === S.id || !m.fs || m.result !== "done" || !m.rt || !Array.isArray(m.p)) return;
-      if (m.rt < S.startedAt) return;                                  /* an old game from earlier */
+      if (st < start - 120000) return;                                 /* an old game from earlier */
       if (closeness(m.fs, S.opp) >= 99) return;                        /* not our opponent */
       if (m.opp && closeness(m.opp, S.name) >= 99) return;
       opponentFinished(m);
@@ -669,8 +721,9 @@ function opponentRestarted(m) {   /* opponent went back to fix their setup: we g
 }
 function restartOurs() {   /* we made a setup mistake right after starting */
   stopWatching(); clearInterval(timerHandle);
-  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ restart: true, id: S.id, fs: S.name, opp: S.opp, t: Date.now() }) }).catch(() => {});
-  fetch(RELAY + topicFor(S.code), { method: "POST", body: JSON.stringify({ hide: S.id, t: Date.now() }) }).catch(() => {});
+  outbox = null;
+  post({ restart: true, id: S.id, fs: S.name, opp: S.opp, t: Date.now() });
+  post({ hide: S.id, t: Date.now() });
   if (S.initial) S.players.forEach((p, i) => { p.status = S.initial[i]; p.singed = 0; p.answered = false; });
   S.id = newId(); S.phase = "setup"; S.error = ""; S.notice = ""; save(); render();
 }
@@ -1068,7 +1121,7 @@ document.addEventListener("click", e => {
     return;
   }
   if (S.phase === "setup") {
-    if (act === "clearform") { S = freshSetup(); save(); renderSetup(); document.getElementById("code").focus(); return; }
+    if (act === "clearform") { S = freshSetup(); save(); renderSetup(); document.getElementById("fname").focus(); return; }
     if (act === "result") S.lost = b.dataset.val === "lost";
     if (act === "pstat") S.players[b.dataset.p].status = b.dataset.val;
     if (act === "add" && S.players.length < 8) S.players.push({ name: "", status: null });
@@ -1102,6 +1155,7 @@ document.addEventListener("click", e => {
 
 /* boot */
 S = load() || freshSetup();
+if (S.code !== CLASS_CODE && (S.phase === "setup" || S.phase === "check" || S.phase === "waiting")) { S.code = CLASS_CODE; save(); }
 if (S.phase === "play" && S.turn && S.turn.stage === "checking") S.turn.stage = "card";   /* reloaded mid-check */
 if (S.phase === "play" && S.turn && S.turn.stage === "card" && !S.turn.started) S.turn.started = Date.now();
 render();
