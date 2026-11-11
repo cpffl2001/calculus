@@ -282,9 +282,14 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
 "use strict";
 const RELAY = "https://ntfy.sh/";
 function topicFor(code) { return "cpffl2001-plusc-" + String(code).toLowerCase().replace(/[^a-z0-9]/g, ""); }
-const KEY = "plusC_board_v1";
+const KEY = "plusC_board_v4";   /* new key: times are now on the relay's clock, so ignore older saved boards */
+/* Built-in class code (matches the game). For another section use plusc_leaderboard.html?code=period3 */
+const DEFAULT_CODE = "plusC";
+const URL_CODE = (() => { try { return (new URLSearchParams(location.search).get("code") || "").trim().slice(0, 20); } catch (e) { return ""; } })();
 let B = { code: "", teams: {}, hidden: {}, feed: [], clearedAt: 0 };
 try { B = Object.assign(B, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) {}
+if (URL_CODE && URL_CODE !== B.code) B = { code: URL_CODE, teams: {}, hidden: {}, feed: [], clearedAt: 0 };
+if (!B.code) B.code = DEFAULT_CODE;
 function save() { try { localStorage.setItem(KEY, JSON.stringify(B)); } catch (e) {} }
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -300,8 +305,10 @@ function editDist(a, b) {
 }
 function closeness(a, b) {
   const x = nameKey(a), y = nameKey(b);
-  if (!x || !y) return 99;
+  if (!x || !y) return norm(a) && norm(a) === norm(b) ? 0 : 99;   /* names like "The Team" or emoji-only names */
   if (x === y) return 0;
+  if (x.replace(/\D/g, "") !== y.replace(/\D/g, "")) return 99;   /* "Team 1" is never "Team 2" */
+  if (Math.min(x.length, y.length) <= 3) return 99;                 /* short names must match exactly */
   if (x.length > 4 && y.length > 4 && (x.includes(y) || y.includes(x))) return 1;
   const dd = editDist(x, y);
   return dd <= Math.max(2, Math.floor(Math.max(x.length, y.length) * 0.3)) ? 1 + dd : 99;
@@ -324,30 +331,33 @@ function connect() {
   if (es) { es.close(); es = null; }
   clearTimeout(retryT);
   if (!B.code) { setLive(false); return; }
-  const since = Math.max(Math.floor(B.clearedAt / 1000), Math.floor(Date.now() / 1000) - 12 * 3600);
+  /* relay-clock times only: "12h" is measured by the relay, and clearedAt came from the relay */
+  const since = B.clearedAt ? Math.floor(B.clearedAt / 1000) : "12h";
   es = new EventSource(RELAY + topicFor(B.code) + "/sse?since=" + since);
   es.onopen = () => { retryMs = 3000; setLive(true); };
   es.onerror = () => { setLive("retry"); if (es && es.readyState === 2) { clearTimeout(retryT); retryT = setTimeout(connect, retryMs); retryMs = Math.min(retryMs * 2, 30000); } };
   es.onmessage = e => {
-    try { const env = JSON.parse(e.data); if (env.event && env.event !== "message") return; take(JSON.parse(env.message)); } catch (err) {}
+    try { const env = JSON.parse(e.data); if (env.event && env.event !== "message") return; const m = JSON.parse(env.message); take(m, env.time ? env.time * 1000 : Number(m.t) || 0); } catch (err) {}
   };
 }
-function take(m) {
-  if (m && m.clear && Number(m.t) > B.clearedAt) { /* Clear board pressed (here or on another computer) */
-    B.clearedAt = Number(m.t);
+/* st = when the relay received the message (one clock for everybody; student computers' clocks can be minutes off).
+   m.t (the sender's own clock) is only used to put one Fellowship's own updates in order. */
+function take(m, st) {
+  if (m && m.clear && st > B.clearedAt) { /* Clear board pressed (here or on another computer) */
+    B.clearedAt = st;
     Object.keys(B.teams).forEach(id => { if (B.teams[id].t < B.clearedAt) delete B.teams[id]; });
     B.feed = B.feed.filter(f => f.t >= B.clearedAt); save(); schedule(); return;
   }
   if (m && m.hide && typeof m.hide === "string") { B.hidden[m.hide] = true; save(); schedule(); return; }
   if (!m || !m.id || !m.fs || !Array.isArray(m.p)) return;
-  if (m.t < B.clearedAt) return;
+  if (st < B.clearedAt) return;
   const old = B.teams[m.id];
-  if (old && old.t >= m.t) return;
+  if (old && (old.mt || 0) >= m.t) return;
   B.teams[m.id] = { fs: String(m.fs).slice(0, 40), opp: String(m.opp || "").slice(0, 40), lost: !!m.lost, mission: m.mission === "defend" ? "defend" : "rescue",
     result: m.result === "done" ? "done" : null, p: m.p.slice(0, 8).map(x => [String(x[0]).slice(0, 24), x[1] ? 1 : 0, x[2] ? 1 : 0]),
-    wait: !!m.ready, b0: Number(m.b0) || 0, sh: Number(m.sh) || 0, rt: Number(m.rt) || 0, end: m.end === "opp" ? "opp" : "self", ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: m.t };
+    wait: !!m.ready, b0: Number(m.b0) || 0, sh: Number(m.sh) || 0, rt: Number(m.rt) || 0, end: m.end === "opp" ? "opp" : "self", ans: Number(m.ans) || 0, ok: Number(m.ok) || 0, di: Number(m.di) || 0, last: String(m.last || "").slice(0, 160), t: st, mt: Number(m.t) || 0 };
   if (m.last && (!old || old.last !== m.last) && !B.hidden[m.id]) {
-    B.feed.unshift({ t: m.t, id: m.id, fs: B.teams[m.id].fs, msg: B.teams[m.id].last });
+    B.feed.unshift({ t: st, id: m.id, fs: B.teams[m.id].fs, msg: B.teams[m.id].last });
     B.feed.sort((a, b) => b.t - a.t); B.feed = B.feed.slice(0, 40); newFeed++;
   }
   flash.add(m.id); save(); schedule();
@@ -514,7 +524,7 @@ $("codeIn").addEventListener("keydown", e => { if (e.key === "Enter") setCode();
 function announce(obj) { if (B.code) fetch(RELAY + topicFor(B.code), { method: "POST", body: JSON.stringify(obj) }).catch(() => {}); }
 $("clearBtn").onclick = function () {
   const b = this;
-  if (b.dataset.armed === "1") { B.teams = {}; B.hidden = {}; B.feed = []; B.clearedAt = Date.now(); announce({ clear: true, t: B.clearedAt }); save(); connect(); render(); b.dataset.armed = ""; b.textContent = "Clear board"; return; }
+  if (b.dataset.armed === "1") { B.teams = {}; B.hidden = {}; B.feed = []; announce({ clear: true, t: Date.now() }); save(); render(); b.dataset.armed = ""; b.textContent = "Clear board"; return; }
   b.dataset.armed = "1"; b.textContent = "Click again to clear";
   setTimeout(() => { b.dataset.armed = ""; b.textContent = "Clear board"; }, 4000);
 };
