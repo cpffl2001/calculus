@@ -239,6 +239,7 @@ h2 { font-family: var(--display); font-weight: 400; font-size: 16px; letter-spac
       <label for="codeIn" style="position:absolute;left:-9999px">Class code</label>
       <input id="codeIn" placeholder="Class code" autocomplete="off">
       <button class="btn" id="setBtn" type="button">Set code</button>
+      <button class="btn" id="dlBtn" type="button" title="Save every Fellowship's results as a spreadsheet (CSV)">⬇ Download results</button>
       <button class="btn" id="clearBtn" type="button">Clear board</button>
     </div>
   </header>
@@ -439,7 +440,7 @@ function sideHTML(t) {
   </div>`;
 }
 
-let lastTotals = {};
+let lastTotals = {}, lastList = [], lastPairs = [];
 function setTotal(id, v) { const el = $(id); if (String(lastTotals[id]) !== String(v)) { el.textContent = v; if (lastTotals[id] !== undefined) { el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); } lastTotals[id] = v; } }
 
 function render() {
@@ -466,6 +467,7 @@ function render() {
   });
   pairs.forEach(([a, b]) => decide(a, b));
   ranked(list);
+  lastList = list; lastPairs = pairs;
   setTotal("sDone", list.filter(t => t.outcome === "win").length);
   $("matchups").innerHTML = pairs.map(([a, b]) => `<article class="match ${a.outcome ? "final" : ""}">
       ${a.outcome ? `<span class="final-tag">FINAL</span>` : ""}
@@ -534,6 +536,41 @@ document.addEventListener("click", e => {
   h.dataset.armed = "1"; h.textContent = "Remove?"; h.style.opacity = 1;
   setTimeout(() => { if (h.isConnected) { h.dataset.armed = ""; h.textContent = "✕"; h.style.opacity = ""; } }, 3000);
 });
+
+/* ---------- download results as a spreadsheet (CSV opens in Excel / Google Sheets) ---------- */
+function downloadResults() {
+  render();
+  const list = lastList;
+  const b = $("dlBtn");
+  if (!list.length) { b.textContent = "No results yet"; setTimeout(() => { b.textContent = "⬇ Download results"; }, 2500); return; }
+  const oppOf = {}; lastPairs.forEach(([x, y]) => { if (y) { oppOf[x.id] = y; oppOf[y.id] = x; } });
+  const when = ms => ms ? new Date(ms).toLocaleString([], { month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" }) : "";
+  const cell = v => { let s = String(v ?? ""); if (/^[=+\-@]/.test(s)) s = "'" + s; return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const head = ["Rank", "Fellowship", "Opponent (matched)", "Opponent (as typed)", "Matchup result", "Decided by", "Tug-of-war", "Mission",
+    "Players", "Safe in Camp", "Still in the fire", "Burned at start", "Pulled from the fire", "% safe",
+    "Cards answered", "Cards correct", "% correct", "Finished?", "Finish time", "Last update", "Players in Camp", "Players in the fire", "Last move"];
+  const rows = list.map((t, i) => {
+    const s = safe(t), f = burning(t), o = oppOf[t.id];
+    return [i + 1, t.fs, o ? o.fs : "(no opponent yet)", t.opp,
+      t.outcome === "win" ? "Won" : t.outcome === "lose" ? "Lost" : t.outcome === "tie" ? "Tie" : t.result ? "Finished, waiting for opponent" : "Still playing",
+      t.outcome && t.outcome !== "tie" ? ({ safe: "More players safe", correct: "More cards correct", time: "Finished first" }[t.how] || "") : "",
+      t.lost ? "Lost" : "Won", t.mission === "rescue" ? "Rescue" : "Defend the Camp",
+      t.p.length, s, f, t.b0, Math.max(0, t.b0 - f), t.p.length ? Math.round(100 * s / t.p.length) + "%" : "",
+      t.ans, t.ok, t.ans ? Math.round(100 * t.ok / t.ans) + "%" : "",
+      t.result ? "Yes" : "No", t.result ? when(finishedAt(t)) : "", when(t.t),
+      t.p.filter(x => !x[1]).map(x => x[0] + (x[2] ? " (singed)" : "")).join("; "),
+      t.p.filter(x => x[1]).map(x => x[0]).join("; "), t.last];
+  });
+  const csv = "﻿" + [head, ...rows].map(r => r.map(cell).join(",")).join("\r\n");
+  const d = new Date(), pad = n => String(n).padStart(2, "0");
+  const name = `plusC-results-${String(B.code).replace(/[^a-z0-9]/gi, "") || "class"}-${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.csv`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  b.textContent = "✓ Saved"; setTimeout(() => { b.textContent = "⬇ Download results"; }, 2500);
+}
+$("dlBtn").onclick = downloadResults;
 
 $("codeIn").value = B.code;
 /* Fit everything on one screen: try 1-4 columns of matchups and keep the layout that lets the cards be biggest. */
